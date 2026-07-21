@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { AEGIS_DIR, die, ok } from '../lib/util.js';
+import { COMMANDS } from '../lib/commands.js';
 
 /** aegis eval <file|--all> - prompt eval harness (O3).
  *  Deterministic checks always run. Model judge honestly SKIPPED without key. */
@@ -14,9 +15,9 @@ const REQUIRED_SECTIONS = [
 ];
 const MASTER_SECTIONS = ['## Purpose', '## Sub-Skills', '## Routing'];
 const VAGUE = ['TBD', 'to be determined', "we'll see", 'somehow'];
-const KNOWN_COMMANDS = ['init','doctor','status','next','gate','transition','contracts',
-  'lane','checkpoint','resume','ast','sync','gc','config','merge','slice','validate',
-  'monitor','eval','migrate','start','ship','skills'];
+// Derived from the cli dispatch table (lib/commands.ts) - cannot drift.
+// Read lazily: commands.ts imports this module (circular), so no top-level use.
+const knownCommands = (): string[] => [...COMMANDS, 'help'];
 
 interface CheckResult { file: string; checks: { name: string; pass: boolean; detail?: string }[]; pass: boolean }
 
@@ -48,7 +49,7 @@ function evalFile(file: string): CheckResult {
   const vagueHits = type === 'subskill' ? VAGUE.filter((v) => unquoted.toLowerCase().includes(v.toLowerCase())) : [];
   checks.push({ name: 'no-vague-markers', pass: vagueHits.length === 0, detail: vagueHits.join(', ') || undefined });
   const cmdRefs = [...content.matchAll(/(?<![\w.])aegis ([a-z-]+)/g)].map((m) => m[1]);
-  const unknown = [...new Set(cmdRefs.filter((c) => !KNOWN_COMMANDS.includes(c)))];
+  const unknown = [...new Set(cmdRefs.filter((c) => !knownCommands().includes(c)))];
   checks.push({ name: 'cli-refs-exist', pass: unknown.length === 0, detail: unknown.join(', ') || undefined });
   return { file, checks, pass: checks.every((c) => c.pass) };
 }

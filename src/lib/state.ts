@@ -43,12 +43,17 @@ export const stateP = path.join(AEGIS_DIR, 'state.json');
 export const transP = path.join(AEGIS_DIR, 'transitions.json');
 export const configP = path.join(AEGIS_DIR, 'config.json');
 
+function loadJsonOr<T>(p: string, what: string): T {
+  if (!fs.existsSync(p)) die(2, `missing ${what} - run aegis init`);
+  try { return readJ<T>(p); }
+  catch { die(2, `corrupt ${what} - fix it, restore from a checkpoint, or re-run aegis init`); }
+}
+
 export function loadState(): State {
-  if (!fs.existsSync(stateP)) die(2, 'No .aegis/state.json - run aegis init first');
-  const s = readJ<State>(stateP);
+  const s = loadJsonOr<State>(stateP, '.aegis/state.json');
   if (s.schema_version !== SCHEMA_VERSION)
     die(12, `state schema v${s.schema_version} != CLI v${SCHEMA_VERSION} - run aegis migrate`);
   return s;
 }
-export const loadTransitions = (): Transitions => readJ<Transitions>(transP);
-export const loadConfig = (): Config => readJ<Config>(configP);
+export const loadTransitions = (): Transitions => loadJsonOr<Transitions>(transP, '.aegis/transitions.json');
+export const loadConfig = (): Config => loadJsonOr<Config>(configP, '.aegis/config.json');

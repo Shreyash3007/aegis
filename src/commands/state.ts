@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { die, git, ok, writeJ } from '../lib/util.js';
 import { loadState, loadTransitions, stateP, State, Transitions, Edge } from '../lib/state.js';
 
@@ -22,17 +23,49 @@ export function status(): void {
 
 export function next(): void {
   const s = loadState(); const t = loadTransitions();
-  const e = t.edges.find((e) => e.from === s.current_skill && !e.backward && blockers(s, t, e).length === 0);
-  if (!e) die(3, `Blocked at ${s.current_skill} - no legal forward transition (run aegis status)`);
-  console.log(`next legal skill: ${e.to}`);
+  const legal = t.edges.filter((e) => e.from === s.current_skill && !e.backward && blockers(s, t, e).length === 0);
+  if (!legal.length) die(3, `Blocked at ${s.current_skill} - no legal forward transition (run aegis status)`);
+  console.log(`next legal skill: ${legal[0].to} (recommended)`);
+  for (const e of legal.slice(1)) console.log(`  also legal: ${e.to}`);
+}
+
+/** Synchronous one-line prompt on the controlling terminal (/dev/tty), so it
+ *  works even when stdin is piped. Returns '' if no terminal is available. */
+function ttyPrompt(question: string): string {
+  try {
+    const fd = fs.openSync('/dev/tty', 'r+');
+    try {
+      fs.writeSync(fd, question);
+      const buf = Buffer.alloc(1024);
+      const n = fs.readSync(fd, buf, 0, buf.length, null);
+      return buf.toString('utf8', 0, n).trim();
+    } finally { fs.closeSync(fd); }
+  } catch { return ''; }
 }
 
 export function gate(args: string[]): void {
   if (!args.includes('--approve')) die(7, 'gate requires --approve (a human action)');
   const name = args[0];
   if (!name) die(7, 'usage: aegis gate <name> --approve');
+  const t = loadTransitions();
+  if (!t.gates[name])
+    die(7, `unknown gate: ${name} (known: ${Object.keys(t.gates).join(', ')})`);
+  // proof-of-human: passing --approve proves nothing - an agent can pass flags.
+  // TTY: the human retypes the gate name to confirm. Non-TTY (agent in a
+  // pipe/CI): refuse, unless AEGIS_HUMAN_TOKEN is set - the documented CI
+  // escape hatch, attesting a human approved out-of-band (recorded as such).
+  let by = 'human';
+  if (process.env.AEGIS_HUMAN_TOKEN) {
+    by = 'human-token';
+  } else if (process.stdin.isTTY) {
+    if (ttyPrompt(`gate ${name} (${t.gates[name]}): retype the gate name to confirm: `) !== name)
+      die(7, `gate ${name} confirmation mismatch - approval refused`);
+  } else {
+    die(7, `gate ${name} --approve needs a human on a TTY (retype-to-confirm); ` +
+      'non-interactive use requires AEGIS_HUMAN_TOKEN=1 (CI escape hatch)');
+  }
   const s = loadState();
-  s.gates[name] = { status: 'approved', at: new Date().toISOString(), by: 'human' };
+  s.gates[name] = { status: 'approved', at: new Date().toISOString(), by };
   writeJ(stateP, s);
   ok(`gate ${name} approved and recorded`);
 }
@@ -68,7 +101,7 @@ export function transition(args: string[]): void {
 
 export function contracts(): void {
   const s = loadState();
-  const merged = git('ls-files src/contracts').length > 0 && !git('status --porcelain src/contracts');
+  const merged = git(['ls-files', 'src/contracts']).length > 0 && !git(['status', '--porcelain', 'src/contracts']);
   if (!merged) die(4, 'contracts not committed on base branch');
   s.contracts_merged = true;
   writeJ(stateP, s);

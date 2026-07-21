@@ -67,7 +67,10 @@ Run `aegis doctor` to see the detected environment level (L0/L1/L2).
 | G3 integration | validation | `aegis gate G3 --approve` |
 | G4 ship | shipping | `aegis gate G4 --approve` |
 
-Only the human approves gates. Present the artifact, recommend, wait.
+Only the human approves gates. Present the artifact, recommend, wait. The CLI
+enforces proof-of-human: interactive use prompts to retype the gate name;
+non-interactive (CI) use requires `AEGIS_HUMAN_TOKEN=1` (recorded as
+`by: human-token`). Unknown gate names are refused (exit 7).
 
 ## 6. Build Rules (the 5 non-negotiables)
 

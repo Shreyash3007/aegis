@@ -30,10 +30,10 @@ export function doctor(): DoctorReport {
   };
   const in_ci = !!(env.CI || env.GITHUB_ACTIONS);
   let worktrees_pruned = false;
-  try { git('worktree prune'); worktrees_pruned = true; } catch { /* not fatal */ }
+  try { git(['worktree', 'prune']); worktrees_pruned = true; } catch { /* not fatal */ }
   return {
     node: process.version,
-    git: git('--version'),
+    git: git(['--version']),
     platform_hint,
     shell_access: true, // if this CLI is running, a shell exists
     ram_total_mb: Math.round(os.totalmem() / 1048576),

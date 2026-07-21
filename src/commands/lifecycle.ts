@@ -37,7 +37,8 @@ export async function init(args: string[]): Promise<void> {
   // .gitignore: machine state NEVER enters git history (A1.4)
   const gi = path.join(REPO, '.gitignore');
   const prev = fs.existsSync(gi) ? fs.readFileSync(gi, 'utf8') : '';
-  if (!prev.split('\n').includes('.aegis/')) fs.writeFileSync(gi, prev + '.aegis/\n');
+  if (!prev.split('\n').includes('.aegis/'))
+    fs.writeFileSync(gi, (prev && !prev.endsWith('\n') ? prev + '\n' : prev) + '.aegis/\n');
 
   writeJ(transP, defaultTransitions());
   writeJ(stateP, {

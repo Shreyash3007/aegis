@@ -9,7 +9,7 @@ export function checkpoint(args) {
     const quiet = args.includes('--quiet');
     let gitSha = 'unknown';
     try {
-        gitSha = git('rev-parse HEAD');
+        gitSha = git(['rev-parse', 'HEAD']);
     }
     catch { /* pre-first-commit */ }
     const cp = {
@@ -41,7 +41,7 @@ export function resume() {
         die(6, `INTEGRITY MISMATCH since ${cp.id}:\n  ${drift.join('\n  ')}\n  generated views? run aegis sync / aegis ast build, then resume again\n  otherwise: HUMAN ESCALATION`);
     let gitDrift = '';
     try {
-        const d = git('status --porcelain');
+        const d = git(['status', '--porcelain']);
         if (d)
             gitDrift = `\n  uncommitted changes: ${d.split('\n').length} files`;
     }

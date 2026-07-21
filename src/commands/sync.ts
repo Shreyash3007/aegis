@@ -20,7 +20,14 @@ export function sync(): void {
     '',
   ].join('\n');
   for (const name of ['AGENTS.md', 'CLAUDE.md']) {
-    fs.writeFileSync(path.join(REPO, name), header + ctx);
+    const p = path.join(REPO, name);
+    const content = header + ctx;
+    // never clobber hand-edited content silently: back up differing files first
+    if (fs.existsSync(p) && fs.readFileSync(p, 'utf8') !== content) {
+      fs.copyFileSync(p, `${p}.bak`);
+      console.log(`note: existing ${name} differs - backed up to ${name}.bak`);
+    }
+    fs.writeFileSync(p, content);
   }
   ok('AGENTS.md + CLAUDE.md regenerated from brain');
 }

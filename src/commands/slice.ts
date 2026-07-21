@@ -19,7 +19,7 @@ export function slice(args: string[]): void {
     const dir = path.join(wtRoot(), name);
     const branch = `aegis/slice-${name}`;
     fs.mkdirSync(wtRoot(), { recursive: true });
-    try { git(`worktree add ${dir} -b ${branch}`); }
+    try { git(['worktree', 'add', dir, '-b', branch]); }
     catch (e: any) { die(4, `worktree create failed: ${String(e.message).split('\n')[0]}`); }
     s.slices[name] = { dir, branch, created: new Date().toISOString() };
     s.lanes.active.push(name);
@@ -35,7 +35,7 @@ export function slice(args: string[]): void {
   } else if (op === 'remove') {
     const meta = s.slices?.[name];
     if (!meta) die(2, `unknown slice: ${name}`);
-    try { git(`worktree remove ${meta.dir} --force`); } catch { /* may be gone */ }
+    try { git(['worktree', 'remove', meta.dir, '--force']); } catch { /* may be gone */ }
     delete s.slices[name];
     s.lanes.active = s.lanes.active.filter((x: string) => x !== name);
     writeJ(stateP, s);

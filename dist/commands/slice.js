@@ -18,7 +18,7 @@ export function slice(args) {
         const branch = `aegis/slice-${name}`;
         fs.mkdirSync(wtRoot(), { recursive: true });
         try {
-            git(`worktree add ${dir} -b ${branch}`);
+            git(['worktree', 'add', dir, '-b', branch]);
         }
         catch (e) {
             die(4, `worktree create failed: ${String(e.message).split('\n')[0]}`);
@@ -44,7 +44,7 @@ export function slice(args) {
         if (!meta)
             die(2, `unknown slice: ${name}`);
         try {
-            git(`worktree remove ${meta.dir} --force`);
+            git(['worktree', 'remove', meta.dir, '--force']);
         }
         catch { /* may be gone */ }
         delete s.slices[name];
