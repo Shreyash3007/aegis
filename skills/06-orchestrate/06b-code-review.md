@@ -34,6 +34,34 @@ L0+ (judgment-driven). L1+ for graph-assisted checks.
 - Cohesion: do modules change for one reason?
 - Testability: can each module be tested without the world?
 
+## Severity Taxonomy
+- Blocker: correctness, security, or structural flaw that will compound.
+  Pipeline: rollback edge 06b -> 02a via `aegis transition 02a --reason "<finding>"`.
+- Major: real maintainability damage. Pipeline: fix before 08a (Verdict).
+- Minor: local inconsistency. Pipeline: route to 07a tech-debt backlog.
+- Note: observation only. Pipeline: recorded for trend, no action.
+
+## Scoring Anchors (1-5 per criterion)
+- Consistency: 1 = every module invents its own idiom; 5 = standards.md
+  violations are rare and each is justified inline.
+- Simplicity: 1 = names lie about scope; 5 = every module fits its name.
+- Naming: 1 = constant source-diving to guess contents; 5 = the name
+  predicts the contents every time.
+- Coupling: 1 = graph cycles and cross-layer imports; 5 = dependencies
+  flow one direction only.
+- Cohesion: 1 = modules change for many unrelated reasons; 5 = one reason
+  to change per module.
+- Testability: 1 = tests need the whole world booted; 5 = each module
+  tests with plain fixtures.
+
+## Worked Example Findings
+- Bad: "Code looks messy, score 2." - no file, no criterion, no severity,
+  unactionable.
+- Good: "src/auth/session.ts imports src/ui/toast.ts (module-graph edge) -
+  UI dependency in core. Consistency 2/5, Major: fix before 08a."
+- Good: "billing/invoice.ts mixes tax rules with PDF rendering - two
+  reasons to change. Cohesion 2/5, Minor: 07a backlog."
+
 ## Input Schema
 - Unified codebase
 - brain/architecture/standards.md, system.md
@@ -51,7 +79,11 @@ team's code - and would I want to debug it at 3 AM?"
 - Minor issues -> route to 07a tech-debt backlog.
 
 ## Output Schema
-- brain/quality/review-report.md (criteria-scored, evidence-linked)
+- brain/quality/review-report.md, pinned structure so runs are comparable:
+  1. Header: date, commit, `aegis ast build` result (cycles: none/found)
+  2. Score table: one row per criterion (score 1-5 + one-line evidence)
+  3. Findings: each with severity, file-level evidence, pipeline consequence
+  4. Verdict: proceed / fix-Major-before-08a / rollback (Blocker)
 
 ## Measurement Citations
 Structural claims cite module-graph edges. Judgment calls are labeled as judgment.

@@ -30,6 +30,18 @@ L2 (CI/scheduler). Below L2: report states NOT ACTIVE - no scheduler.
 - Error: any non-2xx or unreachable -> breach
 - Latency: > 2x benchmark -> breach
 
+## Incident Severity
+- SEV1: user-facing outage or data loss. Example: /health unreachable on
+  consecutive runs. Response: immediate human notification; consider
+  rollback via `aegis transition <prior-skill> --reason "SEV1 <evidence>"`.
+- SEV2: core journey degraded. Example: p95 latency > 2x benchmark.
+  Response: human notified same day; investigate before next deploy.
+- SEV3: partial or non-core degradation. Response: ticket, fix this week.
+- SEV4: cosmetic or single-occurrence blip. Response: ticket, backlog.
+Mapping: exit 10 still opens the CI incident issue, tagged with severity;
+SEV1/SEV2 additionally notify the human directly. Accept-without-fix is
+only legal for SEV3/SEV4.
+
 ## Input Schema
 - .aegis/monitor-targets.json
 - brain/quality/observability-spec.md

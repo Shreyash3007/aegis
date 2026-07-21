@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { die, git, gitTry, ok, writeJ } from '../lib/util.js';
-import { loadState, loadTransitions, stateP } from '../lib/state.js';
+import { loadState, loadTransitions, loadConfig, stateP } from '../lib/state.js';
 function blockers(s, t, e) {
     const b = [];
     if (e.gate && s.gates[e.gate]?.status !== 'approved')
@@ -18,6 +18,9 @@ export function status() {
     const s = loadState();
     const t = loadTransitions();
     console.log(`state: ${s.current_skill} | lanes: ${s.lanes.active.length}/${s.lanes.max} [${s.lanes.active.join(', ')}]`);
+    const tb = loadConfig().token_budget;
+    if (tb)
+        console.log(`token budget: ${tb} (advisory)`);
     for (const e of t.edges.filter((e) => e.from === s.current_skill)) {
         const b = blockers(s, t, e);
         console.log(`  -> ${e.to}${e.backward ? ' (rollback)' : ''} ${b.length ? 'BLOCKED: ' + b.join(', ') : 'legal'}`);

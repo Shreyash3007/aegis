@@ -33,6 +33,19 @@ After 05b.
 - Medium: UI glitch, minor error
 - Low: code smell, tech debt
 
+## Flaky Tests
+A flaky test is a bug in the suite, not a pass.
+- Quarantine procedure: mark the test (skip/quarantine tag), file a ticket,
+  link both in known-issues.md. Never silently retry until it passes.
+- Retry budget: max 2 reruns per run. Still failing after that = a real
+  failure - classify per Bug Categories above and fix.
+- Flaky rate must be measured and cited with tool + command per the
+  Measurement Citations rule (e.g. rerun counts from `aegis validate tests`,
+  or the runner repeat flag with output pasted).
+- known-issues.md entry format:
+  - [FLAKY] <test name> | first seen: <date> | rate: <x of y runs, tool
+    cited> | suspected cause: timing/order/env | ticket: <link>
+
 ## Input Schema
 - Unified codebase
 - brain/quality/known-issues.md

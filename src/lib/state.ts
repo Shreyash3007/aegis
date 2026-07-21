@@ -41,6 +41,7 @@ export interface Config {
   pii_logs: boolean;
   model_tiers: { strong: string; standard: string; light: string };
   lane_costs_mb: { browser_e2e: number; dev_server: number; codegen: number };
+  token_budget?: number; // advisory only (06d) - surfaced in `aegis status`, never enforced
 }
 
 export const stateP = path.join(AEGIS_DIR, 'state.json');

@@ -1,7 +1,9 @@
 // Shared scaffolding for Aegis CLI integration tests.
 // Every test spawns the BUILT CLI (dist/cli.js) in a throwaway git repo
-// created with fs.mkdtempSync under os.tmpdir(). No network access anywhere
-// in this suite (the merge-oracle test vendors its toolchain - see merge.test.js).
+// created with fs.mkdtempSync under os.tmpdir(). No external network access
+// anywhere in this suite (the merge-oracle test vendors its toolchain - see
+// merge.test.js; the judge test stubs its endpoint on loopback - see
+// eval-judge.test.js).
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -23,11 +25,15 @@ export function gitIn(dir, args) {
 
 /** Run the built CLI in `dir`. stdin is a pipe (never a TTY) - exactly the
  *  agent/CI posture the proof-of-human gate is built against, so gate tests
- *  exercise the non-TTY path by default. AEGIS_HUMAN_TOKEN is scrubbed from
- *  the inherited environment; tests opt in per case via opts.env. */
+ *  exercise the non-TTY path by default. AEGIS_HUMAN_TOKEN and the judge
+ *  env vars are scrubbed from the inherited environment; tests opt in per
+ *  case via opts.env. */
 export function aegis(dir, args, { env = {} } = {}) {
   const fullEnv = { ...process.env };
   delete fullEnv.AEGIS_HUMAN_TOKEN;
+  delete fullEnv.AEGIS_JUDGE_API_KEY;
+  delete fullEnv.AEGIS_JUDGE_URL;
+  delete fullEnv.AEGIS_JUDGE_MODEL;
   Object.assign(fullEnv, env);
   const r = spawnSync(process.execPath, [CLI, ...args], {
     cwd: dir, encoding: 'utf8', env: fullEnv, timeout: 60000,

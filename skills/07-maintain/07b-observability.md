@@ -28,6 +28,18 @@ L1+ for endpoint verification; document-only at L0.
 6. Runbooks for the top 5 failure modes.
 7. Self-critique; present.
 
+## SLIs and SLOs
+- Pick 2-4 SLIs per user journey, from what the user feels: availability
+  (2xx rate), latency (p95 vs benchmark), correctness (error-free
+  completions), freshness (data age).
+- Set one SLO target per SLI. Example budgets: 99.9% availability =
+  43 min/month error budget; 99.95% = 22 min/month.
+- Error-budget burn rate maps to the alert tiers above:
+  fast burn (budget gone in days) -> page; slow burn (gone within the
+  month) -> ticket; within budget -> log.
+- SLIs that map to endpoints must also appear in
+  .aegis/monitor-targets.json so `aegis monitor --once` checks them in CI.
+
 ## Input Schema
 - Unified codebase
 - brain/architecture/system.md, api-contracts.md
@@ -47,8 +59,10 @@ Read: codebase, system.md, api-contracts | Write: observability-spec.md
 these signals alone?"
 
 ## Output Schema
-- brain/quality/observability-spec.md
-- .aegis/monitor-targets.json
+- brain/quality/observability-spec.md, pinned: per user journey, the 2-4
+  SLIs with SLO target + error budget, and the burn-rate -> alert-tier
+  mapping for each
+- .aegis/monitor-targets.json (endpoints/latency backing the SLIs)
 - dashboard definitions
 
 ## CLI Contract

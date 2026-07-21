@@ -12,6 +12,12 @@ const SETTABLE = {
     human_lane_cap: (v) => Math.max(1, parseInt(v, 10) || 2),
     ship_profile: (v) => (v === 'prototype' ? 'prototype' : 'production'),
     pii_logs: (v) => v === 'true',
+    token_budget: (v) => {
+        const n = parseInt(v, 10);
+        if (!Number.isFinite(n) || n <= 0)
+            die(4, 'token_budget: positive integer (advisory, not enforced)');
+        return n;
+    },
 };
 /** aegis config            -> print config
  *  aegis config set k v    -> update one key (agent-driven setup, 00b) */

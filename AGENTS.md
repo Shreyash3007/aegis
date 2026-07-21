@@ -111,8 +111,19 @@ non-interactive (CI) use requires `AEGIS_HUMAN_TOKEN=1` (recorded as
 | `aegis sync` / `gc` | regenerate AGENTS.md etc. / retention |
 | `aegis monitor --once` | post-ship check (10=breach) |
 | `aegis eval <file\|--all>` | skill-file lint (11=regression) |
-| `aegis config [set k v]` | view/update interview answers |
+| `aegis config [set k v]` | view/update interview answers; `token_budget N` is advisory-only (surfaced in `aegis status`, never enforced) |
 | `aegis migrate` | schema upgrades (12=version mismatch) |
+
+### `aegis eval` model judge (opt-in, failure-strict)
+
+The deterministic lint always runs. Setting `AEGIS_JUDGE_API_KEY` opts into a
+model-judge pass: one chat completion per skill file against a strict rubric.
+`AEGIS_JUDGE_URL` selects any OpenAI-compatible endpoint (default
+`https://api.openai.com/v1/chat/completions`); `AEGIS_JUDGE_MODEL` selects the
+model (default `gpt-4o-mini`). A judge **fail** verdict causes exit 11 on its
+own; a **judge-error** (timeout, HTTP error, unparseable verdict) is reported
+honestly and never affects the exit code. With the key unset, behavior is
+byte-identical to lint-only mode (judge SKIPPED, no network).
 
 ## 8. Honesty Rules (violations are worse than failures)
 
