@@ -1,0 +1,24 @@
+# AEGIS post-ship monitor - the scheduler is EXTERNAL (08b).
+# This workflow invokes one monitoring pass on a schedule.
+name: aegis-monitor
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # first 24h after ship; loosen to hourly after a week
+  workflow_dispatch:
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npx aegis monitor --once
+      - if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: 'AEGIS monitor BREACH', body: 'aegis monitor --once exited 10. See run logs.',
+              labels: ['aegis', 'incident']
+            })

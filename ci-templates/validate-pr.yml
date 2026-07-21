@@ -1,0 +1,13 @@
+# AEGIS PR validation - contract integrity + typecheck on every PR.
+name: aegis-validate
+on: [pull_request]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+      - run: npx aegis validate contracts
+      - run: npx aegis validate tests

@@ -1,0 +1,100 @@
+import { die, git, ok, writeJ } from '../lib/util.js';
+import { loadState, loadTransitions, stateP } from '../lib/state.js';
+function blockers(s, t, e) {
+    const b = [];
+    if (e.gate && s.gates[e.gate]?.status !== 'approved')
+        b.push(`gate ${e.gate} (${t.gates[e.gate]}) OPEN`);
+    if (e.requiresContracts && !s.contracts_merged)
+        b.push('contracts UNMERGED');
+    const loop = s.loop_counters[`${e.from}->${e.to}`] || 0;
+    if (loop >= t.max_loop)
+        b.push(`edge loop limit ${loop}/${t.max_loop}`);
+    if ((s.state_visits[e.to] || 0) >= t.max_loop)
+        b.push(`state ${e.to} visited ${s.state_visits[e.to]}x (cycle guard)`);
+    return b;
+}
+export function status() {
+    const s = loadState();
+    const t = loadTransitions();
+    console.log(`state: ${s.current_skill} | lanes: ${s.lanes.active.length}/${s.lanes.max} [${s.lanes.active.join(', ')}]`);
+    for (const e of t.edges.filter((e) => e.from === s.current_skill)) {
+        const b = blockers(s, t, e);
+        console.log(`  -> ${e.to}${e.backward ? ' (rollback)' : ''} ${b.length ? 'BLOCKED: ' + b.join(', ') : 'legal'}`);
+    }
+}
+export function next() {
+    const s = loadState();
+    const t = loadTransitions();
+    const e = t.edges.find((e) => e.from === s.current_skill && !e.backward && blockers(s, t, e).length === 0);
+    if (!e)
+        die(3, `Blocked at ${s.current_skill} - no legal forward transition (run aegis status)`);
+    console.log(`next legal skill: ${e.to}`);
+}
+export function gate(args) {
+    if (!args.includes('--approve'))
+        die(7, 'gate requires --approve (a human action)');
+    const name = args[0];
+    if (!name)
+        die(7, 'usage: aegis gate <name> --approve');
+    const s = loadState();
+    s.gates[name] = { status: 'approved', at: new Date().toISOString(), by: 'human' };
+    writeJ(stateP, s);
+    ok(`gate ${name} approved and recorded`);
+}
+export function transition(args) {
+    const to = args[0];
+    if (!to)
+        die(4, 'usage: aegis transition <skill> [--reason <text>]');
+    const s = loadState();
+    const t = loadTransitions();
+    const e = t.edges.find((e) => e.from === s.current_skill && e.to === to);
+    if (!e)
+        die(4, `ILLEGAL transition ${s.current_skill} -> ${to} (no such edge)`);
+    if (e.backward && !args.includes('--reason'))
+        die(4, 'Backward transition requires --reason');
+    const b = blockers(s, t, e);
+    if (b.length) {
+        const isEscalation = b.some((x) => x.includes('cycle guard') || x.includes('loop limit'));
+        die(isEscalation ? 5 : 4, `${isEscalation ? 'ESCALATION' : 'ILLEGAL'}: ${b.join('; ')} - CLI refuses`);
+    }
+    const key = `${e.from}->${e.to}`;
+    s.loop_counters[key] = (s.loop_counters[key] || 0) + 1;
+    if (s.loop_counters[key] > t.max_loop)
+        die(5, `LOOP LIMIT: edge ${key} traversed ${s.loop_counters[key]}x - human escalation forced`);
+    // cycle guard (A1.3): per-edge counters miss ping-pong across DIFFERENT edges
+    s.state_visits[to] = (s.state_visits[to] || 0) + 1;
+    if (s.state_visits[to] > t.max_loop)
+        die(5, `CYCLE DETECTED: state ${to} entered ${s.state_visits[to]}x - human escalation forced`);
+    s.history.push({ skill: s.current_skill, at: new Date().toISOString() });
+    s.current_skill = to;
+    writeJ(stateP, s);
+    ok(`transition ${e.from} -> ${to} recorded (edge ${s.loop_counters[key]}/${t.max_loop}, state-visits ${s.state_visits[to]}/${t.max_loop})`);
+}
+export function contracts() {
+    const s = loadState();
+    const merged = git('ls-files src/contracts').length > 0 && !git('status --porcelain src/contracts');
+    if (!merged)
+        die(4, 'contracts not committed on base branch');
+    s.contracts_merged = true;
+    writeJ(stateP, s);
+    ok('contract PR verified merged - 04a unlocked (N1)');
+}
+export function lane(args) {
+    const [op, slice] = args;
+    const s = loadState();
+    if (op === 'open') {
+        if (!slice)
+            die(4, 'usage: aegis lane open <slice>');
+        if (s.lanes.active.length >= s.lanes.max)
+            die(4, `LANE CAP: ${s.lanes.active.length}/${s.lanes.max} active - refuses to spawn (N5)`);
+        s.lanes.active.push(slice);
+        ok(`lane opened: ${slice} (${s.lanes.active.length}/${s.lanes.max})`);
+    }
+    else if (op === 'close') {
+        s.lanes.active = s.lanes.active.filter((x) => x !== slice);
+        ok(`lane closed: ${slice}`);
+    }
+    else
+        die(4, 'usage: aegis lane <open|close> <slice>');
+    writeJ(stateP, s);
+}
