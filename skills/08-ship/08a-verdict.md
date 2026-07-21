@@ -8,7 +8,7 @@ If you're not ready, you don't ship - and 'ready' has a definition."
 Final Go/No-Go decision with explicit, measurable criteria and rollback routing.
 
 ## Trigger
-After 07c, or `aegis ship` request.
+After 07c, or a ship request (`aegis transition 08a`).
 
 ## Entry Criteria
 - All quality reports exist; ship_profile from config (O6)

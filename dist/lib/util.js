@@ -35,6 +35,16 @@ export const writeJ = (p, o) => fs.writeFileSync(p, JSON.stringify(o, null, 2) +
 export const git = (args, cwd = REPO) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
 /** git helper - raw output, for diffs and content-level checks only. */
 export const gitRaw = (args, cwd = REPO) => execFileSync('git', args, { cwd, encoding: 'utf8' });
+/** git helper for probes (ref existence etc.): '' on failure, stderr suppressed
+ *  so expected misses don't leak `fatal:` noise into command output. */
+export const gitTry = (args, cwd = REPO) => {
+    try {
+        return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+    }
+    catch {
+        return '';
+    }
+};
 export const has = (bin) => {
     try {
         execSync(`command -v ${bin}`, { stdio: 'pipe' });

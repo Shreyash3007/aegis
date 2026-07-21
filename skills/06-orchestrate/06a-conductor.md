@@ -9,7 +9,7 @@ Read runtime state, decide the next skill, handle transitions, surface loops
 and cycles to the human.
 
 ## Trigger
-`aegis start`, after any skill completes, or on human request.
+`aegis next`, after any skill completes, or on human request.
 
 ## Entry Criteria
 - `.aegis/state.json` exists (init complete)

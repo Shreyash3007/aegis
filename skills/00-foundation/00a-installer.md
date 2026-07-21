@@ -8,7 +8,8 @@ scripts, zero assumptions. "If init isn't boring, it's wrong."
 One-command installation of Aegis into any git repo.
 
 ## Trigger
-`aegis init` (or first `aegis start` in a repo without `.aegis/`).
+`aegis init` (any other command in a repo without `.aegis/` fails with exit 2
+and directs here).
 
 ## Entry Criteria
 - Git repo exists. (Missing -> exit 1, halt.)

@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { die, git, ok, writeJ } from '../lib/util.js';
+import { die, git, gitTry, ok, writeJ } from '../lib/util.js';
 import { loadState, loadTransitions, stateP } from '../lib/state.js';
 function blockers(s, t, e) {
     const b = [];
@@ -98,14 +98,12 @@ export function transition(args) {
         const isEscalation = b.some((x) => x.includes('cycle guard') || x.includes('loop limit'));
         die(isEscalation ? 5 : 4, `${isEscalation ? 'ESCALATION' : 'ILLEGAL'}: ${b.join('; ')} - CLI refuses`);
     }
+    // blockers() already refused at >= max_loop, so one traversal here can at
+    // most REACH the limit; escalation fires on the NEXT attempt (single check).
     const key = `${e.from}->${e.to}`;
     s.loop_counters[key] = (s.loop_counters[key] || 0) + 1;
-    if (s.loop_counters[key] > t.max_loop)
-        die(5, `LOOP LIMIT: edge ${key} traversed ${s.loop_counters[key]}x - human escalation forced`);
     // cycle guard (A1.3): per-edge counters miss ping-pong across DIFFERENT edges
     s.state_visits[to] = (s.state_visits[to] || 0) + 1;
-    if (s.state_visits[to] > t.max_loop)
-        die(5, `CYCLE DETECTED: state ${to} entered ${s.state_visits[to]}x - human escalation forced`);
     s.history.push({ skill: s.current_skill, at: new Date().toISOString() });
     s.current_skill = to;
     writeJ(stateP, s);
@@ -113,12 +111,55 @@ export function transition(args) {
 }
 export function contracts() {
     const s = loadState();
-    const merged = git(['ls-files', 'src/contracts']).length > 0 && !git(['status', '--porcelain', 'src/contracts']);
-    if (!merged)
-        die(4, 'contracts not committed on base branch');
+    if (!git(['ls-files', 'src/contracts']).length || git(['status', '--porcelain', 'src/contracts']))
+        die(4, 'contracts not committed');
+    // N1 means MERGED TO BASE, not just committed on a branch: resolve the base
+    // (origin/HEAD -> remote default -> local main/master) and require
+    // src/contracts to exist in its tree.
+    let base = gitTry(['rev-parse', '--abbrev-ref', 'origin/HEAD']);
+    if (!base) {
+        for (const cand of ['origin/main', 'origin/master', 'main', 'master']) {
+            if (gitTry(['rev-parse', '--verify', cand])) {
+                base = cand;
+                break;
+            }
+        }
+    }
+    if (!base)
+        die(4, 'no base branch found (origin/HEAD, origin/main, main) - cannot verify contract merge');
+    if (!git(['ls-tree', '-r', '--name-only', base, '--', 'src/contracts']))
+        die(4, `src/contracts not in ${base} - contract PR not merged to base branch`);
+    const unmerged = gitTry(['diff', '--name-only', base, 'HEAD', '--', 'src/contracts']);
+    if (unmerged)
+        die(4, `contract changes not merged to ${base}: ${unmerged.split('\n').join(', ')}`);
     s.contracts_merged = true;
     writeJ(stateP, s);
-    ok('contract PR verified merged - 04a unlocked (N1)');
+    if (base.startsWith('origin/'))
+        ok(`contract PR verified merged to ${base} - 04a unlocked (N1)`);
+    else
+        ok(`contracts verified against local ${base}; ` +
+            `${gitTry(['remote']) ? 'remote base branch not found' : 'no remote'} - UNVERIFIED for PR merge`);
+}
+/** loops reset - human-reviewed recovery from exit-5 escalation: zeroes the
+ *  per-edge loop counters and per-state visit counters. Reason is mandatory
+ *  and the event (reason + cleared counters) is appended to state history. */
+export function loops(args) {
+    if (args[0] !== 'reset')
+        die(4, 'usage: aegis loops reset --reason <text>');
+    const ri = args.indexOf('--reason');
+    const reason = ri >= 0 ? args[ri + 1] : undefined;
+    if (!reason)
+        die(4, 'loops reset requires --reason (recorded in the audit trail)');
+    const s = loadState();
+    const cleared = [...Object.keys(s.loop_counters), ...Object.keys(s.state_visits)];
+    s.loop_counters = {};
+    s.state_visits = {};
+    s.history.push({
+        skill: s.current_skill, at: new Date().toISOString(),
+        event: 'loops-reset', reason, cleared,
+    });
+    writeJ(stateP, s);
+    ok(`loop + cycle counters reset (${cleared.length} cleared) - recorded in history`);
 }
 export function lane(args) {
     const [op, slice] = args;

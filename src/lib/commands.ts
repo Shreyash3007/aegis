@@ -1,5 +1,5 @@
 import { init, doctorCmd } from '../commands/lifecycle.js';
-import { status, next, gate, transition, contracts, lane } from '../commands/state.js';
+import { status, next, gate, transition, contracts, loops, lane } from '../commands/state.js';
 import { checkpoint, resume } from '../commands/persist.js';
 import { ast } from '../commands/ast.js';
 import { sync, gc } from '../commands/sync.js';
@@ -14,7 +14,7 @@ import { migrate } from '../commands/migrate.js';
 /** The dispatch table - single source of truth for the command set. COMMANDS
  *  is derived from its keys, so cli.ts and eval.ts can never drift. */
 const DISPATCH: Record<string, (args: string[]) => void | Promise<void>> = {
-  init, doctor: doctorCmd, status, next, gate, transition, contracts, lane,
+  init, doctor: doctorCmd, status, next, gate, transition, contracts, loops, lane,
   checkpoint, resume, ast, sync, gc, config, merge, slice, validate, monitor,
   eval: evalCmd, migrate,
 };

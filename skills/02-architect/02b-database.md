@@ -46,6 +46,7 @@ did I actually write the down migration? Did I handle the race condition?
 Which endpoint leaks existence of resources?"
 
 ## Error Escalation Protocol
+- Schema exposes an architecture flaw -> `aegis transition 02a --reason "<flaw>"`.
 - Schema breaks existing data (brownfield) -> human escalation with migration plan.
 - Contract PR unmerged -> 04a is CLI-blocked anyway; surface early.
 
@@ -58,7 +59,9 @@ Which endpoint leaks existence of resources?"
 Migration verification cites the dry-run command and result; else UNVERIFIED.
 
 ## CLI Contract
-- Runtime: commit contracts, then `aegis contracts` (verifies + unlocks 04a),
+- Runtime: merge the contract PR to the base branch, then `aegis contracts`
+  (verifies src/contracts is in the base branch + unlocks 04a; without a
+  remote it verifies against local main/master and says UNVERIFIED),
   `aegis transition 02c`
 - Manual: human runs.
 

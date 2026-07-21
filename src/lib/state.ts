@@ -5,10 +5,14 @@ import { AEGIS_DIR, die, readJ } from './util.js';
 export const SCHEMA_VERSION = 1;
 
 export interface GateRecord { status: 'approved'; at: string; by: string }
+export interface HistoryEntry {
+  skill: string; at: string;
+  event?: string; reason?: string; cleared?: string[]; // loops-reset audit fields
+}
 export interface State {
   schema_version: number;
   current_skill: string;
-  history: { skill: string; at: string }[];
+  history: HistoryEntry[];
   loop_counters: Record<string, number>;
   state_visits: Record<string, number>;
   gates: Record<string, GateRecord>;
@@ -55,5 +59,36 @@ export function loadState(): State {
     die(12, `state schema v${s.schema_version} != CLI v${SCHEMA_VERSION} - run aegis migrate`);
   return s;
 }
-export const loadTransitions = (): Transitions => loadJsonOr<Transitions>(transP, '.aegis/transitions.json');
+export const loadTransitions = (): Transitions =>
+  validateTransitions(loadJsonOr<Transitions>(transP, '.aegis/transitions.json'));
 export const loadConfig = (): Config => loadJsonOr<Config>(configP, '.aegis/config.json');
+
+const STATE_ID = /^\d{2}[a-z]$/;
+
+/** Startup sanity (warn, never die - drift guard for hand-edited/machine
+ *  transitions): edge endpoints must look like state ids (NNx); endpoints with
+ *  no skill file under .aegis/skills/ are noted, since advisory states without
+ *  a pipeline file are legitimate but typos are not. */
+function validateTransitions(t: Transitions): Transitions {
+  const skillsDir = path.join(AEGIS_DIR, 'skills');
+  const known = new Set<string>();
+  if (fs.existsSync(skillsDir)) {
+    for (const fam of fs.readdirSync(skillsDir)) {
+      const d = path.join(skillsDir, fam);
+      if (!fs.statSync(d).isDirectory()) continue;
+      for (const f of fs.readdirSync(d)) {
+        const m = /^(\d{2}[a-z])-/.exec(f);
+        if (m) known.add(m[1]);
+      }
+    }
+  }
+  const notes = new Set<string>();
+  for (const e of t.edges) {
+    for (const id of [e.from, e.to]) {
+      if (!STATE_ID.test(id)) notes.add(`edge ${e.from}->${e.to}: '${id}' is not a state id (NNx)`);
+      else if (known.size && !known.has(id)) notes.add(`edge ${e.from}->${e.to}: no skill file for ${id}`);
+    }
+  }
+  for (const n of notes) console.error(`note: transitions.json: ${n}`);
+  return t;
+}

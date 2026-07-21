@@ -45,7 +45,9 @@ serializes work? Did I miss a real one that will collide at merge? Is the
 merge order actually topological?"
 
 ## Error Escalation Protocol
-- Circular dependency between slices -> rollback to 02a with the cycle.
+- Circular dependency between slices -> rollback to 02b with the cycle
+  (02a reachable via 02b->02a if the flaw is architectural).
+- Contract gap found during planning -> `aegis transition 02b --reason "<gap>"`.
 - Slice too complex (> limits) -> split, or flag for architecture review.
 
 ## Output Schema

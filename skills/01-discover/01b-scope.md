@@ -44,6 +44,8 @@ assumption, or the easiest one? What am I afraid to cut?"
 ## Error Escalation Protocol
 Developer demands everything in V1 -> escalate with risk analysis
 (timeline x feature count x integration risk). Human decides.
+PRD gap discovered during scoring -> `aegis transition 01a --reason "<gap>"`
+(re-open the PRD; freeze gate re-applies on the way back).
 
 ## Output Schema
 - `brain/roadmap/v1-scope.md` (FROZEN)

@@ -47,13 +47,17 @@ Run `aegis doctor` to see the detected environment level (L0/L1/L2).
 ```
 00a init -> 00b interview -> [00d brownfield] -> 01a PRD -> 01b scope ->
 01c design -> 02a system -> G1 -> 02b database -> 02c security -> G2 ->
-03a plan -> 03b standards -> [N1 contracts] -> 04a build -> 04b merge ->
-04c integration -> G3 -> 05a-05e validate -> 06b review -> 07a-07c maintain
--> 08a verdict -> G4 -> 08b monitor -> 08c feedback
+03a plan -> 03b standards -> [06d perf budget] -> [N1 contracts] ->
+04a build -> 04b merge -> 04c integration -> G3 -> 05a-05e validate ->
+06b review -> 07a-07c maintain -> 08a verdict -> G4 -> 08b monitor ->
+08c feedback
 ```
 
 - Move with `aegis transition <skill>`. Illegal jumps are refused (exit 4).
-- Backward moves need `--reason "why"`.
+- Backward moves need `--reason "why"`. Legal repair paths: 01b/01c->01a
+  (PRD gap), 02a->01b (scope infeasible), 02b->02a (arch flaw), 03a->02b
+  (contract gap), plus the build/validate/ship rollbacks in transitions.json.
+- 06e (error escalation) is reachable on structural error from 04a/04b/04c/05c.
 - Loops and cycles are detected (exit 5) — **stop and escalate to the human**;
   do not retry.
 
@@ -74,8 +78,10 @@ non-interactive (CI) use requires `AEGIS_HUMAN_TOKEN=1` (recorded as
 
 ## 6. Build Rules (the 5 non-negotiables)
 
-1. **N1 — contracts first:** `src/contracts/` must be committed before build
-   (`aegis contracts` verifies). No contract PR, no slices.
+1. **N1 — contracts first:** `src/contracts/` must be merged to the base
+   branch before build (`aegis contracts` verifies against origin/HEAD, or
+   local main/master when there is no remote — and says so). No contract PR,
+   no slices.
 2. **N2 — worktree per slice:** `aegis slice create <name>`. Never build
    slices in the main tree.
 3. **N3 — merge oracle:** `aegis merge check <branch>` before any merge.
@@ -95,7 +101,8 @@ non-interactive (CI) use requires `AEGIS_HUMAN_TOKEN=1` (recorded as
 | `aegis status` / `next` | state / one legal next skill (3=blocked) |
 | `aegis transition <s> [--reason]` | move (4=illegal, 5=loop/cycle) |
 | `aegis gate <n> --approve` | human gate approval |
-| `aegis contracts` | verify contract PR merged |
+| `aegis contracts` | verify contracts merged to base branch |
+| `aegis loops reset --reason <t>` | zero loop/cycle counters after human review (audited) |
 | `aegis slice create\|list\|remove` | slice worktrees |
 | `aegis merge check <branch>` | merge oracle (9=refused, 13=nothing-to-merge) |
 | `aegis validate <suite>` | contracts/tests/deps/perf/e2e (9=fail) |
@@ -121,7 +128,9 @@ non-interactive (CI) use requires `AEGIS_HUMAN_TOKEN=1` (recorded as
 
 - **3** blocked: check `aegis status` for the blocker; resolve it, don't force.
 - **4** illegal: wrong transition, open gate, lane cap, or missing contracts.
-- **5** loop/cycle: STOP. Present the cycle to the human.
+- **5** loop/cycle: STOP. Present the cycle to the human. After human review:
+  `aegis loops reset --reason "<why>"` (audited in state history), then
+  continue with the recommended resolution.
 - **6** integrity mismatch: run `aegis ast build` + `aegis sync` (regenerates
   deterministic views), retry `aegis resume`. Still failing -> human.
 - **8** circular dependencies: report the cycle path; fix or escalate to 02a.

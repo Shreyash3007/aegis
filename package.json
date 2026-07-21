@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "test": "node --test test/*.test.js",
     "prepublishOnly": "npm run build",
     "prepare": "npm run build || test -f dist/cli.js",
     "prepack": "npm run build"

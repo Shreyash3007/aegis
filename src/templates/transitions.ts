@@ -25,10 +25,17 @@ export function defaultTransitions(): Transitions {
       E('07a', '07b'), E('07b', '07c'), E('07c', '08a'),
       // ship
       E('08a', '08b', { gate: 'G4' }), E('08b', '08c'), E('08c', '07a'),
-      // orchestration / out-of-band
-      E('06d', '04a'),
+      // orchestration / out-of-band (06d: budgets pre-build + at 05d; 06e: error escalation)
+      E('03b', '06d'), E('05d', '06d'), E('06d', '04a'), E('06d', '07a'),
+      E('04a', '06e'), E('04b', '06e'), E('04c', '06e'), E('05c', '06e'),
       // rollback edges (backward = reason required, loop-counted)
       E('06e', '04a', { backward: true }),
+      // early-phase repair: post-freeze discoveries route back to the owning state
+      E('01b', '01a', { backward: true }), // scope found PRD gap
+      E('01c', '01a', { backward: true }), // design found PRD contradiction
+      E('02a', '01b', { backward: true }), // architecture found scope infeasible
+      E('02b', '02a', { backward: true }), // schema exposed arch flaw
+      E('03a', '02b', { backward: true }), // planning found contract gap
       E('04b', '04a', { backward: true }),
       E('04c', '04b', { backward: true }),
       E('05a', '04a', { backward: true }),
@@ -36,6 +43,7 @@ export function defaultTransitions(): Transitions {
       E('05e', '04a', { backward: true }),
       E('06b', '02a', { backward: true }),
       E('08a', '04a', { backward: true }),
+      E('08a', '03a', { backward: true }), // perf budget unrealistic -> re-plan
       E('08a', '02c', { backward: true }),
       E('08a', '05c', { backward: true }),
       E('07a', '07a', { backward: true }), // periodic cycle

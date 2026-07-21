@@ -43,7 +43,8 @@ Read: prd.md, known-issues.md | Write: validation-report.md, performance-benchma
 number in my report unmeasured - and if so, is it labeled?"
 
 ## Error Escalation Protocol
-- Budget exceeded -> flag for optimization or scope reduction.
+- Budget exceeded -> 06d (budget re-check, machine edge 05d -> 06d), then flag
+  for optimization or scope reduction.
 - Chaos test fails -> flag for resilience work.
 
 ## Output Schema

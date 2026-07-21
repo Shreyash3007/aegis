@@ -41,6 +41,7 @@ needs to be?"
 ## Error Escalation Protocol
 Brand guidelines conflict with WCAG AA contrast -> flag for human decision;
 never silently violate either.
+PRD contradiction discovered -> `aegis transition 01a --reason "<contradiction>"`.
 
 ## Output Schema
 - `brain/design/design-system.md` (tokens + components + states)

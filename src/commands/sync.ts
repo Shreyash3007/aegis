@@ -1,7 +1,28 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { AEGIS_DIR, REPO, ok, readJ } from '../lib/util.js';
-import { loadState, loadConfig } from '../lib/state.js';
+import { loadState, loadConfig, loadTransitions, Transitions } from '../lib/state.js';
+
+/** Primary forward chain from 00a, rendered FROM transitions.json (the "docs
+ *  render from the machine" rule - diagram and enforcement cannot disagree). */
+function pipelineLine(t: Transitions): string {
+  const fwd = new Map<string, string[]>();
+  for (const e of t.edges) {
+    if (e.backward) continue;
+    if (!fwd.has(e.from)) fwd.set(e.from, []);
+    fwd.get(e.from)!.push(e.to);
+  }
+  const chain: string[] = [];
+  const seen = new Set<string>();
+  let cur: string | undefined = '00a';
+  while (cur && !seen.has(cur)) {
+    seen.add(cur);
+    chain.push(cur);
+    cur = (fwd.get(cur) || [])[0];
+  }
+  const rb = t.edges.filter((e) => e.backward).length;
+  return `pipeline: ${chain.join(' -> ')} (+${rb} --reason rollback edges; source: .aegis/transitions.json)`;
+}
 
 /** Phase 2: aegis sync - regenerate tool-native context files from brain truth.
  *  Deterministic: same brain in -> same bytes out. */
@@ -15,6 +36,7 @@ export function sync(): void {
     '# Project Context (AEGIS)',
     '',
     `Current skill: ${s.current_skill} | Environment: ${cfg.environment_level} | Ship profile: ${cfg.ship_profile}`,
+    pipelineLine(loadTransitions()),
     '',
     'Rules: read brain/context-window.md before any edit; state changes only via `aegis` CLI; sacred gates are CLI-enforced.',
     '',

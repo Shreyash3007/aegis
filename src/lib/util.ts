@@ -45,6 +45,13 @@ export const git = (args: string[], cwd: string = REPO): string =>
 export const gitRaw = (args: string[], cwd: string = REPO): string =>
   execFileSync('git', args, { cwd, encoding: 'utf8' });
 
+/** git helper for probes (ref existence etc.): '' on failure, stderr suppressed
+ *  so expected misses don't leak `fatal:` noise into command output. */
+export const gitTry = (args: string[], cwd: string = REPO): string => {
+  try { return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim(); }
+  catch { return ''; }
+};
+
 export const has = (bin: string): boolean => {
   try { execSync(`command -v ${bin}`, { stdio: 'pipe' }); return true; }
   catch { return false; }

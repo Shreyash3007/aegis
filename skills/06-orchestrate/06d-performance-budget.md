@@ -9,7 +9,7 @@ Set performance budgets before building; enforce them through `aegis validate`
 where the environment allows; stay honest where it doesn't.
 
 ## Trigger
-Before 04a; during 05d; on breach.
+Before 04a (machine edge: 03b -> 06d); during 05d (05d -> 06d); on breach.
 
 ## Entry Criteria
 - Standards + execution matrix exist; ship_profile known (O6)

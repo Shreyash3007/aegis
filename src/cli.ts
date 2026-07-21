@@ -18,7 +18,8 @@ Phase 0 (this build):
   next                         recommended next legal skill (lists all legal edges)
   gate <name> --approve        record human gate approval
   transition <skill> [--reason t]  record a validated transition
-  contracts                    verify contract PR merged (unlocks 04a)
+  contracts                    verify contracts merged to base branch (unlocks 04a)
+  loops reset --reason <t>     zero loop/cycle counters after human review (audited)
   lane <open|close> <slice>    parallel lane management (cap enforced)
   checkpoint [--quiet]         snapshot state + hashes
   resume                       verify integrity, print reconstruction pack
