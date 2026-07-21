@@ -68,6 +68,9 @@ export function gate(args) {
     // TTY: the human retypes the gate name to confirm. Non-TTY (agent in a
     // pipe/CI): refuse, unless AEGIS_HUMAN_TOKEN is set - the documented CI
     // escape hatch, attesting a human approved out-of-band (recorded as such).
+    // autonomy=full (human chose it at init/config): gates stay enforced and
+    // recorded, but are not TTY-bound - the trust-then-verify posture. This is
+    // NOT cryptographic proof in any mode; it is an attributed audit trail.
     let by = 'human';
     if (process.env.AEGIS_HUMAN_TOKEN) {
         by = 'human-token';
@@ -76,9 +79,14 @@ export function gate(args) {
         if (ttyPrompt(`gate ${name} (${t.gates[name]}): retype the gate name to confirm: `) !== name)
             die(7, `gate ${name} confirmation mismatch - approval refused`);
     }
+    else if (loadConfig().autonomy === 'full') {
+        by = 'autonomy-full';
+        console.log(`note: gate ${name} approved under autonomy=full (non-TTY, recorded as autonomy-full)`);
+    }
     else {
         die(7, `gate ${name} --approve needs a human on a TTY (retype-to-confirm); ` +
-            'non-interactive use requires AEGIS_HUMAN_TOKEN=1 (CI escape hatch)');
+            'non-interactive use requires AEGIS_HUMAN_TOKEN=1 (CI escape hatch) ' +
+            'or `aegis config set autonomy full` (trust-then-verify posture)');
     }
     const s = loadState();
     s.gates[name] = { status: 'approved', at: new Date().toISOString(), by };

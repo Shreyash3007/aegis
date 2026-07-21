@@ -75,7 +75,10 @@ Run `aegis doctor` to see the detected environment level (L0/L1/L2).
 Only the human approves gates. Present the artifact, recommend, wait. The CLI
 enforces proof-of-human: interactive use prompts to retype the gate name;
 non-interactive (CI) use requires `AEGIS_HUMAN_TOKEN=1` (recorded as
-`by: human-token`). Unknown gate names are refused (exit 7).
+`by: human-token`). If the repo owner has set `autonomy: full`, non-TTY
+approval is accepted and recorded as `by: autonomy-full` — never set this
+yourself; it is the owner's posture choice. Unknown gate names are refused
+(exit 7).
 
 ## 6. Build Rules (the 5 non-negotiables)
 
@@ -156,7 +159,9 @@ byte-identical to lint-only mode (judge SKIPPED, no network).
 adversarial PRD -> gate PRD -> scope -> design -> G1 -> contracts -> G2 ->
 plan -> slice create x N -> build -> merge check -> G3 -> validate -> ...`
 
-**Brownfield:** `init` (choose brownfield) -> `00d` reverse-discovery
+**Brownfield:** `init` auto-detects established repos (>5 commits or >=10
+tracked source files) as brownfield — override with `aegis config set
+project_type brownfield` if it guesses wrong -> `00d` reverse-discovery
 (read `.aegis/skills/00-foundation/00d-brownfield.md`) -> confirm INFERRED docs.
 
 **Crash recovery:** `aegis resume` -> follow the reconstruction pack.

@@ -48,7 +48,11 @@ aegis loops reset --reason "..."  # zero loop counters after human review
 Gate approvals require an interactive terminal (retype the gate name to
 confirm). In CI/non-interactive runs, set `AEGIS_HUMAN_TOKEN=1` — approvals
 are then recorded as `by: human-token`. Keep that variable out of
-agent-reachable environments; it is the proof-of-human escape hatch.
+agent-reachable environments; it is the proof-of-human escape hatch. If you
+deliberately run a trust-then-verify workflow (agent implements fully,
+human reviews the verified result), `aegis config set autonomy full` lets
+gates approve non-TTY, recorded as `by: autonomy-full` — the audit trail
+remains, the TTY ritual does not.
 
 Optional extras:
 

@@ -15,6 +15,7 @@ export interface DoctorReport {
   in_ci: boolean;
   environment_level: 'L0' | 'L1' | 'L2';
   worktrees_pruned: boolean;
+  project_type_hint: 'greenfield' | 'brownfield';
 }
 
 /** Tool actually usable, not merely installable: on PATH (global), a local
@@ -28,6 +29,23 @@ function toolPresent(name: string): boolean {
     const pkg = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8'));
     return !!(pkg.dependencies?.[name] || pkg.devDependencies?.[name]);
   } catch { return false; } // no/unparseable package.json -> honestly absent
+}
+
+/** Greenfield vs brownfield, judged from evidence, not asked blind: init
+ *  runs before any aegis state exists, so use git history + tracked code
+ *  mass. >5 commits or >=10 tracked source files means an established
+ *  codebase - defaulting it to greenfield (the old behavior) misroutes the
+ *  whole pipeline past 00d reverse-discovery. */
+function projectTypeHint(): 'greenfield' | 'brownfield' {
+  let commits = 0;
+  try { commits = parseInt(git(['rev-list', '--count', 'HEAD']), 10) || 0; } catch { commits = 0; }
+  if (commits > 5) return 'brownfield';
+  try {
+    const code = git(['ls-files']).split('\n')
+      .filter((f) => /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|rb|php|cs|cpp|c|cc|h)$/.test(f)).length;
+    if (code >= 10) return 'brownfield';
+  } catch { /* fresh repo with no tracked files */ }
+  return 'greenfield';
 }
 
 export function doctor(): DoctorReport {
@@ -58,5 +76,6 @@ export function doctor(): DoctorReport {
     in_ci,
     environment_level: in_ci ? 'L2' : 'L1',
     worktrees_pruned,
+    project_type_hint: projectTypeHint(),
   };
 }

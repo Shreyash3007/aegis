@@ -17,7 +17,7 @@ export async function runInterview(doc, yes) {
         mode: 'runtime',
         autonomy: 'semi',
         environment_level: doc.environment_level,
-        project_type: 'greenfield',
+        project_type: doc.project_type_hint, // evidence-based default, not blind 'greenfield'
         ram_mb: doc.ram_total_mb,
         human_lane_cap: 2,
         ship_profile: 'production',
@@ -27,10 +27,13 @@ export async function runInterview(doc, yes) {
     };
     if (yes)
         return base;
+    // Interactive defaults track doctor's evidence: the question's [default]
+    // shows what was detected, Enter accepts it.
+    const questions = QUESTIONS.map((q) => q.key === 'project_type' ? { ...q, def: doc.project_type_hint } : q);
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     const ask = (q) => new Promise((res) => rl.question(`${q.ask} [${q.def}]: `, (a) => res(a.trim() || q.def)));
     console.log('\nAEGIS setup interview (one question at a time; Enter accepts recommended default)\n');
-    for (const q of QUESTIONS) {
+    for (const q of questions) {
         const a = await ask(q);
         switch (q.key) {
             case 'platform':

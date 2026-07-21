@@ -49,11 +49,11 @@ guide and `docs/PLATFORM-MATRIX.md` for platform support status.
 
 | Command | Behavior | Exit codes |
 |---|---|---|
-| `aegis init [--yes] [--overwrite]` | Scaffold .aegis/ + brain/, git hooks, doctor, setup interview | 0 / 1 / 2 |
+| `aegis init [--yes] [--overwrite]` | Scaffold .aegis/ + brain/, git hooks (existing hooks preserved + chained), doctor, setup interview (brownfield auto-detected) | 0 / 1 / 2 |
 | `aegis doctor [--save]` | Detect platform/RAM/tools/env level, prune stale worktrees | 0 |
 | `aegis status` | Current state, legal transitions, loop counters, lanes | 0 |
 | `aegis next` | Recommended next skill + all other legal edges | 0 / 3 |
-| `aegis gate <name> --approve` | Human gate approval: TTY retype-to-confirm; CI needs `AEGIS_HUMAN_TOKEN=1` | 0 / 7 |
+| `aegis gate <name> --approve` | Human gate approval: TTY retype-to-confirm; CI needs `AEGIS_HUMAN_TOKEN=1`; `autonomy=full` approves non-TTY (recorded as `autonomy-full`) | 0 / 7 |
 | `aegis transition <skill> [--reason t]` | Validate + record transition; dual loop/cycle detection | 0 / 4 / 5 |
 | `aegis loops reset --reason <t>` | Zero loop/cycle counters after human review (audited) | 0 / 4 |
 | `aegis contracts` | Verify contract PR merged — unlocks 04a (N1) | 0 / 4 |
@@ -63,7 +63,7 @@ guide and `docs/PLATFORM-MATRIX.md` for platform support status.
 
 | `aegis ast build` | ts-morph module graph (deterministic), circular-dep detection | 0 / 8 |
 | `aegis ast diff` | Impact analysis vs stored graph (changed -> affects) | 0 / 2 |
-| `aegis sync` | Regenerate AGENTS.md + CLAUDE.md from brain (Phase 2) | 0 |
+| `aegis sync` | Regenerate the AEGIS block in AGENTS.md + CLAUDE.md from brain; hand-written content outside the markers is preserved (Phase 2) | 0 |
 | `aegis gc` | Checkpoint retention (20 sessions/30 days) + hygiene (Phase 2) | 0 |
 | `aegis config [set k v]` | View/update setup interview answers (00b) | 0 / 4 |
 | `aegis merge check <branch>` | Merge oracle: real merge + tsc + contract diff (N3) | 0 / 9 / 13 |
@@ -188,3 +188,18 @@ from .aegis/perf-budgets.json; doctor tool detection fixed; greenfield
 first-commit trap fixed. 31/31 integration tests, CI on node 20/22. Full
 end-to-end dogfood (00a->08b, 2 slices, all gates): docs/DOGFOOD-v0.2.md.
 Platform matrix: Kimi Code (Linux) VERIFIED.
+
+v0.2.1 brownfield adoption (2026-07-21): fixes from an independent hands-on
+trial against an established production repo. `init` no longer clobbers
+pre-existing git hooks - foreign hooks are moved to `<name>.aegis-orig` and
+chained (blocking hooks propagate failure; re-init idempotent); the broken
+`npx --yes aegis` fallback (aegis is not on the npm registry) replaced with
+a loud reinstall hint. `sync` no longer truncates hand-written
+AGENTS.md/CLAUDE.md - generated content lives between AEGIS:BEGIN/END
+markers, everything outside preserved byte-for-byte, no .bak shuffle.
+`init --yes` now detects brownfield from evidence (>5 commits or >=10
+tracked source files) instead of defaulting greenfield; the interactive
+interview default tracks the detection. `autonomy` is no longer a
+collected-but-unread config key: `autonomy=full` approves gates non-TTY,
+recorded as `by: autonomy-full` (trust-then-verify posture; still not
+cryptographic proof). 41/41 integration tests.
