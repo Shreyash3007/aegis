@@ -28,3 +28,11 @@ test('validate perf: no budgets file -> defaults + honest UNMEASURED, exit 0', (
   assert.match(r.stdout, /db query 50ms budget UNMEASURED/);
   assert.match(r.stdout, /TTI 3000ms budget UNMEASURED/);
 });
+
+test('validate deps: no lockfile -> UNMEASURED naming the cause, exit 0 (no npm call)', (t) => {
+  const dir = scratch(t); // no package.json / lockfile in the scratch repo
+  const r = aegis(dir, ['validate', 'deps']);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /deps: UNMEASURED/);
+  assert.match(r.stdout, /no lockfile - run npm install first/);
+});

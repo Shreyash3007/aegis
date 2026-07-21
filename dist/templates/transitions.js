@@ -34,6 +34,8 @@ export function defaultTransitions() {
             E('02a', '01b', { backward: true }), // architecture found scope infeasible
             E('02b', '02a', { backward: true }), // schema exposed arch flaw
             E('03a', '02b', { backward: true }), // planning found contract gap
+            E('04a', '03a', { backward: true }), // contract gap - re-plan
+            E('04a', '02b', { backward: true }), // contract gap - redesign contracts
             E('04b', '04a', { backward: true }),
             E('04c', '04b', { backward: true }),
             E('05a', '04a', { backward: true }),

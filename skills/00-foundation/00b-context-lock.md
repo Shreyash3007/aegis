@@ -20,21 +20,33 @@ Any. Interactive in Runtime mode; question-by-question in Manual mode.
 
 ## The Interview (ONE question at a time, [Recommended] flagged)
 1. Platform: kimi-code / claude-code / cursor / opencode / api / chat
+   -> `aegis config set platform <value>`
 2. Project type: greenfield / brownfield (brownfield routes to 00d)
+   -> `aegis config set project_type <value>`
 3. Tech stack (auto-detect from repo files; human confirms or corrects)
+   -> `aegis config set stack <value>`
 4. Hardware (auto-detected by doctor; human confirms)
+   -> recorded by `aegis doctor --save` (ram_mb, environment_level)
 5. Parallelism appetite: max concurrent local sessions (caps lanes below hardware ceiling if desired)
+   -> `aegis config set human_lane_cap <n>`
 6. Autonomy mode: assisted / semi / full (affects APPROVAL-tier gates only; SACRED untouched)
+   -> `aegis config set autonomy <value>`
 7. Model access & quality tiers: strongest model for architecture/security/PRD;
    standard for codegen; light for docs/boilerplate (quality-driven, not cost)
+   -> `aegis config set model_strong <value>`
 8. Risk tolerance: auto-approve APPROVAL gates? confirm each slice merge?
+   -> expressed through `autonomy` (Q6); no separate config key
 9. Team context: solo / small team (docs depth)
+   -> `aegis config set team <solo|small-team>`
 10. Ship target: prototype / production (gate profile, O6)
+   -> `aegis config set ship_profile <value>`
 
 ## Execution Steps
 1. Detect stack from repo files (package.json, tsconfig, lockfiles). State what
    was detected and the evidence. NEVER assume.
-2. Ask each interview question; record answers via `aegis config set <key> <value>`.
+2. Ask each interview question; record answers via `aegis config set <key> <value>`
+   using EXACTLY the keys above (the CLI rejects unknown keys, exit 4, and
+   prints the valid key list).
 3. Write `brain/context/manifest.md`: locked stack, constraints, anti-goals.
 4. Define anti-goals explicitly ("we will NOT build X").
 5. `aegis transition` to next skill.

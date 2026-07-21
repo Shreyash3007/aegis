@@ -82,9 +82,13 @@ const suites: Record<string, () => Result | Promise<Result>> = {
     const r = runCmd('npm test');
     return { suite: 'tests', tool: 'npm', command: 'npm test',
       status: r.code === 0 ? 'PASS' : 'FAIL',
-      summary: r.out.split('\n').filter(Boolean).slice(-3).join(' | ') };
+      summary: r.out.split('\n').filter(Boolean).slice(-3).join(' | ') || `exit ${r.code}, no output` };
   },
   deps: () => {
+    // npm audit needs a lockfile; say so instead of "unparseable" (ENOLOCK).
+    if (!['package-lock.json', 'npm-shrinkwrap.json'].some((f) => fs.existsSync(path.join(REPO, f))))
+      return { suite: 'deps', tool: 'npm audit', command: 'npm audit --json', status: 'UNMEASURED',
+        summary: 'no lockfile - run npm install first (npm audit requires package-lock.json)' };
     const r = runCmd('npm audit --json');
     try {
       const j = JSON.parse(r.out);
@@ -93,7 +97,11 @@ const suites: Record<string, () => Result | Promise<Result>> = {
       return { suite: 'deps', tool: 'npm audit', command: 'npm audit --json',
         status: crit > 0 ? 'FAIL' : 'PASS',
         summary: `critical:${v.critical ?? 0} high:${v.high ?? 0} moderate:${v.moderate ?? 0} low:${v.low ?? 0}` };
-    } catch { return { suite: 'deps', tool: 'npm audit', command: 'npm audit --json', status: 'UNMEASURED', summary: 'audit output unparseable' }; }
+    } catch {
+      const cause = r.out.split('\n').filter(Boolean).slice(0, 3).join(' | ') || `exit ${r.code}, no output`;
+      return { suite: 'deps', tool: 'npm audit', command: 'npm audit --json', status: 'UNMEASURED',
+        summary: `audit output unparseable (exit ${r.code}): ${cause}` };
+    }
   },
   perf: async () => {
     const { budgets, source } = loadPerfBudgets();
@@ -138,7 +146,8 @@ const suites: Record<string, () => Result | Promise<Result>> = {
     if (!hasPw) return { suite: 'e2e', tool: 'playwright', command: 'npx playwright test', status: 'UNMEASURED', summary: 'no playwright config' };
     const r = runCmd('npx --no-install playwright test --reporter=line');
     return { suite: 'e2e', tool: 'playwright', command: 'npx playwright test',
-      status: r.code === 0 ? 'PASS' : 'FAIL', summary: r.out.split('\n').filter(Boolean).slice(-3).join(' | ') };
+      status: r.code === 0 ? 'PASS' : 'FAIL',
+      summary: r.out.split('\n').filter(Boolean).slice(-3).join(' | ') || `exit ${r.code}, no output` };
   },
 };
 

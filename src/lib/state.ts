@@ -41,6 +41,8 @@ export interface Config {
   pii_logs: boolean;
   model_tiers: { strong: string; standard: string; light: string };
   lane_costs_mb: { browser_e2e: number; dev_server: number; codegen: number };
+  stack?: string; // 00b interview Q3 - locked stack summary (manifest cites it)
+  team?: 'solo' | 'small-team'; // 00b interview Q9 - docs depth
   token_budget?: number; // advisory only (06d) - surfaced in `aegis status`, never enforced
 }
 

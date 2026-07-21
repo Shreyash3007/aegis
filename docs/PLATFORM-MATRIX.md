@@ -20,7 +20,8 @@ For each platform, run this exact battery on a test repo and record the outcome:
 
 | Platform | Shell | Parallel agents | Evidence (what ran, when, result) | Status |
 |----------|-------|----------------|-----------------------------------|--------|
-| Kimi Code | ? | ? | — | ⬜ UNVERIFIED |
+| Kimi Code (Linux) | Yes | Yes (25 concurrent subagents observed; 2 slice worktrees built + merged) | 2026-07-21 full dogfood: 86 aegis invocations, 00a→08b pipeline, 2 slices via worktrees + merge oracle, hooks fired on agent commits, checkpoint→resume VERIFIED; 31/31 CLI tests. See docs/DOGFOOD-v0.2.md | ✅ VERIFIED (Linux) |
+| Kimi Code (macOS/Windows) | ? | ? | — | ⬜ UNVERIFIED |
 | Claude Code | ? | ? | — | ⬜ UNVERIFIED |
 | Cursor | ? | ? | — | ⬜ UNVERIFIED |
 | OpenCode | ? | ? | — | ⬜ UNVERIFIED |

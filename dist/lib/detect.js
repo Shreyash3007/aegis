@@ -1,5 +1,24 @@
+import fs from 'node:fs';
 import os from 'node:os';
-import { git, has } from './util.js';
+import path from 'node:path';
+import { REPO, git, has } from './util.js';
+/** Tool actually usable, not merely installable: on PATH (global), a local
+ *  node_modules/.bin shim, or a declared package.json (dev)dependency. Cheap
+ *  (no subprocess beyond the PATH probe) and cache-friendly - doctor output
+ *  feeds config, so no network/npx resolution here. */
+function toolPresent(name) {
+    if (has(name))
+        return true;
+    if (fs.existsSync(path.join(REPO, 'node_modules', '.bin', name)))
+        return true;
+    try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8'));
+        return !!(pkg.dependencies?.[name] || pkg.devDependencies?.[name]);
+    }
+    catch {
+        return false;
+    } // no/unparseable package.json -> honestly absent
+}
 export function doctor() {
     const env = process.env;
     const platform_hint = env.KIMI_CODE ? 'kimi-code' :
@@ -7,10 +26,10 @@ export function doctor() {
             env.TERM_PROGRAM === 'cursor' || env.CURSOR_TRACE_ID ? 'cursor' :
                 env.OPENCODE ? 'opencode' : 'unknown-cli';
     const tools = {
-        playwright: has('playwright') || has('npx'),
+        playwright: toolPresent('playwright'),
         k6: has('k6'),
         lighthouse: has('lighthouse'),
-        eslint: has('eslint') || has('npx'),
+        eslint: toolPresent('eslint'),
     };
     const in_ci = !!(env.CI || env.GITHUB_ACTIONS);
     let worktrees_pruned = false;

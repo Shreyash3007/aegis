@@ -11,12 +11,16 @@ MAIN=$(dirname "$COMMON")
 # checkpoint runs against MAIN repo state (.aegis lives there, not in slice worktrees)
 (cd "$MAIN" && $A checkpoint --quiet) || { echo "aegis: checkpoint failed"; exit 1; }
 if [ -f tsconfig.json ]; then
-  if npx --no-install tsc --version >/dev/null 2>&1; then
-    npx --no-install tsc --noEmit || { echo "aegis: tsc failed"; exit 1; }
-  elif command -v tsc >/dev/null 2>&1; then
-    tsc --noEmit || { echo "aegis: tsc failed"; exit 1; }
+  if git ls-files | grep -qE '\\.tsx?$'; then
+    if npx --no-install tsc --version >/dev/null 2>&1; then
+      npx --no-install tsc --noEmit || { echo "aegis: tsc failed"; exit 1; }
+    elif command -v tsc >/dev/null 2>&1; then
+      tsc --noEmit || { echo "aegis: tsc failed"; exit 1; }
+    else
+      echo "aegis: tsc unavailable - typecheck skipped (advisory; install typescript to enforce)"
+    fi
   else
-    echo "aegis: tsc unavailable - typecheck skipped (advisory; install typescript to enforce)"
+    echo "aegis: no TypeScript files yet - typecheck skipped"
   fi
 fi
 `,

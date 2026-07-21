@@ -1,22 +1,32 @@
 import fs from 'node:fs';
 import { die, ok, readJ, writeJ } from '../lib/util.js';
 import { configP } from '../lib/state.js';
+/** Settable keys = the 00b interview's canonical keys (src/lib/interview.ts)
+ *  plus operational knobs. Each entry validates and mutates cfg. */
 const SETTABLE = {
-    platform: (v) => v,
-    mode: (v) => (v === 'manual' ? 'manual' : 'runtime'),
-    autonomy: (v) => { if (!['assisted', 'semi', 'full'].includes(v))
-        die(4, 'autonomy: assisted|semi|full'); return v; },
-    environment_level: (v) => { if (!['L0', 'L1', 'L2'].includes(v))
-        die(4, 'level: L0|L1|L2'); return v; },
-    project_type: (v) => (v === 'brownfield' ? 'brownfield' : 'greenfield'),
-    human_lane_cap: (v) => Math.max(1, parseInt(v, 10) || 2),
-    ship_profile: (v) => (v === 'prototype' ? 'prototype' : 'production'),
-    pii_logs: (v) => v === 'true',
-    token_budget: (v) => {
+    platform: (c, v) => { c.platform = v; },
+    mode: (c, v) => { c.mode = v === 'manual' ? 'manual' : 'runtime'; },
+    autonomy: (c, v) => { if (!['assisted', 'semi', 'full'].includes(v))
+        die(4, 'autonomy: assisted|semi|full'); c.autonomy = v; },
+    environment_level: (c, v) => { if (!['L0', 'L1', 'L2'].includes(v))
+        die(4, 'level: L0|L1|L2'); c.environment_level = v; },
+    project_type: (c, v) => { c.project_type = v === 'brownfield' ? 'brownfield' : 'greenfield'; },
+    stack: (c, v) => { c.stack = v; },
+    team: (c, v) => { if (!['solo', 'small-team'].includes(v))
+        die(4, 'team: solo|small-team'); c.team = v; },
+    model_strong: (c, v) => {
+        const mt = (c.model_tiers ?? { strong: 'default', standard: 'default', light: 'default' });
+        mt.strong = v;
+        c.model_tiers = mt;
+    },
+    human_lane_cap: (c, v) => { c.human_lane_cap = Math.max(1, parseInt(v, 10) || 2); },
+    ship_profile: (c, v) => { c.ship_profile = v === 'prototype' ? 'prototype' : 'production'; },
+    pii_logs: (c, v) => { c.pii_logs = v === 'true'; },
+    token_budget: (c, v) => {
         const n = parseInt(v, 10);
         if (!Number.isFinite(n) || n <= 0)
             die(4, 'token_budget: positive integer (advisory, not enforced)');
-        return n;
+        c.token_budget = n;
     },
 };
 /** aegis config            -> print config
@@ -28,10 +38,10 @@ export function config(args) {
     if (args[0] === 'set') {
         const [key, value] = [args[1], args[2]];
         if (!key || value === undefined || !SETTABLE[key])
-            die(4, `usage: aegis config set <${Object.keys(SETTABLE).join('|')}> <value>`);
-        cfg[key] = SETTABLE[key](value);
+            die(4, `unknown key '${key}' - valid keys: ${Object.keys(SETTABLE).join(', ')}`);
+        SETTABLE[key](cfg, value);
         writeJ(configP, cfg);
-        ok(`config: ${key} = ${JSON.stringify(cfg[key])}`);
+        ok(`config: ${key} = ${JSON.stringify(key === 'model_strong' ? cfg.model_tiers.strong : cfg[key])}`);
     }
     else {
         console.log(JSON.stringify(cfg, null, 2));

@@ -51,8 +51,12 @@ export async function runInterview(doc, yes) {
             case 'ship_profile':
                 base.ship_profile = a === 'prototype' ? 'prototype' : 'production';
                 break;
-            case 'team': /* stored implicitly for now */ break;
-            case 'stack': /* manifest layer, SKILL-00b */ break;
+            case 'team':
+                base.team = a === 'small-team' ? 'small-team' : 'solo';
+                break;
+            case 'stack':
+                base.stack = a;
+                break; // locked stack; manifest.md cites it (SKILL-00b)
         }
     }
     rl.close();

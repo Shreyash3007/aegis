@@ -56,7 +56,8 @@ Run `aegis doctor` to see the detected environment level (L0/L1/L2).
 - Move with `aegis transition <skill>`. Illegal jumps are refused (exit 4).
 - Backward moves need `--reason "why"`. Legal repair paths: 01b/01c->01a
   (PRD gap), 02a->01b (scope infeasible), 02b->02a (arch flaw), 03a->02b
-  (contract gap), plus the build/validate/ship rollbacks in transitions.json.
+  (contract gap), 04a->03a (contract gap - re-plan), 04a->02b (contract gap -
+  redesign contracts), plus the build/validate/ship rollbacks in transitions.json.
 - 06e (error escalation) is reachable on structural error from 04a/04b/04c/05c.
 - Loops and cycles are detected (exit 5) — **stop and escalate to the human**;
   do not retry.
@@ -111,7 +112,7 @@ non-interactive (CI) use requires `AEGIS_HUMAN_TOKEN=1` (recorded as
 | `aegis sync` / `gc` | regenerate AGENTS.md etc. / retention |
 | `aegis monitor --once` | post-ship check (10=breach) |
 | `aegis eval <file\|--all>` | skill-file lint (11=regression) |
-| `aegis config [set k v]` | view/update interview answers; `token_budget N` is advisory-only (surfaced in `aegis status`, never enforced) |
+| `aegis config [set k v]` | view/update interview answers (keys: platform, project_type, stack, team, autonomy, human_lane_cap, model_strong, ship_profile, environment_level, mode, pii_logs, token_budget); `token_budget N` is advisory-only (surfaced in `aegis status`, never enforced) |
 | `aegis migrate` | schema upgrades (12=version mismatch) |
 
 ### `aegis eval` model judge (opt-in, failure-strict)

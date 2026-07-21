@@ -46,8 +46,8 @@ export async function runInterview(doc: DoctorReport, yes: boolean): Promise<Con
       case 'autonomy': base.autonomy = (['assisted','semi','full'].includes(a) ? a : 'semi') as Config['autonomy']; break;
       case 'model_strong': base.model_tiers.strong = a; break;
       case 'ship_profile': base.ship_profile = a === 'prototype' ? 'prototype' : 'production'; break;
-      case 'team': /* stored implicitly for now */ break;
-      case 'stack': /* manifest layer, SKILL-00b */ break;
+      case 'team': base.team = a === 'small-team' ? 'small-team' : 'solo'; break;
+      case 'stack': base.stack = a; break; // locked stack; manifest.md cites it (SKILL-00b)
     }
   }
   rl.close();

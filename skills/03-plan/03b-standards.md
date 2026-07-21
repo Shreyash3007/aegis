@@ -26,7 +26,10 @@ L1+ for lint/hook generation; document-only at L0.
 6. Logging: structured with trace IDs.
 7. Testing: co-located, one expectation per test name.
 8. Generate .eslintrc implementing the above.
-9. Verify pre-commit hook enforces lint + tsc (installed by init).
+9. Verify the pre-commit hook (installed by init) typechecks with tsc when
+   TypeScript files exist (it skips cleanly on repos with no .ts files). The
+   hook does NOT run lint - lint is enforced by the generated .eslintrc via
+   editor integration / CI, keeping the hook fast.
 10. Self-critique; present.
 
 ## Input Schema
