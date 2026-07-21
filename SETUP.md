@@ -4,7 +4,11 @@
 
 ```bash
 # From GitHub (recommended once the repo is published):
-npm install -g github:<org>/aegis
+npm install -g https://github.com/<org>/aegis/archive/refs/tags/v0.1.0.tar.gz
+
+# npm install -g github:<org>/aegis also works on npm <= 10; on npm 11 it hits
+# a client bug (global git installs symlink to a deleted cache dir) — if you
+# use it, add --install-links.
 
 # From a local copy / tarball:
 tar -xzf aegis-cli.tar.gz && cd aegis-cli

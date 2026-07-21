@@ -14,7 +14,11 @@ If a rule must be enforced, it lives in code. Nothing is enforced by prose.
 ## Install
 
 ```bash
-npm install -g github:<org>/aegis     # from GitHub (builds automatically)
+npm install -g https://github.com/<org>/aegis/archive/refs/tags/v0.1.0.tar.gz
+# (dist/ is committed, so no build step is needed on install)
+# npm 11 note: `npm install -g github:<org>/aegis` hits an npm client bug
+# (global git installs symlink to a deleted cache dir) — add --install-links
+# or use the tarball URL above.
 ```
 
 or from source:
