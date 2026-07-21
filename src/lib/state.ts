@@ -5,6 +5,10 @@ import { AEGIS_DIR, die, readJ } from './util.js';
 export const SCHEMA_VERSION = 1;
 
 export interface GateRecord { status: 'approved'; at: string; by: string }
+export interface FixRecord {
+  kind: 'fix' | 'chore'; desc: string; opened_at: string;
+  closed_at?: string; validation?: string; abandoned_reason?: string;
+}
 export interface HistoryEntry {
   skill: string; at: string;
   event?: string; reason?: string; cleared?: string[]; // loops-reset audit fields
@@ -18,6 +22,10 @@ export interface State {
   gates: Record<string, GateRecord>;
   lanes: { max: number; active: string[] };
   contracts_merged: boolean;
+  // Fast lane (v0.3): small fixes/chores recorded on a parallel track instead
+  // of forcing the full pipeline. The sizing IS the record - abuse is visible
+  // in history, which is the enforcement. Optional: pre-0.3 states lack it.
+  fix?: { active: FixRecord | null; log: FixRecord[] };
 }
 export interface Edge {
   from: string; to: string;
@@ -44,6 +52,7 @@ export interface Config {
   stack?: string; // 00b interview Q3 - locked stack summary (manifest cites it)
   team?: 'solo' | 'small-team'; // 00b interview Q9 - docs depth
   token_budget?: number; // advisory only (06d) - surfaced in `aegis status`, never enforced
+  validate_suites?: Record<string, string>; // owner-declared custom validators (aegis validate <name>)
 }
 
 export const stateP = path.join(AEGIS_DIR, 'state.json');

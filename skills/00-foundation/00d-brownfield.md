@@ -23,6 +23,14 @@ agent infers from pasted output.
 - Lint/tsc/dependency-audit output where available
 
 ## Execution Steps
+0. IMPORT BRIDGE FIRST - never re-author what the repo already knows. Harvest
+   existing truth BEFORE inferring from code: `CLAUDE.md`, `AGENTS.md`,
+   `DECISIONS.md`, `README.md`, `docs/`, ADRs, OpenAPI/GraphQL specs,
+   `package.json` scripts. For each brain doc you draft, mine these first and
+   cite the source (`source: DECISIONS.md#auth-choice`). Code remains the
+   final arbiter on conflict (record BOTH, ask human) - but an existing
+   decision record beats a fresh inference every time. Skipping this step
+   duplicates months of accumulated context into a second, weaker format.
 1. `aegis ast build` - deterministic module graph of the existing code.
 2. Infer module boundaries FROM THE GRAPH (clusters of edges), not from folder
    names alone. State the evidence for each boundary.
@@ -34,6 +42,8 @@ agent infers from pasted output.
    lint warnings, dependency audit. Every issue cites its tool + command.
 7. Interview the human to confirm/correct each inference, ONE topic at a time.
 8. Label every drafted doc `INFERRED - CONFIRMED? yes/no` until confirmed.
+9. `aegis import check` - verify the bridge: every required brain doc exists
+   and carries source citations or INFERRED labels. Exit 4 until they do.
 
 ## Self-Critique Protocol (Deep)
 "Which of my claims has NO code evidence? Did folder names seduce me into a
@@ -55,7 +65,7 @@ Every structural claim cites file paths from the module graph. Every issue
 cites tool + command. Unverifiable claims are labeled INFERRED, never asserted.
 
 ## CLI Contract
-- Runtime: `aegis ast build`, `aegis ast diff`, `aegis checkpoint`, `aegis transition`
+- Runtime: `aegis ast build`, `aegis ast diff`, `aegis checkpoint`, `aegis transition`, `aegis import check`
 - Manual: human runs; agent works from pasted module-map.md.
 
 ## Brain Files

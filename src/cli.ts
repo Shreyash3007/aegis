@@ -3,10 +3,6 @@ import { COMMANDS, run } from './lib/commands.js';
 
 const [cmd, ...args] = process.argv.slice(2);
 
-const PLANNED: Record<string, string> = {
-  eval: 'Phase 10', migrate: 'Phase 12',
-};
-
 const HELP = `aegis - the enforcement layer for AI-native development
 
 Usage: aegis <command> [args]
@@ -29,12 +25,18 @@ Phase 0 (this build):
   config [set <key> <value>]   view/update setup interview answers
   merge check <branch>         merge oracle: real merge + tsc + contracts (Phase 6)
   slice <create|list|remove>   worktree-per-slice + lane management (Phase 6)
-  validate <suite>             contracts|tests|deps|perf|e2e with citations (Phase 7)
+  validate <suite>             contracts|tests|deps|perf|e2e + owner-declared
+                               custom suites (config set validate_suite.<name> "<cmd>")
+  fix start <desc> / done / abandon --reason t
+                               fast lane for small fixes (tests must pass to close)
+  chore <desc>                 record a docs/config-class change (no lifecycle)
+  import check                 verify 00d brownfield import bridge (brain docs cited)
+  update [--check]             self-update from the latest GitHub tag tarball
   monitor --once               one post-ship check pass for cron/CI (Phase 9)
   eval <file|--all>            skill-file eval harness (Phase 10)
   migrate                      schema migration across versions (Phase 12)
 
-Planned: ${Object.entries(PLANNED).map(([k, v]) => `${k} (${v})`).join(', ')}
+All Phase 0-12 commands implemented.
 
 Exit codes: 0 ok | 1 not a git repo | 2 missing/unexpected state | 3 blocked |
 4 illegal action | 5 loop/cycle | 6 integrity mismatch | 7 gate error |
@@ -43,9 +45,6 @@ Exit codes: 0 ok | 1 not a git repo | 2 missing/unexpected state | 3 blocked |
 
 if (!cmd || cmd === 'help' || cmd === '--help') {
   console.log(HELP);
-} else if (PLANNED[cmd] && !COMMANDS.includes(cmd)) {
-  console.error(`'${cmd}' is planned for ${PLANNED[cmd]} - not in Phase 0 build`);
-  process.exit(2);
 } else if (!(await run(cmd, args))) {
   console.error(`unknown command: ${cmd}\n\n${HELP}`);
   process.exit(2);

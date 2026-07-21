@@ -3,13 +3,14 @@ import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
 import { AEGIS_DIR, REPO, die, ok, readJ, writeJ } from '../lib/util.js';
+import { loadConfig } from '../lib/state.js';
 
 /** aegis validate <suite> - real tool runners with measurement citations.
  *  Every result: {tool, command, status: PASS|FAIL|UNMEASURED, summary}.
  *  Brain reports are deterministic (no timestamps); machine JSON in .aegis
  *  carries timestamps (not checkpoint-hashed). Exit 9 on FAIL. */
 
-interface Result { suite: string; tool: string; command: string; status: 'PASS'|'FAIL'|'UNMEASURED'; summary: string }
+export interface Result { suite: string; tool: string; command: string; status: 'PASS'|'FAIL'|'UNMEASURED'; summary: string }
 
 function runCmd(command: string, cwd = REPO): { code: number; out: string } {
   try { return { code: 0, out: execSync(command, { cwd, encoding: 'utf8', stdio: 'pipe' }) }; }
@@ -75,7 +76,10 @@ const suites: Record<string, () => Result | Promise<Result>> = {
         : r.code === 0 ? 'typecheck clean, contracts present' : r.out.split('\n').slice(0, 8).join(' | ') };
   },
   tests: () => {
-    const pkg = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8'));
+    const pkgP = path.join(REPO, 'package.json');
+    if (!fs.existsSync(pkgP))
+      return { suite: 'tests', tool: 'npm', command: 'npm test', status: 'UNMEASURED', summary: 'no package.json - not an npm project' };
+    const pkg = JSON.parse(fs.readFileSync(pkgP, 'utf8'));
     const script = pkg.scripts?.test;
     if (!script || script.includes('no test specified'))
       return { suite: 'tests', tool: 'npm', command: 'npm test', status: 'UNMEASURED', summary: 'no test script defined' };
@@ -151,11 +155,31 @@ const suites: Record<string, () => Result | Promise<Result>> = {
   },
 };
 
+export const BUILTIN_SUITES = Object.keys(suites);
+
+/** Custom suites from .aegis/config.json validate_suites (repo-owner-written
+ *  smoke scripts: "run this, exit 0 = PASS"). Trusted input by design - the
+ *  owner declares their own gates; the command string is recorded verbatim
+ *  as the citation. Returns null when neither builtin nor custom exists. */
+export async function runSuite(suite: string): Promise<Result | null> {
+  if (suites[suite]) return suites[suite]();
+  let custom: string | undefined;
+  try { custom = loadConfig().validate_suites?.[suite]; } catch { custom = undefined; }
+  if (!custom) return null;
+  const r = runCmd(custom);
+  return { suite, tool: 'custom', command: custom,
+    status: r.code === 0 ? 'PASS' : 'FAIL',
+    summary: r.out.split('\n').filter(Boolean).slice(-3).join(' | ') || `exit ${r.code}, no output` };
+}
+
 export async function validate(args: string[]): Promise<void> {
   const suite = args[0];
-  if (!suite || !suites[suite])
-    die(2, `usage: aegis validate <${Object.keys(suites).join('|')}>`);
-  const r = await suites[suite]();
+  const r = suite ? await runSuite(suite) : null;
+  if (!r) {
+    let custom: string[] = [];
+    try { custom = Object.keys(loadConfig().validate_suites ?? {}); } catch { /* no config */ }
+    die(2, `usage: aegis validate <${[...BUILTIN_SUITES, ...custom].join('|')}>`);
+  }
   record(r);
   const line = `${r.suite}: ${r.status} - ${r.summary}`;
   if (r.status === 'FAIL') die(9, line);

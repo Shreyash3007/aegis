@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { AEGIS_DIR, REPO, die, ok, writeJ, has } from '../lib/util.js';
+import { AEGIS_DIR, REPO, die, ok, writeJ, git, has } from '../lib/util.js';
 import { SCHEMA_VERSION, configP, stateP, transP } from '../lib/state.js';
 import { defaultTransitions } from '../templates/transitions.js';
 import { doctor } from '../lib/detect.js';
@@ -85,4 +85,56 @@ export function doctorCmd(args) {
         ok('stale worktrees pruned (A1.6)');
     if (!has('tsc') && !has('npx'))
         console.log('warn: no tsc/npx found - typecheck hooks will degrade');
+    for (const d of drift())
+        console.log(`note: drift: ${d}`);
+}
+/** State-vs-reality reconciliation (v0.3): enforcement is prompt-deep for
+ *  external agents - they can do git work without recording transitions, and
+ *  then state.json is fiction. We never AUTO-CORRECT state from git (that
+ *  would fabricate history, A1.1); we detect and report honestly. Advisory
+ *  only (exit 0): the human/agent decides what the truth was. */
+function drift() {
+    const notes = [];
+    if (!fs.existsSync(stateP))
+        return notes;
+    let s;
+    try {
+        s = JSON.parse(fs.readFileSync(stateP, 'utf8'));
+    }
+    catch {
+        return ['state.json unparseable - restore from a checkpoint or re-run aegis init'];
+    }
+    // 1. lanes recorded active, but no matching worktree exists (or vice versa)
+    const active = s.lanes?.active ?? [];
+    if (active.length) {
+        let worktrees = '';
+        try {
+            worktrees = git(['worktree', 'list', '--porcelain']);
+        }
+        catch { /* ignore */ }
+        const wtDirs = worktrees.split('\n')
+            .filter((l) => l.startsWith('worktree '))
+            .map((l) => path.basename(l.slice('worktree '.length)));
+        for (const lane of active)
+            if (!wtDirs.includes(lane))
+                notes.push(`lane '${lane}' recorded active but no worktree matches - close it (aegis lane close ${lane}) or reconcile by hand`);
+    }
+    // 2. HEAD moved since the latest checkpoint (unrecorded commits happened)
+    const dir = path.join(AEGIS_DIR, 'checkpoints');
+    if (fs.existsSync(dir)) {
+        const cps = fs.readdirSync(dir).filter((f) => f.startsWith('cp-')).sort();
+        if (cps.length) {
+            try {
+                const cp = JSON.parse(fs.readFileSync(path.join(dir, cps[cps.length - 1]), 'utf8'));
+                const head = git(['rev-parse', 'HEAD']);
+                if (cp.gitSha && cp.gitSha !== 'unknown' && cp.gitSha !== head) {
+                    const n = git(['rev-list', '--count', `${cp.gitSha}..HEAD`]);
+                    if (parseInt(n, 10) > 0)
+                        notes.push(`${n} commit(s) since last checkpoint (${cp.id}) - run aegis checkpoint to rebaseline`);
+                }
+            }
+            catch { /* pre-first-commit or shallow history - nothing to compare */ }
+        }
+    }
+    return notes;
 }

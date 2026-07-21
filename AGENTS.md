@@ -101,7 +101,7 @@ yourself; it is the owner's posture choice. Unknown gate names are refused
 | Command | Use |
 |---|---|
 | `aegis init [--yes]` | bootstrap project (interview / defaults) |
-| `aegis doctor` | environment report, prune stale worktrees |
+| `aegis doctor` | environment report, prune stale worktrees, state-vs-git drift notes |
 | `aegis status` / `next` | state / one legal next skill (3=blocked) |
 | `aegis transition <s> [--reason]` | move (4=illegal, 5=loop/cycle) |
 | `aegis gate <n> --approve` | human gate approval |
@@ -109,7 +109,11 @@ yourself; it is the owner's posture choice. Unknown gate names are refused
 | `aegis loops reset --reason <t>` | zero loop/cycle counters after human review (audited) |
 | `aegis slice create\|list\|remove` | slice worktrees |
 | `aegis merge check <branch>` | merge oracle (9=refused, 13=nothing-to-merge) |
-| `aegis validate <suite>` | contracts/tests/deps/perf/e2e (9=fail) |
+| `aegis validate <suite>` | contracts/tests/deps/perf/e2e + owner-declared custom suites (9=fail) |
+| `aegis fix start\|done\|abandon` | fast lane for small fixes; `done` requires tests PASS/UNMEASURED (9=tests red) |
+| `aegis chore <desc>` | record a docs/config-class change (no lifecycle) |
+| `aegis import check` | verify 00d brain docs exist, substantive, evidence-cited (4=incomplete) |
+| `aegis update [--check]` | self-update from latest GitHub tag tarball |
 | `aegis checkpoint` / `resume` | snapshot / verified recovery (6=integrity) |
 | `aegis ast build\|diff` | module graph (8=cycles) / impact analysis |
 | `aegis sync` / `gc` | regenerate AGENTS.md etc. / retention |
@@ -117,6 +121,12 @@ yourself; it is the owner's posture choice. Unknown gate names are refused
 | `aegis eval <file\|--all>` | skill-file lint (11=regression) |
 | `aegis config [set k v]` | view/update interview answers (keys: platform, project_type, stack, team, autonomy, human_lane_cap, model_strong, ship_profile, environment_level, mode, pii_logs, token_budget); `token_budget N` is advisory-only (surfaced in `aegis status`, never enforced) |
 | `aegis migrate` | schema upgrades (12=version mismatch) |
+
+Fast-lane scope: `fix`/`chore` are for genuinely small, single-session
+changes (typos, copy, config, isolated one-file fixes). Anything touching
+contracts, schema, security, or more than a handful of files belongs in the
+pipeline. The fix log is auditable — misclassifying work to dodge gates is
+visible in history and counts as an honesty violation (section 8).
 
 ### `aegis eval` model judge (opt-in, failure-strict)
 

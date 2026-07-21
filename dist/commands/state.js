@@ -18,6 +18,8 @@ export function status() {
     const s = loadState();
     const t = loadTransitions();
     console.log(`state: ${s.current_skill} | lanes: ${s.lanes.active.length}/${s.lanes.max} [${s.lanes.active.join(', ')}]`);
+    if (s.fix?.active)
+        console.log(`fix OPEN: "${s.fix.active.desc}" (since ${s.fix.active.opened_at}) - close: aegis fix done`);
     const tb = loadConfig().token_budget;
     if (tb)
         console.log(`token budget: ${tb} (advisory)`);

@@ -10,13 +10,16 @@ import { validate } from '../commands/validate.js';
 import { monitor } from '../commands/monitor.js';
 import { evalCmd } from '../commands/eval.js';
 import { migrate } from '../commands/migrate.js';
+import { fix, chore } from '../commands/fix.js';
+import { importCmd } from '../commands/import.js';
+import { update } from '../commands/update.js';
 
 /** The dispatch table - single source of truth for the command set. COMMANDS
  *  is derived from its keys, so cli.ts and eval.ts can never drift. */
 const DISPATCH: Record<string, (args: string[]) => void | Promise<void>> = {
   init, doctor: doctorCmd, status, next, gate, transition, contracts, loops, lane,
   checkpoint, resume, ast, sync, gc, config, merge, slice, validate, monitor,
-  eval: evalCmd, migrate,
+  eval: evalCmd, migrate, fix, chore, import: importCmd, update,
 };
 
 export const COMMANDS: string[] = Object.keys(DISPATCH);

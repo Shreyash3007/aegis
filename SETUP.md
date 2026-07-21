@@ -4,7 +4,9 @@
 
 ```bash
 # From GitHub (recommended once the repo is published):
-npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.2.0.tar.gz
+npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.3.0.tar.gz
+
+# Already installed? `aegis update` self-updates to the latest tag (same tarball path).
 
 # npm install -g github:Shreyash3007/aegis also works on npm <= 10; on npm 11 it hits
 # a client bug (global git installs symlink to a deleted cache dir) — if you
@@ -45,6 +47,29 @@ aegis checkpoint / resume         # snapshots + verified recovery
 aegis loops reset --reason "..."  # zero loop counters after human review
 ```
 
+Small changes don't pay the full pipeline toll (v0.3 fast lane):
+
+```bash
+aegis fix start "typo in footer"  # work... then:
+aegis fix done                    # closes only if the tests suite passes
+aegis fix abandon --reason "..."  # audited exit
+aegis chore "reword README"       # docs/config-class: one command, recorded
+```
+
+The fast lane never touches pipeline state and keeps one gate: `fix done`
+requires the tests suite to pass (or honestly record UNMEASURED). Use it for
+genuinely small changes — the log is the audit trail, and a "fix" that is
+really a feature stays visible.
+
+Brownfield extras:
+
+```bash
+aegis import check                # verify 00d brain docs exist, substantive + cited
+aegis config set validate_suite.smoke "node scripts/verify-sync.mjs"
+aegis validate smoke              # owner-declared suites, exit code = verdict
+aegis doctor                      # also reports state-vs-git drift (lanes, stale checkpoints)
+```
+
 Gate approvals require an interactive terminal (retype the gate name to
 confirm). In CI/non-interactive runs, set `AEGIS_HUMAN_TOKEN=1` — approvals
 are then recorded as `by: human-token`. Keep that variable out of
@@ -53,6 +78,13 @@ deliberately run a trust-then-verify workflow (agent implements fully,
 human reviews the verified result), `aegis config set autonomy full` lets
 gates approve non-TTY, recorded as `by: autonomy-full` — the audit trail
 remains, the TTY ritual does not.
+
+Planning AFK/autonomous sessions: gate approval is solved by `autonomy full`,
+but **loop/cycle escalation (exit 5) still stops for a human — by design.**
+An agent ping-ponging between states is exactly the failure you want a human
+paged for. Plan AFK sessions around it: size tasks so a stuck run can wait
+for you without blocking a release, and treat a waiting exit-5 run as the
+tripwire working, not the tool failing.
 
 Optional extras:
 
@@ -66,7 +98,7 @@ AEGIS_JUDGE_API_KEY=... aegis eval --all   # opt-in model judge (strict on fail)
 
 ```bash
 npm install && npm run build   # strict tsc, dist/ is committed
-npm test                       # 31 integration tests (~6s, no extra deps)
+npm test                       # 52 integration tests (~15s, no extra deps)
 ```
 
 CI (`.github/workflows/ci.yml`) runs build + tests + smoke on node 20/22.

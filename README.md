@@ -12,13 +12,13 @@ If a rule must be enforced, it lives in code. Nothing is enforced by prose.
 - Hash-verified crash recovery covering `state.json` itself, deterministic
   artifacts, cycle detection
 - Honest validation: every metric cited or labeled UNMEASURED
-- Battle-tested: 31 integration tests replaying every enforcement scenario,
+- Battle-tested: 52 integration tests replaying every enforcement scenario,
   CI on node 20/22, full end-to-end dogfood (`docs/DOGFOOD-v0.2.md`)
 
 ## Install
 
 ```bash
-npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.2.0.tar.gz
+npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.3.0.tar.gz
 # (dist/ is committed, so no build step is needed on install)
 # npm 11 note: `npm install -g github:Shreyash3007/aegis` hits an npm client bug
 # (global git installs symlink to a deleted cache dir) — add --install-links
@@ -68,7 +68,11 @@ guide and `docs/PLATFORM-MATRIX.md` for platform support status.
 | `aegis config [set k v]` | View/update setup interview answers (00b) | 0 / 4 |
 | `aegis merge check <branch>` | Merge oracle: real merge + tsc + contract diff (N3) | 0 / 9 / 13 |
 | `aegis slice create\|list\|remove` | Worktree-per-slice + lane caps (N2/N5) | 0 / 2 / 4 |
-| `aegis validate <suite>` | contracts/tests/deps/perf/e2e, cited or UNMEASURED | 0 / 9 |
+| `aegis validate <suite>` | contracts/tests/deps/perf/e2e + owner-declared custom suites, cited or UNMEASURED | 0 / 9 |
+| `aegis fix start\|done\|abandon` | Fast lane for small fixes; `done` requires tests PASS/UNMEASURED | 0 / 4 / 9 |
+| `aegis chore <desc>` | Record a docs/config-class change (no lifecycle) | 0 / 2 |
+| `aegis import check` | Verify 00d brownfield brain docs exist, substantive + cited | 0 / 2 / 4 |
+| `aegis update [--check]` | Self-update from latest GitHub tag tarball | 0 / 2 |
 | `aegis monitor --once` | Post-ship health pass for cron/CI (external scheduler) | 0 / 10 |
 | `aegis eval <file\|--all>` | Skill-file eval harness; opt-in model judge via `AEGIS_JUDGE_API_KEY` | 0 / 11 |
 | `aegis migrate` | Schema migration across CLI versions (P12) | 0 / 12 |
@@ -81,7 +85,7 @@ Platform matrix in docs/PLATFORM-MATRIX.md — Kimi Code (Linux) VERIFIED
 
 ```bash
 npm install && npm run build   # strict tsc
-npm test                       # 31 integration tests replaying the
+npm test                       # 52 integration tests replaying the
                                # enforcement contract (~6s, zero extra deps)
 ```
 
@@ -203,3 +207,26 @@ interview default tracks the detection. `autonomy` is no longer a
 collected-but-unread config key: `autonomy=full` approves gates non-TTY,
 recorded as `by: autonomy-full` (trust-then-verify posture; still not
 cryptographic proof). 41/41 integration tests.
+
+v0.3.0 fit-your-shape (2026-07-21): fixes from BOTH independent production
+trials (BlindFolio 4-app monorepo, metis-nda brownfield wave workflow).
+Fast lane: `aegis fix start/done/abandon` + `aegis chore` - small changes no
+longer pay the full PRD->gates->contracts toll; the track never touches
+pipeline state, `fix done` still requires the tests suite to pass (or
+honestly record UNMEASURED), and every entry is audited in history.
+Brownfield import bridge: 00d now harvests existing docs
+(CLAUDE.md/DECISIONS.md/docs/*) with source citations BEFORE inferring from
+code, and `aegis import check` verifies the result (present, substantive,
+cited; exit 4 until true). Pluggable validators: `aegis config set
+validate_suite.<name> "<cmd>"` registers owner-declared smoke scripts as
+first-class suites (`aegis validate <name>`, exit code = verdict, command
+recorded as citation). Drift detection: `aegis doctor` now reconciles state
+vs git reality (recorded lanes with no worktree, commits whose checkpoint
+never fired) - reported honestly, never auto-corrected (A1.1).
+`aegis update [--check]`: self-update from the latest GitHub tag tarball
+(registry-free distribution loop closed). `validate tests` no longer crashes
+on repos without package.json (honest UNMEASURED). Docs: monorepo scoping
+design proposal (docs/MONOREPO-DESIGN.md, v0.4 - deliberately NOT shipped
+undogfooded), shared-tree fork-agent experiment plan + orchestration-pattern
+matrix (docs/PLATFORM-MATRIX.md), AFK loop-escalation guidance (SETUP.md).
+52/52 integration tests, eval 66/66.
