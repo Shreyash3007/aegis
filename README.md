@@ -6,17 +6,21 @@ checkpoints, merge validation — plus 66 skill files that own judgment.
 If a rule must be enforced, it lives in code. Nothing is enforced by prose.
 
 - State machine as data (`transitions.json`) — illegal transitions refused
-- Sacred human gates (PRD, architecture, security, integration, ship)
+- Sacred human gates (PRD, architecture, security, integration, ship) with
+  TTY proof-of-human — agents cannot self-approve
 - Contract-first parallel builds with a compiler-backed merge oracle
-- Hash-verified crash recovery, deterministic artifacts, cycle detection
+- Hash-verified crash recovery covering `state.json` itself, deterministic
+  artifacts, cycle detection
 - Honest validation: every metric cited or labeled UNMEASURED
+- Battle-tested: 31 integration tests replaying every enforcement scenario,
+  CI on node 20/22, full end-to-end dogfood (`docs/DOGFOOD-v0.2.md`)
 
 ## Install
 
 ```bash
-npm install -g https://github.com/<org>/aegis/archive/refs/tags/v0.1.0.tar.gz
+npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.2.0.tar.gz
 # (dist/ is committed, so no build step is needed on install)
-# npm 11 note: `npm install -g github:<org>/aegis` hits an npm client bug
+# npm 11 note: `npm install -g github:Shreyash3007/aegis` hits an npm client bug
 # (global git installs symlink to a deleted cache dir) — add --install-links
 # or use the tarball URL above.
 ```
@@ -24,7 +28,7 @@ npm install -g https://github.com/<org>/aegis/archive/refs/tags/v0.1.0.tar.gz
 or from source:
 
 ```bash
-git clone <repo-url> && cd aegis
+git clone https://github.com/Shreyash3007/aegis.git && cd aegis
 npm install && npm run build && npm link
 ```
 
@@ -48,9 +52,10 @@ guide and `docs/PLATFORM-MATRIX.md` for platform support status.
 | `aegis init [--yes] [--overwrite]` | Scaffold .aegis/ + brain/, git hooks, doctor, setup interview | 0 / 1 / 2 |
 | `aegis doctor [--save]` | Detect platform/RAM/tools/env level, prune stale worktrees | 0 |
 | `aegis status` | Current state, legal transitions, loop counters, lanes | 0 |
-| `aegis next` | The ONE legal next skill | 0 / 3 |
-| `aegis gate <name> --approve` | Record human gate approval (timestamped) | 0 / 7 |
+| `aegis next` | Recommended next skill + all other legal edges | 0 / 3 |
+| `aegis gate <name> --approve` | Human gate approval: TTY retype-to-confirm; CI needs `AEGIS_HUMAN_TOKEN=1` | 0 / 7 |
 | `aegis transition <skill> [--reason t]` | Validate + record transition; dual loop/cycle detection | 0 / 4 / 5 |
+| `aegis loops reset --reason <t>` | Zero loop/cycle counters after human review (audited) | 0 / 4 |
 | `aegis contracts` | Verify contract PR merged — unlocks 04a (N1) | 0 / 4 |
 | `aegis lane open\|close <slice>` | Parallel lane management, cap enforced (N5) | 0 / 4 |
 | `aegis checkpoint [--quiet]` | Snapshot state + git SHA + file hashes | 0 |
@@ -65,11 +70,22 @@ guide and `docs/PLATFORM-MATRIX.md` for platform support status.
 | `aegis slice create\|list\|remove` | Worktree-per-slice + lane caps (N2/N5) | 0 / 2 / 4 |
 | `aegis validate <suite>` | contracts/tests/deps/perf/e2e, cited or UNMEASURED | 0 / 9 |
 | `aegis monitor --once` | Post-ship health pass for cron/CI (external scheduler) | 0 / 10 |
-| `aegis eval <file\|--all>` | Skill-file eval harness, type-aware (P10) | 0 / 11 |
+| `aegis eval <file\|--all>` | Skill-file eval harness; opt-in model judge via `AEGIS_JUDGE_API_KEY` | 0 / 11 |
 | `aegis migrate` | Schema migration across CLI versions (P12) | 0 / 12 |
 
 All Phase 0-12 commands implemented. CI templates in ci-templates/.
-Platform matrix protocol in docs/PLATFORM-MATRIX.md (UNVERIFIED by default).
+Platform matrix in docs/PLATFORM-MATRIX.md — Kimi Code (Linux) VERIFIED
+2026-07-21, all other platforms UNVERIFIED until evidenced.
+
+## Development
+
+```bash
+npm install && npm run build   # strict tsc
+npm test                       # 31 integration tests replaying the
+                               # enforcement contract (~6s, zero extra deps)
+```
+
+CI (`.github/workflows/ci.yml`) runs build + tests + smoke on node 20/22.
 
 ## Enforcement Rules Implemented (Amendment A1)
 
@@ -81,9 +97,11 @@ Platform matrix protocol in docs/PLATFORM-MATRIX.md (UNVERIFIED by default).
 
 ## Exit Codes
 
-0 ok · 1 not a git repo · 2 missing state / planned command · 3 blocked ·
+0 ok · 1 not a git repo · 2 missing/corrupt state · 3 blocked ·
 4 illegal action · 5 loop/cycle escalation · 6 integrity mismatch ·
-7 gate error · 12 schema mismatch (run `aegis migrate`)
+7 gate error · 8 AST circular deps · 9 merge/validate refused ·
+10 monitor breach · 11 eval failure · 12 schema mismatch (run `aegis migrate`) ·
+13 nothing to merge
 
 ## Skill Files (Phase 3)
 `aegis init` installs the judgment layer into `.aegis/skills/`:
@@ -156,3 +174,17 @@ template/spec/protocol), quote-stripping vague-marker check, CLI-ref
 validation. First run caught 12 non-conformant files (fixed; 66/66 pass).
 Sabotage detection verified. aegis migrate with schema_version. npm packaging
 fields set. All passing.
+
+v0.2.0 hardening + proof (2026-07-21): full senior review followed by a
+4-phase overhaul. Shell injection eliminated (execFileSync argv, injection
+attempts verified inert); checkpoints now hash state.json + transitions.json
+(hand-edit of current_skill detected, exit 6); merge-oracle tsc fixed for
+projects with dependencies (node_modules symlinked into the merge worktree);
+gates validate names and require TTY retype-to-confirm (AEGIS_HUMAN_TOKEN
+for CI); 7 rollback edges added (early-phase + 04a contract-gap); 06d/06e
+reachable; `loops reset --reason`; contracts verifies base-branch merge;
+25 team templates deepened; opt-in eval model judge; perf budgets enforced
+from .aegis/perf-budgets.json; doctor tool detection fixed; greenfield
+first-commit trap fixed. 31/31 integration tests, CI on node 20/22. Full
+end-to-end dogfood (00a->08b, 2 slices, all gates): docs/DOGFOOD-v0.2.md.
+Platform matrix: Kimi Code (Linux) VERIFIED.

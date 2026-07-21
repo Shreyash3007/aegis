@@ -4,9 +4,9 @@
 
 ```bash
 # From GitHub (recommended once the repo is published):
-npm install -g https://github.com/<org>/aegis/archive/refs/tags/v0.1.0.tar.gz
+npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.2.0.tar.gz
 
-# npm install -g github:<org>/aegis also works on npm <= 10; on npm 11 it hits
+# npm install -g github:Shreyash3007/aegis also works on npm <= 10; on npm 11 it hits
 # a client bug (global git installs symlink to a deleted cache dir) — if you
 # use it, add --install-links.
 
@@ -34,15 +34,38 @@ aegis init               # interactive interview
 
 ```bash
 aegis status        # where am I, what's legal, what's blocked
-aegis next          # the ONE next skill
+aegis next          # recommended next skill (+ all other legal edges)
 aegis transition <skill>          # move (CLI refuses illegal jumps)
-aegis gate <name> --approve       # human approves sacred gates
-aegis contracts                   # verify contract PR -> unlock build
+aegis gate <name> --approve       # human approves sacred gates (TTY confirm)
+aegis contracts                   # verify contract PR merged to base branch
 aegis slice create <name>         # worktree-per-slice
 aegis merge check <branch>        # merge oracle before any merge
 aegis validate <suite>            # contracts|tests|deps|perf|e2e
 aegis checkpoint / resume         # snapshots + verified recovery
+aegis loops reset --reason "..."  # zero loop counters after human review
 ```
+
+Gate approvals require an interactive terminal (retype the gate name to
+confirm). In CI/non-interactive runs, set `AEGIS_HUMAN_TOKEN=1` — approvals
+are then recorded as `by: human-token`. Keep that variable out of
+agent-reachable environments; it is the proof-of-human escape hatch.
+
+Optional extras:
+
+```bash
+aegis config set token_budget 200000   # advisory budget shown in `aegis status`
+AEGIS_JUDGE_API_KEY=... aegis eval --all   # opt-in model judge (strict on fail)
+# AEGIS_JUDGE_URL / AEGIS_JUDGE_MODEL select any OpenAI-compatible endpoint
+```
+
+## Hacking on Aegis itself
+
+```bash
+npm install && npm run build   # strict tsc, dist/ is committed
+npm test                       # 31 integration tests (~6s, no extra deps)
+```
+
+CI (`.github/workflows/ci.yml`) runs build + tests + smoke on node 20/22.
 
 ## With AI agents
 
