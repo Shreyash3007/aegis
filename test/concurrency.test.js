@@ -47,23 +47,58 @@ test('a stale lock (dead pid) is stolen, never wedges the repo', (t) => {
   assert.ok(!fs.existsSync(path.join(dir, '.aegis', 'state.json.lock')));
 });
 
-// BlindFolio must-fix: doc-style contracts must never hard-FAIL (pre-push!)
-test('validate contracts with markdown-only contracts_path -> UNMEASURED, exit 0', (t) => {
+// v0.4.2: doc-style contracts get REAL gate semantics (contracts_doc mode):
+// substantive + code-cited -> PASS; thin stub -> FAIL (exit 9, a real gate).
+test('validate contracts with a thin markdown stub -> FAIL (a gate that fires)', (t) => {
   const dir = scratch(t);
   aegis(dir, ['config', 'set', 'contracts_path', 'plan']);
   fs.mkdirSync(path.join(dir, 'plan'), { recursive: true });
   fs.writeFileSync(path.join(dir, 'plan', 'CONTRACTS.md'), '# Contracts\n');
   const r = aegis(dir, ['validate', 'contracts']);
-  assert.equal(r.status, 0, `stdout: ${r.stdout}\nstderr: ${r.stderr}`);
-  assert.match(r.stdout, /UNMEASURED/);
-  assert.match(r.stdout, /doc-style contracts/);
+  assert.equal(r.status, 9);
+  assert.match(r.stderr, /too thin to gate/);
 });
 
-test('pre-push hook does not block pushes with doc-style contracts', (t) => {
+test('validate contracts with substantive code-cited docs -> PASS', (t) => {
   const dir = scratch(t);
   aegis(dir, ['config', 'set', 'contracts_path', 'plan']);
   fs.mkdirSync(path.join(dir, 'plan'), { recursive: true });
-  fs.writeFileSync(path.join(dir, 'plan', 'CONTRACTS.md'), '# Contracts\n');
+  fs.writeFileSync(path.join(dir, 'plan', 'CONTRACTS.md'), [
+    '# Contracts', '',
+    'Transition legality is pinned by `src/lib/state.ts`.',
+    'The API surface follows src/routes/auth.ts behavior.',
+    'Every slice must keep `src/contracts/types.ts` stable.',
+    'Errors use the exit-code table in src/cli.ts.',
+    'Gates are recorded per docs in brain/quality/.',
+    'Lane caps come from config lane_costs_mb.',
+    'Rollback edges require a recorded reason.',
+    'Checkpoints hash brain + state canonicalized.',
+    'Resume refuses on any MODIFIED hashed file.',
+    'Loop escalations always route to a human.',
+    'Drift is reported, never auto-corrected.',
+  ].join('\n') + '\n');
+  const r = aegis(dir, ['validate', 'contracts']);
+  assert.equal(r.status, 0, `stdout: ${r.stdout}\nstderr: ${r.stderr}`);
+  assert.match(r.stdout, /doc contracts substantive \+ code-cited/);
+});
+
+test('pre-push hook passes with substantive doc contracts (thin ones SHOULD block)', (t) => {
+  const dir = scratch(t);
+  aegis(dir, ['config', 'set', 'contracts_path', 'plan']);
+  fs.mkdirSync(path.join(dir, 'plan'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'plan', 'CONTRACTS.md'), [
+    '# Contracts', '',
+    'Transition legality pinned by `src/lib/state.ts`.',
+    'API surface follows src/routes/auth.ts.',
+    'Slices keep `src/contracts/types.ts` stable.',
+    'Exit codes per src/cli.ts table.',
+    'Gates recorded in brain/quality/.',
+    'Lane caps from lane_costs_mb.',
+    'Rollback edges need a reason.',
+    'Checkpoints hash canonical state.',
+    'Resume refuses MODIFIED files.',
+    'Loops escalate to a human.',
+  ].join('\n') + '\n');
   fs.writeFileSync(path.join(dir, 'f.txt'), 'x\n');
   gitIn(dir, ['add', '-A']);
   gitIn(dir, ['commit', '-q', '-m', 'x']);

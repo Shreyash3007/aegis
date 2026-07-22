@@ -6,7 +6,7 @@
 2. ~~Repo's own brain docs missing~~ FIXED 2026-07-21: this repo ran its own
    00d import bridge; `aegis import check` passes 4/4.
    cites: `aegis import check` (exit 0, 4/4 OK)
-3. Tests: 69/69 PASS. cites: `npm test` (node --test test/*.test.js)
+3. Tests: 72/72 PASS. cites: `npm test` (node --test test/*.test.js)
 4. Dependencies: 0 vulnerabilities. cites: `aegis validate deps` (npm audit --json)
 5. Contracts suite: UNMEASURED by design (no contracts dir in this repo).
    cites: `aegis validate contracts`

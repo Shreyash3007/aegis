@@ -109,7 +109,7 @@ yourself; it is the owner's posture choice. Unknown gate names are refused
 | `aegis loops reset --reason <t>` | zero loop/cycle counters after human review (audited) |
 | `aegis slice create\|list\|remove` | slice worktrees |
 | `aegis merge check <branch>` | merge oracle (9=refused, 13=nothing-to-merge) |
-| `aegis validate <suite>` | contracts/tests/deps/perf/e2e + owner-declared custom suites (9=fail) |
+| `aegis validate <suite>` | contracts (tsc or contracts_doc: substantive+code-cited markdown gates) /tests/deps/perf/e2e + custom suites (9=fail) |
 | `aegis fix start\|done\|abandon` | fast lane for small fixes; `done` requires tests PASS/UNMEASURED (9=tests red) |
 | `aegis chore <desc>` | record a docs/config-class change (no lifecycle) |
 | `aegis import check` | verify 00d brain docs exist, substantive, evidence-cited (4=incomplete) |
@@ -120,7 +120,7 @@ yourself; it is the owner's posture choice. Unknown gate names are refused
 | `aegis sync` / `gc` | regenerate AGENTS.md etc. / retention |
 | `aegis monitor --once` | post-ship check (10=breach) |
 | `aegis eval <file\|--all>` | skill-file lint (11=regression) |
-| `aegis config [set k v]` | view/update interview answers (keys: platform, project_type, stack, team, autonomy, human_lane_cap, model_strong, ship_profile, environment_level, mode, pii_logs, token_budget, contracts_path, apps, validate_suite.&lt;name&gt;); `token_budget N` is advisory-only (surfaced in `aegis status`, never enforced) |
+| `aegis config [set k v]` | view/update interview answers (keys: platform, project_type, stack, team, autonomy, human_lane_cap, model_strong, ship_profile, environment_level, mode, pii_logs, token_budget, contracts_path, contracts_path.&lt;app&gt;, apps, validate_suite.&lt;name&gt;; '-' removes optional keys); `token_budget N` is advisory-only |
 | `aegis migrate` | schema upgrades (12=version mismatch) |
 
 Fast-lane scope: `fix`/`chore` are for genuinely small, single-session

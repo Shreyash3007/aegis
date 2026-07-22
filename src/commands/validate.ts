@@ -86,10 +86,43 @@ const suites: Record<string, () => Result | Promise<Result>> = {
     };
     if (fs.statSync(cpAbs).isDirectory()) walk(cpAbs);
     else if (/\.tsx?$/.test(cpAbs)) tsFiles.push(cpAbs);
-    if (!tsFiles.length)
-      return { suite: 'contracts', tool: 'tsc', command: 'tsc --noEmit',
-        status: 'UNMEASURED',
-        summary: `${cp} holds doc-style contracts (no .ts) - presence verified; register a custom suite for semantics: aegis config set validate_suite.contracts_doc "<cmd>"` };
+    if (!tsFiles.length) {
+      // v0.4.2 contracts_doc mode: doc-style contracts get REAL semantics,
+      // not just presence (BlindFolio). A contract that can't be tied back to
+      // code pins nothing: require substance (>=10 substantive lines) and at
+      // least one code citation (backticked path or source: reference).
+      // Stub contracts FAIL - a gate that never fires is not a gate.
+      const docFiles: string[] = [];
+      const walkDoc = (d: string): void => {
+        for (const f of fs.readdirSync(d)) {
+          const p = path.join(d, f);
+          if (fs.statSync(p).isDirectory()) walkDoc(p);
+          else if (/\.(md|txt|json|ya?ml)$/.test(f)) docFiles.push(p);
+        }
+      };
+      if (fs.statSync(cpAbs).isDirectory()) walkDoc(cpAbs);
+      else docFiles.push(cpAbs);
+      let substantive = 0, citations = 0;
+      for (const f of docFiles) {
+        const body = fs.readFileSync(f, 'utf8');
+        substantive += body.split('\n').filter((l) => {
+          const t = l.trim();
+          return t && !t.startsWith('#') && !t.startsWith('<!--') && !t.startsWith('//');
+        }).length;
+        const m = body.match(/`[^`]+\.(ts|tsx|js|py|go|rs)`|source:\s*\S+|[a-zA-Z0-9_-]+\/[a-zA-Z0-9_/.-]+\.(ts|tsx|js)/g);
+        citations += m ? m.length : 0;
+      }
+      const stats = `${docFiles.length} doc(s), ${substantive} substantive lines, ${citations} code citations`;
+      if (!docFiles.length)
+        return { suite: 'contracts', tool: 'contracts_doc', command: `scan ${cp}`,
+          status: 'UNMEASURED', summary: `${cp} exists but holds no contract docs` };
+      if (substantive >= 10 && citations >= 1)
+        return { suite: 'contracts', tool: 'contracts_doc', command: `scan ${cp}`,
+          status: 'PASS', summary: `doc contracts substantive + code-cited (${stats})` };
+      return { suite: 'contracts', tool: 'contracts_doc', command: `scan ${cp}`,
+        status: 'FAIL',
+        summary: `doc contracts too thin to gate (${stats}) - a contract that doesn't cite code pins nothing` };
+    }
     // 2. monorepo: toolchain lives per-app, not at repo root - no tsc here.
     const localBin = path.join(REPO, 'node_modules', '.bin', 'tsc');
     const tscBin = fs.existsSync(localBin) ? `"${localBin}"` : has('tsc') ? 'tsc' : null;

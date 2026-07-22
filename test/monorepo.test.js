@@ -146,3 +146,34 @@ test('5 parallel checkpoints on one shared tree: all succeed, resume verifies', 
   assert.equal(r.status, 0, `stdout: ${r.stdout}\nstderr: ${r.stderr}`);
   assert.match(r.stdout, /integrity: VERIFIED/);
 });
+
+// ---------- per-app contract paths (v0.4.2) ----------
+
+test('contracts_path.<app> override: contracts --app honors it, others unaffected', (t) => {
+  const dir = scratch(t, { init: false });
+  aegis(dir, ['init', '--yes', '--apps', 'web,api']);
+  // refuse override for undeclared app
+  assert.equal(aegis(dir, ['config', 'set', 'contracts_path.nope', 'x/plan']).status, 4);
+  assert.equal(aegis(dir, ['config', 'set', 'contracts_path.api', 'api/plan']).status, 0);
+  // api's contracts live in api/plan; web has none -> api verifies, web fails honestly
+  fs.mkdirSync(path.join(dir, 'api', 'plan'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'api', 'plan', 'CONTRACTS.md'), '# API contract\n');
+  gitIn(dir, ['add', '-A']);
+  gitIn(dir, ['commit', '-q', '--no-verify', '-m', 'api contracts']);
+  const r = aegis(dir, ['contracts', '--app', 'api']);
+  assert.equal(r.status, 0, `stdout: ${r.stdout}\nstderr: ${r.stderr}`);
+  assert.equal(appState(dir, 'api').contracts_merged, true);
+  assert.equal(aegis(dir, ['contracts', '--app', 'web']).status, 4, 'web has no contracts at the default path');
+  // '-' removes the override -> back to repo-global default
+  assert.equal(aegis(dir, ['config', 'set', 'contracts_path.api', '-']).status, 0);
+  assert.equal(aegis(dir, ['contracts', '--app', 'api']).status, 4);
+});
+
+// ---------- version (v0.4.2) ----------
+
+test('aegis --version prints the package version', (t) => {
+  const dir = scratch(t);
+  const r = aegis(dir, ['--version']);
+  assert.equal(r.status, 0);
+  assert.match(r.stdout, /^aegis \d+\.\d+\.\d+/);
+});

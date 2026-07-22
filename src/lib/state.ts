@@ -54,14 +54,20 @@ export interface Config {
   token_budget?: number; // advisory only (06d) - surfaced in `aegis status`, never enforced
   validate_suites?: Record<string, string>; // owner-declared custom validators (aegis validate <name>)
   contracts_path?: string; // default 'src/contracts' - where N1 contracts live in THIS repo
+  contracts_path_apps?: Record<string, string>; // v0.4.2: per-app overrides in multi-app repos
   apps?: string[]; // v0.4 monorepo: per-app pipeline states under .aegis/apps/
 }
 
-/** Where N1 contracts live in this repo (default src/contracts; BlindFolio
- *  trial: real projects keep them elsewhere, and a hardcoded path meant the
- *  N1 gate never fired there). */
-export function contractsPath(): string {
-  try { return loadConfig().contracts_path ?? 'src/contracts'; }
+/** Where N1 contracts live (default src/contracts; BlindFolio trial: real
+ *  projects keep them elsewhere, and a hardcoded path meant the N1 gate never
+ *  fired there). v0.4.2: per-app override in multi-app repos - web/plan vs
+ *  pw-ai/plan - falling back to the repo-global path, then the default. */
+export function contractsPath(app?: string | null): string {
+  try {
+    const c = loadConfig();
+    if (app && c.contracts_path_apps?.[app]) return c.contracts_path_apps[app];
+    return c.contracts_path ?? 'src/contracts';
+  }
   catch { return 'src/contracts'; }
 }
 

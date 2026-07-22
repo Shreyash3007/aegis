@@ -57,6 +57,21 @@ export function config(args: string[]): void {
     const [key, value] = [args[1], args[2]];
     if (!key || value === undefined)
       die(4, `unknown key '${key}' - valid keys: ${Object.keys(SETTABLE).join(', ')}, validate_suite.<name>`);
+    if (key.startsWith('contracts_path.')) {
+      const app = key.slice('contracts_path.'.length);
+      const apps = (cfg.apps ?? []) as string[];
+      if (!apps.includes(app))
+        die(4, `contracts_path.${app}: app not declared (apps: ${apps.join(', ') || 'none'} - set apps first)`);
+      if (!/^[^.]/.test(value) || value.startsWith('/') || value.includes('..'))
+        die(4, 'contracts_path.<app>: repo-relative path, no ..');
+      const m = (cfg.contracts_path_apps ?? {}) as Record<string, string>;
+      if (value === '-') delete m[app]; else m[app] = value.replace(/\/$/, '');
+      cfg.contracts_path_apps = m;
+      writeJ(configP, cfg);
+      ok(value === '-' ? `config: contracts_path.${app} removed (falls back to repo-global)`
+        : `config: contracts_path.${app} = ${JSON.stringify(m[app])}`);
+      return;
+    }
     if (key.startsWith('validate_suite.')) {
       const name = key.slice('validate_suite.'.length);
       if (!/^[a-z][a-z0-9_]*$/.test(name))

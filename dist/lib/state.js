@@ -2,12 +2,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { AEGIS_DIR, die, readJ, writeJ } from './util.js';
 export const SCHEMA_VERSION = 1;
-/** Where N1 contracts live in this repo (default src/contracts; BlindFolio
- *  trial: real projects keep them elsewhere, and a hardcoded path meant the
- *  N1 gate never fired there). */
-export function contractsPath() {
+/** Where N1 contracts live (default src/contracts; BlindFolio trial: real
+ *  projects keep them elsewhere, and a hardcoded path meant the N1 gate never
+ *  fired there). v0.4.2: per-app override in multi-app repos - web/plan vs
+ *  pw-ai/plan - falling back to the repo-global path, then the default. */
+export function contractsPath(app) {
     try {
-        return loadConfig().contracts_path ?? 'src/contracts';
+        const c = loadConfig();
+        if (app && c.contracts_path_apps?.[app])
+            return c.contracts_path_apps[app];
+        return c.contracts_path ?? 'src/contracts';
     }
     catch {
         return 'src/contracts';

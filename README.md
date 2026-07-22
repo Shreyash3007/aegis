@@ -12,13 +12,13 @@ If a rule must be enforced, it lives in code. Nothing is enforced by prose.
 - Hash-verified crash recovery covering `state.json` itself, deterministic
   artifacts, cycle detection
 - Honest validation: every metric cited or labeled UNMEASURED
-- Battle-tested: 69 integration tests replaying every enforcement scenario,
+- Battle-tested: 72 integration tests replaying every enforcement scenario,
   CI on node 20/22, full end-to-end dogfood (`docs/DOGFOOD-v0.2.md`)
 
 ## Install
 
 ```bash
-npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.4.1.tar.gz
+npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.4.2.tar.gz
 # (dist/ is committed, so no build step is needed on install)
 # npm 11 note: `npm install -g github:Shreyash3007/aegis` hits an npm client bug
 # (global git installs symlink to a deleted cache dir) — add --install-links
@@ -86,7 +86,7 @@ Platform matrix in docs/PLATFORM-MATRIX.md — Kimi Code (Linux) VERIFIED
 
 ```bash
 npm install && npm run build   # strict tsc
-npm test                       # 69 integration tests replaying the
+npm test                       # 72 integration tests replaying the
                                # enforcement contract (~6s, zero extra deps)
 ```
 
@@ -265,3 +265,11 @@ root (monorepo per-app toolchains) or when contracts are doc-style
 (markdown/fixtures, no .ts) - both degrade to honest UNMEASURED with
 guidance; `config set <key> -` now removes optional keys (contracts_path,
 token_budget, apps) instead of storing the literal "-". 69/69 tests.
+
+v0.4.2 polish (2026-07-21): doc-style contracts get real gate semantics
+(contracts_doc mode): `validate contracts` scans markdown/fixture contracts
+and PASSes only when substantive (>=10 lines) AND citing the code they pin -
+thin stubs FAIL, and the pre-push hook enforces it (a gate that never fires
+is not a gate). Per-app contract homes: `config set contracts_path.<app>
+<path>` honored by `aegis contracts --app`. `aegis --version` added (five
+trials reached for it; it didn't exist). 72/72 tests.

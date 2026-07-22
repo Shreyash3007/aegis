@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { COMMANDS, run } from './lib/commands.js';
 
 const [cmd, ...args] = process.argv.slice(2);
@@ -49,6 +52,10 @@ Exit codes: 0 ok | 1 not a git repo | 2 missing/unexpected state | 3 blocked |
 
 if (!cmd || cmd === 'help' || cmd === '--help') {
   console.log(HELP);
+} else if (cmd === 'version' || cmd === '--version' || cmd === '-v') {
+  const pkg = JSON.parse(fs.readFileSync(
+    path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json'), 'utf8'));
+  console.log(`aegis ${pkg.version}`);
 } else if (!(await run(cmd, args))) {
   console.error(`unknown command: ${cmd}\n\n${HELP}`);
   process.exit(2);

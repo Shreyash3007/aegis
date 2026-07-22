@@ -4,7 +4,7 @@
 
 ```bash
 # From GitHub (recommended once the repo is published):
-npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.4.1.tar.gz
+npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.4.2.tar.gz
 
 # Already installed? `aegis update` self-updates to the latest tag (same tarball path).
 
@@ -70,6 +70,17 @@ aegis validate smoke              # owner-declared suites, exit code = verdict
 aegis doctor                      # also reports state-vs-git drift (lanes, stale checkpoints)
 ```
 
+Doc-style contracts (markdown/fixtures instead of `src/contracts` TS) get a
+real gate since v0.4.2: `validate contracts` scans them and PASSes only when
+they're substantive (>=10 lines) and cite the code they pin — thin stubs
+FAIL (and the pre-push hook enforces that). Monorepos can point each app at
+its own contract home:
+
+```bash
+aegis config set contracts_path.api pw-ai/plan   # per-app override ('-' removes)
+aegis contracts --app api                        # verifies against api's path
+```
+
 Monorepo (v0.4): declare apps once, then scope every pipeline action:
 
 ```bash
@@ -125,7 +136,7 @@ AEGIS_JUDGE_API_KEY=... aegis eval --all   # opt-in model judge (strict on fail)
 
 ```bash
 npm install && npm run build   # strict tsc, dist/ is committed
-npm test                       # 69 integration tests (~15s, no extra deps)
+npm test                       # 72 integration tests (~15s, no extra deps)
 ```
 
 CI (`.github/workflows/ci.yml`) runs build + tests + smoke on node 20/22.

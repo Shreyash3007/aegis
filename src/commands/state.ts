@@ -127,7 +127,7 @@ export function transition(args: string[]): void {
 export function contracts(args: string[]): void {
   const ctx = resolveState(args, true);
   const s = ctx.s;
-  const cp = contractsPath();
+  const cp = contractsPath(ctx.app);
   if (!git(['ls-files', cp]).length || git(['status', '--porcelain', cp]))
     die(4, `contracts not committed (${cp})`);
   // N1 means MERGED TO BASE, not just committed on a branch: resolve the base
