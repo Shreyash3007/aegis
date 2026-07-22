@@ -42,23 +42,27 @@ unverified axis. Known patterns, none verified except the first:
 | Pattern | Status | Notes |
 |---------|--------|-------|
 | Worktree-per-slice (`aegis slice create`, N2) | ✅ VERIFIED (Kimi Code, 2026-07-21 dogfood) | the designed path |
-| Fork/sub-agent waves on ONE shared working tree (e.g. 5 agents dispatched in parallel waves, metis-nda style) | ⬜ UNTESTED | unknown whether it composes with lanes/checkpoints; experiment below |
-| External executors (opencode+GLM) driving aegis by prompt | ⬜ UNTESTED | enforcement is prompt-deep here; drift detection (`aegis doctor`) is the mitigation, auto-correction is deliberately NOT built (A1.1) |
+| Fork/sub-agent waves on ONE shared working tree (e.g. 5 agents dispatched in parallel waves, metis-nda style) | ⚠️ PARTIAL (2026-07-21, concurrency substrate) | integrity safe; state mutations must be serialized - see results below |
+| External executors (opencode+GLM) driving aegis by prompt | ⬜ UNTESTED | enforcement is prompt-deep here; `aegis exec -- <cmd>` (v0.4) is the recording wrapper; drift detection (`aegis doctor`) is the after-the-fact net |
 
-### Experiment: shared-tree fork-agent waves (planned, not run)
+### Experiment: shared-tree concurrency (2026-07-21, v0.4)
 
-Question: can N parallel agents share one working tree under Aegis without
-corrupting state or each other?
+What was run (the substrate a fork-agent wave stands on - not full agent
+waves, which need a real multi-agent harness):
 
-1. Test repo, `aegis init --yes`, one feature slice in flight.
-2. Dispatch 3 agents with disjoint file scopes (like a wave prompt) against
-   the SAME tree (no worktrees), each instructed to run `aegis status` /
-   `checkpoint` per its prompt.
-3. Measure: (a) checkpoint integrity after the wave (`aegis resume` exit 0?),
-   (b) git index/working-tree races between agents, (c) whether lane caps
-   mean anything when lanes aren't worktrees, (d) human review cost vs the
-   worktree path on the same task.
-4. Outcomes: if integrity holds -> document as a supported pattern with its
-   constraints. If not -> document the failure mode and keep N2 as the only
-   supported parallel path. Either result gets recorded HERE with a date;
-   until then, claims either way are prohibited.
+- 5 parallel `aegis checkpoint` on one shared tree: all exit 0,
+  `aegis resume` VERIFIED. (Covered by integration test.)
+- 6 parallel state-mutating commands (`aegis chore`) on one shared tree,
+  x5 trials: resume VERIFIED every trial (atomic tmp+rename writes - no torn
+  state.json ever observed), but 3/5 trials recorded 5/6 events: concurrent
+  read-modify-write is last-writer-wins and an event was lost.
+
+Conclusions, binding until re-tested:
+
+1. **Checkpoints and read-only commands are freely parallel-safe.**
+2. **State mutations (transition/gate/fix/chore/loops) must be SERIALIZED**
+   by the wave prompt: one agent owns state transitions; workers report,
+   they do not transition. Integrity is never at risk; the AUDIT TRAIL is
+   (lost events = unrecorded work).
+3. Full fork-agent waves (real agents, disjoint file scopes, one tree)
+   remain ⬜ UNTESTED - the substrate says the pattern is viable under rule 2.

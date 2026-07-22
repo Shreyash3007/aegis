@@ -8,12 +8,15 @@ const HELP = `aegis - the enforcement layer for AI-native development
 Usage: aegis <command> [args]
 
 Phase 0 (this build):
-  init [--yes] [--overwrite]   scaffold .aegis/ + brain/ + git hooks + interview
-  doctor [--save]              detect environment, prune stale worktrees
-  status                       current state, legal transitions, lanes
+  init [--yes] [--overwrite] [--apps web,api]
+                               scaffold .aegis/ + brain/ + git hooks + interview
+                               (--apps declares per-app states: monorepo, v0.4)
+  doctor [--save]              detect environment, prune stale worktrees, drift notes
+  status [--app <name>]        current state, legal transitions, lanes
+                               (multi-app: summary without --app, detail with)
   next                         recommended next legal skill (lists all legal edges)
-  gate <name> --approve        record human gate approval
-  transition <skill> [--reason t]  record a validated transition
+  gate <name> --approve [--app <name>]   record human gate approval
+  transition <skill> [--reason t] [--app <name>]  record a validated transition
   contracts                    verify contracts merged to base branch (unlocks 04a)
   loops reset --reason <t>     zero loop/cycle counters after human review (audited)
   lane <open|close> <slice>    parallel lane management (cap enforced)
@@ -32,6 +35,7 @@ Phase 0 (this build):
   chore <desc>                 record a docs/config-class change (no lifecycle)
   import check                 verify 00d brownfield import bridge (brain docs cited)
   update [--check]             self-update from the latest GitHub tag tarball
+  exec -- <cmd>                run a command recorded + checkpointed (executor waves)
   monitor --once               one post-ship check pass for cron/CI (Phase 9)
   eval <file|--all>            skill-file eval harness (Phase 10)
   migrate                      schema migration across versions (Phase 12)

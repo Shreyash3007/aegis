@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { REPO, die, git, gitRaw, ok } from '../lib/util.js';
+import { contractsPath } from '../lib/state.js';
 /** aegis merge check <branch> - the merge oracle (N3, simulation-proven).
  *  Real git merge in an OS-temp worktree (A1.5), tsc, contract immutability
  *  via git-native diff (A1.1). Exit 9 = refused. Exit 13 = nothing to merge
@@ -83,7 +84,7 @@ export function merge(args) {
         console.log('warn: tsc unavailable in target repo - typecheck oracle UNVERIFIED (advisory)');
     }
     // oracle 2: contract immutability (git-native diff, A1.1)
-    const drift = gitRaw(['diff', '--name-only', 'HEAD', '--', 'src/contracts'], tmp).trim();
+    const drift = gitRaw(['diff', '--name-only', 'HEAD', '--', contractsPath()], tmp).trim();
     if (drift)
         failed.push(`CONTRACT DRIFT: slice modified immutable contracts (N1):\n  ${drift.split('\n').join('\n  ')}`);
     cleanup();

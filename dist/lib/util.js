@@ -28,7 +28,15 @@ export const AEGIS_DIR = path.join(REPO, '.aegis');
 export const ok = (msg) => console.log(`OK ${msg}`);
 export const sha = (s) => crypto.createHash('sha256').update(s).digest('hex').slice(0, 16);
 export const readJ = (p) => JSON.parse(fs.readFileSync(p, 'utf8'));
-export const writeJ = (p, o) => fs.writeFileSync(p, JSON.stringify(o, null, 2) + '\n');
+/** Atomic write: tmp file + rename. Concurrent writers (fork-agent waves on a
+ *  shared tree, hooks firing mid-command) must never observe a torn
+ *  state.json - rename is atomic on POSIX, so readers see old or new, never
+ *  half-written. */
+export const writeJ = (p, o) => {
+    const tmp = `${p}.tmp-${process.pid}`;
+    fs.writeFileSync(tmp, JSON.stringify(o, null, 2) + '\n');
+    fs.renameSync(tmp, p);
+};
 /** git helper - argv array, NO shell: branch/slice names are user input and
  *  must never be interpolated into a shell string. Trims output.
  *  Never use for content comparison (A1.1). */

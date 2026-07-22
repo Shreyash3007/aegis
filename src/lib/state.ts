@@ -53,6 +53,16 @@ export interface Config {
   team?: 'solo' | 'small-team'; // 00b interview Q9 - docs depth
   token_budget?: number; // advisory only (06d) - surfaced in `aegis status`, never enforced
   validate_suites?: Record<string, string>; // owner-declared custom validators (aegis validate <name>)
+  contracts_path?: string; // default 'src/contracts' - where N1 contracts live in THIS repo
+  apps?: string[]; // v0.4 monorepo: per-app pipeline states under .aegis/apps/
+}
+
+/** Where N1 contracts live in this repo (default src/contracts; BlindFolio
+ *  trial: real projects keep them elsewhere, and a hardcoded path meant the
+ *  N1 gate never fired there). */
+export function contractsPath(): string {
+  try { return loadConfig().contracts_path ?? 'src/contracts'; }
+  catch { return 'src/contracts'; }
 }
 
 export const stateP = path.join(AEGIS_DIR, 'state.json');
@@ -65,15 +75,69 @@ function loadJsonOr<T>(p: string, what: string): T {
   catch { die(2, `corrupt ${what} - fix it, restore from a checkpoint, or re-run aegis init`); }
 }
 
-export function loadState(): State {
-  const s = loadJsonOr<State>(stateP, '.aegis/state.json');
+export function loadStateFrom(p: string): State {
+  const s = loadJsonOr<State>(p, path.relative(AEGIS_DIR, p));
   if (s.schema_version !== SCHEMA_VERSION)
     die(12, `state schema v${s.schema_version} != CLI v${SCHEMA_VERSION} - run aegis migrate`);
   return s;
 }
+export function loadState(): State {
+  return loadStateFrom(stateP);
+}
 export const loadTransitions = (): Transitions =>
   validateTransitions(loadJsonOr<Transitions>(transP, '.aegis/transitions.json'));
 export const loadConfig = (): Config => loadJsonOr<Config>(configP, '.aegis/config.json');
+
+/** Initial pipeline state (00a, empty counters). laneMax only meaningful on
+ *  the ROOT state - lanes are global (RAM is a machine resource). */
+export function freshState(laneMax = 2): State {
+  return { schema_version: SCHEMA_VERSION, current_skill: '00a',
+    history: [], loop_counters: {}, state_visits: {}, gates: {},
+    lanes: { max: laneMax, active: [] }, contracts_merged: false };
+}
+
+// ---- v0.4 monorepo: per-app pipeline states ----
+// One state machine per git root cannot express "pw-ai mid-validate while web
+// is shipped" (BlindFolio trial, their #1 gap). Shape per docs/MONOREPO-DESIGN.md:
+// declared apps get .aegis/apps/<name>/state.json; transitions/config/skills
+// stay shared; lanes stay global on the root state. Single-app repos are the
+// degenerate case - zero behavior change when config.apps is absent.
+
+export const appStatePath = (name: string): string =>
+  path.join(AEGIS_DIR, 'apps', name, 'state.json');
+
+export function declaredApps(): string[] {
+  try { return loadConfig().apps ?? []; } catch { return []; }
+}
+
+/** Remove `--app <value>` from an argv copy (commands that parse free-text
+ *  args, e.g. fix start <desc>, call this first). */
+export function stripAppArg(args: string[]): string[] {
+  const i = args.indexOf('--app');
+  return i === -1 ? args : [...args.slice(0, i), ...args.slice(i + 2)];
+}
+
+export interface StateCtx { s: State; p: string; app: string | null }
+
+/** Resolve which state a command operates on. Multi-app repo + mutating
+ *  command without --app: refuse (exit 2) and list the apps - never guess. */
+export function resolveState(args: string[], mutate: boolean): StateCtx {
+  const apps = declaredApps();
+  if (!apps.length) return { s: loadState(), p: stateP, app: null };
+  const i = args.indexOf('--app');
+  const name = i !== -1 ? args[i + 1] : undefined;
+  if (!name) {
+    if (mutate)
+      die(2, `multi-app repo (apps: ${apps.join(', ')}) - pass --app <name>`);
+    return { s: loadState(), p: stateP, app: null };
+  }
+  if (!apps.includes(name))
+    die(2, `unknown app '${name}' - declared apps: ${apps.join(', ')}`);
+  const p = appStatePath(name);
+  if (!fs.existsSync(p))
+    die(2, `no state for app '${name}' - re-run: aegis config set apps ${apps.join(',')} (recreates missing app states)`);
+  return { s: loadStateFrom(p), p, app: name };
+}
 
 const STATE_ID = /^\d{2}[a-z]$/;
 

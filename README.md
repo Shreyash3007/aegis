@@ -12,13 +12,13 @@ If a rule must be enforced, it lives in code. Nothing is enforced by prose.
 - Hash-verified crash recovery covering `state.json` itself, deterministic
   artifacts, cycle detection
 - Honest validation: every metric cited or labeled UNMEASURED
-- Battle-tested: 52 integration tests replaying every enforcement scenario,
+- Battle-tested: 63 integration tests replaying every enforcement scenario,
   CI on node 20/22, full end-to-end dogfood (`docs/DOGFOOD-v0.2.md`)
 
 ## Install
 
 ```bash
-npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.3.0.tar.gz
+npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.4.0.tar.gz
 # (dist/ is committed, so no build step is needed on install)
 # npm 11 note: `npm install -g github:Shreyash3007/aegis` hits an npm client bug
 # (global git installs symlink to a deleted cache dir) — add --install-links
@@ -49,9 +49,9 @@ guide and `docs/PLATFORM-MATRIX.md` for platform support status.
 
 | Command | Behavior | Exit codes |
 |---|---|---|
-| `aegis init [--yes] [--overwrite]` | Scaffold .aegis/ + brain/, git hooks (existing hooks preserved + chained), doctor, setup interview (brownfield auto-detected) | 0 / 1 / 2 |
+| `aegis init [--yes] [--overwrite] [--apps a,b]` | Scaffold .aegis/ + brain/, git hooks (existing hooks preserved + chained), doctor, setup interview (brownfield auto-detected); `--apps` declares per-app states (monorepo) | 0 / 1 / 2 |
 | `aegis doctor [--save]` | Detect platform/RAM/tools/env level, prune stale worktrees | 0 |
-| `aegis status` | Current state, legal transitions, loop counters, lanes | 0 |
+| `aegis status [--app <name>]` | Current state, legal transitions, loop counters, lanes; multi-app: summary without, detail with | 0 |
 | `aegis next` | Recommended next skill + all other legal edges | 0 / 3 |
 | `aegis gate <name> --approve` | Human gate approval: TTY retype-to-confirm; CI needs `AEGIS_HUMAN_TOKEN=1`; `autonomy=full` approves non-TTY (recorded as `autonomy-full`) | 0 / 7 |
 | `aegis transition <skill> [--reason t]` | Validate + record transition; dual loop/cycle detection | 0 / 4 / 5 |
@@ -73,6 +73,7 @@ guide and `docs/PLATFORM-MATRIX.md` for platform support status.
 | `aegis chore <desc>` | Record a docs/config-class change (no lifecycle) | 0 / 2 |
 | `aegis import check` | Verify 00d brownfield brain docs exist, substantive + cited | 0 / 2 / 4 |
 | `aegis update [--check]` | Self-update from latest GitHub tag tarball | 0 / 2 |
+| `aegis exec -- <cmd>` | Run a command recorded in history + checkpointed (executor waves); exit code passes through | any |
 | `aegis monitor --once` | Post-ship health pass for cron/CI (external scheduler) | 0 / 10 |
 | `aegis eval <file\|--all>` | Skill-file eval harness; opt-in model judge via `AEGIS_JUDGE_API_KEY` | 0 / 11 |
 | `aegis migrate` | Schema migration across CLI versions (P12) | 0 / 12 |
@@ -85,7 +86,7 @@ Platform matrix in docs/PLATFORM-MATRIX.md — Kimi Code (Linux) VERIFIED
 
 ```bash
 npm install && npm run build   # strict tsc
-npm test                       # 52 integration tests replaying the
+npm test                       # 63 integration tests replaying the
                                # enforcement contract (~6s, zero extra deps)
 ```
 
@@ -230,3 +231,24 @@ design proposal (docs/MONOREPO-DESIGN.md, v0.4 - deliberately NOT shipped
 undogfooded), shared-tree fork-agent experiment plan + orchestration-pattern
 matrix (docs/PLATFORM-MATRIX.md), AFK loop-escalation guidance (SETUP.md).
 52/52 integration tests, eval 66/66.
+
+v0.4.0 structural (2026-07-21): every remaining gap from both trials.
+Monorepo scoping SHIPPED (BlindFolio's last big one): `init --apps a,b` /
+`config set apps a,b` -> per-app pipeline states at .aegis/apps/<name>/;
+all state-mutating commands take --app (exit 2 without it, never guessed);
+gates + fast lane per-app, lanes global; checkpoints record + hash every
+app state (tamper -> exit 6); `status` summarizes all apps, `status --app`
+details; single-app repos unchanged. contracts_path config: N1 contract
+location no longer hardcoded to src/contracts (validate + merge oracle +
+contracts all honor it). `aegis exec -- <cmd>`: executor-wave wrapper -
+runs the command, records it + exit code in history, checkpoints before/
+after (records reality; never fabricates transitions, A1.1). fix done now
+warns when closing on a non-base branch (fast lane gates tests, not
+merges). State writes atomic (tmp+rename) - concurrent fork-agent waves can
+never tear state.json; concurrency experiment run + documented (integrity
+safe; state mutations must be serialized by the wave prompt, 3/5 trials
+lost an event before serialization - docs/PLATFORM-MATRIX.md). Own DAG
+rule repaired: commands.ts<->eval.ts cycle broken by injection (found by
+dogfooding `aegis ast build` on this repo). Self-hosting: aegis-cli now
+runs Aegis on itself - brain docs drafted via the 00d import bridge,
+import check 4/4. 63/63 integration tests, eval 66/66.

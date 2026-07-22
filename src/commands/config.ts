@@ -1,6 +1,7 @@
 import fs from 'node:fs';
+import path from 'node:path';
 import { die, ok, readJ, writeJ } from '../lib/util.js';
-import { Config, configP } from '../lib/state.js';
+import { Config, configP, freshState, appStatePath } from '../lib/state.js';
 
 type Cfg = Record<string, unknown>;
 /** Settable keys = the 00b interview's canonical keys (src/lib/interview.ts)
@@ -23,6 +24,26 @@ const SETTABLE: Record<string, (cfg: Cfg, v: string) => void> = {
   token_budget: (c, v) => { const n = parseInt(v, 10);
     if (!Number.isFinite(n) || n <= 0) die(4, 'token_budget: positive integer (advisory, not enforced)');
     c.token_budget = n; },
+  contracts_path: (c, v) => {
+    if (!v || v.startsWith('/') || v.includes('..')) die(4, 'contracts_path: repo-relative path, no .. (e.g. pw-ai/plan/contracts)');
+    c.contracts_path = v.replace(/\/$/, '');
+  },
+  apps: (c, v) => {
+    const names = v.split(',').map((x) => x.trim()).filter(Boolean);
+    if (!names.length) die(4, 'apps: comma-separated names (e.g. web,api)');
+    for (const n of names)
+      if (!/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(n)) die(4, `app name '${n}': letters/digits/dash/underscore, starting with a letter`);
+    c.apps = names;
+    // Missing app states are created at 00a; states for apps removed from the
+    // list are KEPT on disk (deleting recorded history is never our call).
+    for (const n of names) {
+      const p = appStatePath(n);
+      if (!fs.existsSync(p)) {
+        fs.mkdirSync(path.dirname(p), { recursive: true });
+        writeJ(p, freshState());
+      }
+    }
+  },
 };
 
 /** aegis config            -> print config

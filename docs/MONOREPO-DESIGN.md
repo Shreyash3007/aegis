@@ -1,62 +1,40 @@
-# Monorepo Scoping — Design Proposal (v0.4, NOT YET IMPLEMENTED)
+# Monorepo Scoping — SHIPPED in v0.4.0 (this doc kept as the design record)
 
-Status: **proposal**. Filed from the BlindFolio hands-on trial (their #1 gap).
-One state machine per git root cannot express "pw-ai is in validate while web
-is shipped" in a four-app monorepo with separate deploys and gates.
+Status: **implemented** (2026-07-21). Filed from the BlindFolio hands-on
+trial (their #1 gap): one state machine per git root could not express
+"pw-ai is in validate while web is shipped" in a four-app monorepo with
+separate deploys and gates.
 
-## Requirements
+## As built (v0.4.0)
 
-1. Per-app pipeline position: `aegis status --app pw-ai` shows that app's
-   state, gates, and legal transitions — independent of sibling apps.
-2. Shared truth stays shared: one `transitions.json`, one interview, one
-   skill set, one brain/ (architecture docs may reference multiple apps).
-3. No per-app `.aegis/` directories — discovery ambiguity (which `.aegis`
-   governs a commit touching two apps?) is worse than the problem.
-4. Cross-app changes are representable: a slice touching `web/` and `pw-ai/`
-   must not require lying to either state machine.
-5. Backward compatible: a single-app repo is the degenerate case (one
-   implicit app) with zero workflow change.
+- `aegis init --apps web,pw-ai` or `aegis config set apps web,pw-ai` declares
+  the app set. Each app gets `.aegis/apps/<name>/state.json` at 00a.
+- State-mutating commands (`transition`, `gate`, `contracts`, `loops reset`,
+  `fix`, `chore`, `next`) take `--app <name>`; in a multi-app repo, omitting
+  it dies with exit 2 listing the declared apps — never guessed.
+- `aegis status` without `--app` prints a repo summary (one line per app +
+  global lanes); `--app <name>` gives full detail.
+- Gates and the fix/chore fast lane are per-app. Lanes stay global on the
+  root state (RAM is a machine resource, not an app resource).
+- Checkpoints record every app's position and hash every app state —
+  hand-editing an app's state.json is caught by `aegis resume` (exit 6).
+- App states removed from the `apps` list are kept on disk (recorded history
+  is never deleted by a config change).
+- Single-app repos: zero behavior change (degenerate case, root state.json).
 
-## Proposed shape
+## Deliberately NOT in v0.4.0
 
-```
-.aegis/
-  config.json            # shared (interview answers, custom validators)
-  transitions.json       # shared state machine definition
-  apps/
-    pw-ai/state.json     # per-app pipeline state (schema v2)
-    web/state.json
-  checkpoints/           # checkpoint records include the app id
-  skills/                # shared
-```
+- Per-app contracts (N1 is repo-wide via `contracts_path`; per-app contract
+  boundaries need a real monorepo dogfood first).
+- Per-app brain/ subtrees (one brain, docs may span apps).
+- Drift detection mapping worktrees to apps by path prefix.
 
-- `aegis init --apps web,pw-ai,pw-ai,design-ui` (or `config set apps ...`)
-  declares the app set; each gets `apps/<name>/state.json` starting at 00a.
-- Every state-mutating command takes `--app <name>`; without it, commands
-  behave as today (single implicit app = root state.json, unchanged file
-  layout). Omitting `--app` in a multi-app repo dies with exit 2 listing the
-  app set — never guess.
-- Gates are per-app (pw-ai's G4 does not ship web). The `fix`/`chore` fast
-  lane is per-app too; `--app` optional for repo-wide chores (recorded in
-  every app's log? No — recorded once, flagged `scope: repo`).
-- Lanes stay global (RAM is a machine resource, not an app resource).
-- Drift detection maps worktrees to apps by path prefix (`apps/*/`).
+## Requirements (from the original proposal — all met unless noted above)
 
-## Explicitly deferred questions
-
-- Whether contracts (N1) are per-app or per-repo. Leaning per-repo for
-  shared libraries, per-app for deployable boundaries — needs a real
-  monorepo dogfood before committing.
-- Whether `brain/architecture/` gets per-app subdirectories or one map with
-  app labels. Probably the latter (module graph doesn't respect app borders).
-- CI template changes (per-app pipelines vs one pipeline with app matrix).
-
-## Why not shipped in v0.3.0
-
-Schema v2 + every state command gaining an axis is the largest change since
-the project's start; landing it without a real four-app dogfood would repeat
-the mistake the two v0.2.x trials caught — designing for repos we haven't
-tested against. v0.3.0 ships the adoption fixes both trials actually asked
-for; this doc pins the monorepo shape so v0.4 work starts from a decision,
-not a blank page. The first v0.4 milestone is a dogfood against a real
-monorepo (BlindFolio shape) before any schema change is committed.
+1. Per-app pipeline position: `aegis status --app pw-ai` ✅
+2. Shared truth stays shared: one transitions.json, config, skills, brain ✅
+3. No per-app `.aegis/` directories ✅ (per-app FILES under one `.aegis/apps/`)
+4. Cross-app changes representable: repo-wide checkpoint + per-app states;
+   a repo-wide change is recorded per affected app by the operator ✅ (manual
+   but explicit — auto-propagation would fabricate transitions, A1.1)
+5. Backward compatible ✅ (config.apps absent = v0.3 behavior)

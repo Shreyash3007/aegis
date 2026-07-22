@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { die, git, gitTry, ok, writeJ } from '../lib/util.js';
-import { loadState, loadTransitions, loadConfig, stateP } from '../lib/state.js';
+import { loadState, loadStateFrom, loadTransitions, loadConfig, contractsPath, declaredApps, appStatePath, resolveState, stateP } from '../lib/state.js';
 function blockers(s, t, e) {
     const b = [];
     if (e.gate && s.gates[e.gate]?.status !== 'approved')
@@ -14,10 +14,22 @@ function blockers(s, t, e) {
         b.push(`state ${e.to} visited ${s.state_visits[e.to]}x (cycle guard)`);
     return b;
 }
-export function status() {
-    const s = loadState();
+export function status(args = []) {
+    const apps = declaredApps();
+    // Multi-app without --app: repo-level summary, one line per app.
+    if (apps.length && !args.includes('--app')) {
+        const root = loadState();
+        console.log(`multi-app repo (apps: ${apps.join(', ')}) | lanes: ${root.lanes.active.length}/${root.lanes.max} [${root.lanes.active.join(', ')}]`);
+        for (const a of apps) {
+            const s = loadStateFrom(appStatePath(a));
+            console.log(`  ${a}: ${s.current_skill}${s.fix?.active ? ` | fix OPEN "${s.fix.active.desc}"` : ''}`);
+        }
+        console.log('detail: aegis status --app <name>');
+        return;
+    }
+    const { s, app } = resolveState(args, false);
     const t = loadTransitions();
-    console.log(`state: ${s.current_skill} | lanes: ${s.lanes.active.length}/${s.lanes.max} [${s.lanes.active.join(', ')}]`);
+    console.log(`${app ? `app: ${app} | ` : ''}state: ${s.current_skill} | lanes: ${s.lanes.active.length}/${s.lanes.max} [${s.lanes.active.join(', ')}]`);
     if (s.fix?.active)
         console.log(`fix OPEN: "${s.fix.active.desc}" (since ${s.fix.active.opened_at}) - close: aegis fix done`);
     const tb = loadConfig().token_budget;
@@ -28,12 +40,12 @@ export function status() {
         console.log(`  -> ${e.to}${e.backward ? ' (rollback)' : ''} ${b.length ? 'BLOCKED: ' + b.join(', ') : 'legal'}`);
     }
 }
-export function next() {
-    const s = loadState();
+export function next(args = []) {
+    const { s, app } = resolveState(args, true); // pipeline-specific: multi-app requires --app
     const t = loadTransitions();
     const legal = t.edges.filter((e) => e.from === s.current_skill && !e.backward && blockers(s, t, e).length === 0);
     if (!legal.length)
-        die(3, `Blocked at ${s.current_skill} - no legal forward transition (run aegis status)`);
+        die(3, `Blocked at ${s.current_skill}${app ? ` (app ${app})` : ''} - no legal forward transition (run aegis status)`);
     console.log(`next legal skill: ${legal[0].to} (recommended)`);
     for (const e of legal.slice(1))
         console.log(`  also legal: ${e.to}`);
@@ -90,16 +102,18 @@ export function gate(args) {
             'non-interactive use requires AEGIS_HUMAN_TOKEN=1 (CI escape hatch) ' +
             'or `aegis config set autonomy full` (trust-then-verify posture)');
     }
-    const s = loadState();
+    const ctx = resolveState(args, true);
+    const s = ctx.s;
     s.gates[name] = { status: 'approved', at: new Date().toISOString(), by };
-    writeJ(stateP, s);
-    ok(`gate ${name} approved and recorded`);
+    writeJ(ctx.p, s);
+    ok(`gate ${name} approved and recorded${ctx.app ? ` (app ${ctx.app})` : ''}`);
 }
 export function transition(args) {
     const to = args[0];
     if (!to)
-        die(4, 'usage: aegis transition <skill> [--reason <text>]');
-    const s = loadState();
+        die(4, 'usage: aegis transition <skill> [--reason <text>] [--app <name>]');
+    const ctx = resolveState(args, true);
+    const s = ctx.s;
     const t = loadTransitions();
     const e = t.edges.find((e) => e.from === s.current_skill && e.to === to);
     if (!e)
@@ -119,16 +133,18 @@ export function transition(args) {
     s.state_visits[to] = (s.state_visits[to] || 0) + 1;
     s.history.push({ skill: s.current_skill, at: new Date().toISOString() });
     s.current_skill = to;
-    writeJ(stateP, s);
-    ok(`transition ${e.from} -> ${to} recorded (edge ${s.loop_counters[key]}/${t.max_loop}, state-visits ${s.state_visits[to]}/${t.max_loop})`);
+    writeJ(ctx.p, s);
+    ok(`transition ${e.from} -> ${to} recorded${ctx.app ? ` (app ${ctx.app})` : ''} (edge ${s.loop_counters[key]}/${t.max_loop}, state-visits ${s.state_visits[to]}/${t.max_loop})`);
 }
-export function contracts() {
-    const s = loadState();
-    if (!git(['ls-files', 'src/contracts']).length || git(['status', '--porcelain', 'src/contracts']))
-        die(4, 'contracts not committed');
+export function contracts(args) {
+    const ctx = resolveState(args, true);
+    const s = ctx.s;
+    const cp = contractsPath();
+    if (!git(['ls-files', cp]).length || git(['status', '--porcelain', cp]))
+        die(4, `contracts not committed (${cp})`);
     // N1 means MERGED TO BASE, not just committed on a branch: resolve the base
     // (origin/HEAD -> remote default -> local main/master) and require
-    // src/contracts to exist in its tree.
+    // the contracts path to exist in its tree.
     let base = gitTry(['rev-parse', '--abbrev-ref', 'origin/HEAD']);
     if (!base) {
         for (const cand of ['origin/main', 'origin/master', 'main', 'master']) {
@@ -140,15 +156,15 @@ export function contracts() {
     }
     if (!base)
         die(4, 'no base branch found (origin/HEAD, origin/main, main) - cannot verify contract merge');
-    if (!git(['ls-tree', '-r', '--name-only', base, '--', 'src/contracts']))
-        die(4, `src/contracts not in ${base} - contract PR not merged to base branch`);
-    const unmerged = gitTry(['diff', '--name-only', base, 'HEAD', '--', 'src/contracts']);
+    if (!git(['ls-tree', '-r', '--name-only', base, '--', cp]))
+        die(4, `${cp} not in ${base} - contract PR not merged to base branch`);
+    const unmerged = gitTry(['diff', '--name-only', base, 'HEAD', '--', cp]);
     if (unmerged)
         die(4, `contract changes not merged to ${base}: ${unmerged.split('\n').join(', ')}`);
     s.contracts_merged = true;
-    writeJ(stateP, s);
+    writeJ(ctx.p, s);
     if (base.startsWith('origin/'))
-        ok(`contract PR verified merged to ${base} - 04a unlocked (N1)`);
+        ok(`contract PR verified merged to ${base} - 04a unlocked (N1)${ctx.app ? ` (app ${ctx.app})` : ''}`);
     else
         ok(`contracts verified against local ${base}; ` +
             `${gitTry(['remote']) ? 'remote base branch not found' : 'no remote'} - UNVERIFIED for PR merge`);
@@ -163,7 +179,8 @@ export function loops(args) {
     const reason = ri >= 0 ? args[ri + 1] : undefined;
     if (!reason)
         die(4, 'loops reset requires --reason (recorded in the audit trail)');
-    const s = loadState();
+    const ctx = resolveState(args, true);
+    const s = ctx.s;
     const cleared = [...Object.keys(s.loop_counters), ...Object.keys(s.state_visits)];
     s.loop_counters = {};
     s.state_visits = {};
@@ -171,7 +188,7 @@ export function loops(args) {
         skill: s.current_skill, at: new Date().toISOString(),
         event: 'loops-reset', reason, cleared,
     });
-    writeJ(stateP, s);
+    writeJ(ctx.p, s);
     ok(`loop + cycle counters reset (${cleared.length} cleared) - recorded in history`);
 }
 export function lane(args) {

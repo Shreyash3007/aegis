@@ -3,7 +3,7 @@ import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
 import { AEGIS_DIR, REPO, die, ok, readJ, writeJ } from '../lib/util.js';
-import { loadConfig } from '../lib/state.js';
+import { loadConfig, contractsPath } from '../lib/state.js';
 function runCmd(command, cwd = REPO) {
     try {
         return { code: 0, out: execSync(command, { cwd, encoding: 'utf8', stdio: 'pipe' }) };
@@ -54,13 +54,14 @@ async function measureApiP95(url, n = 20) {
 }
 const suites = {
     contracts: () => {
-        const hasContracts = fs.existsSync(path.join(REPO, 'src', 'contracts'));
+        const cp = contractsPath();
+        const hasContracts = fs.existsSync(path.join(REPO, cp));
         const tscBin = fs.existsSync(path.join(REPO, 'node_modules', '.bin', 'tsc'))
             ? `"${path.join(REPO, 'node_modules', '.bin', 'tsc')}"` : 'tsc';
         const r = runCmd(`${tscBin} --noEmit`);
         return { suite: 'contracts', tool: 'tsc', command: `${tscBin} --noEmit`,
             status: !hasContracts ? 'UNMEASURED' : r.code === 0 ? 'PASS' : 'FAIL',
-            summary: !hasContracts ? 'no src/contracts - N1 not applicable yet'
+            summary: !hasContracts ? `no ${cp} - N1 not applicable yet`
                 : r.code === 0 ? 'typecheck clean, contracts present' : r.out.split('\n').slice(0, 8).join(' | ') };
     },
     tests: () => {

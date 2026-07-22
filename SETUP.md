@@ -4,7 +4,7 @@
 
 ```bash
 # From GitHub (recommended once the repo is published):
-npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.3.0.tar.gz
+npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.4.0.tar.gz
 
 # Already installed? `aegis update` self-updates to the latest tag (same tarball path).
 
@@ -70,6 +70,34 @@ aegis validate smoke              # owner-declared suites, exit code = verdict
 aegis doctor                      # also reports state-vs-git drift (lanes, stale checkpoints)
 ```
 
+Monorepo (v0.4): declare apps once, then scope every pipeline action:
+
+```bash
+aegis init --yes --apps web,api   # or later: aegis config set apps web,api
+aegis status                      # repo summary: one line per app + global lanes
+aegis status --app web            # full detail for one app
+aegis transition 01a --app api    # mutations REQUIRE --app (exit 2 without)
+aegis gate G4 --approve --app web # gates are per-app
+```
+
+`contracts_path` for repos whose contracts don't live in `src/contracts`:
+
+```bash
+aegis config set contracts_path pw-ai/plan/contracts   # validate/merge/contracts all honor it
+```
+
+Executor waves (opencode/GLM/fork agents): wrap runs so they're recorded:
+
+```bash
+aegis exec -- node scripts/verify-sync-wave.mjs   # recorded + checkpointed, exit code passes through
+```
+
+Concurrent agents on one shared tree: checkpoints are freely parallel-safe,
+but STATE MUTATIONS (transition/gate/fix/chore) must be serialized — one
+agent owns transitions, workers report. Measured 2026-07-21: integrity holds
+either way (atomic writes); unserialized mutations lose audit events
+(docs/PLATFORM-MATRIX.md).
+
 Gate approvals require an interactive terminal (retype the gate name to
 confirm). In CI/non-interactive runs, set `AEGIS_HUMAN_TOKEN=1` — approvals
 are then recorded as `by: human-token`. Keep that variable out of
@@ -98,7 +126,7 @@ AEGIS_JUDGE_API_KEY=... aegis eval --all   # opt-in model judge (strict on fail)
 
 ```bash
 npm install && npm run build   # strict tsc, dist/ is committed
-npm test                       # 52 integration tests (~15s, no extra deps)
+npm test                       # 63 integration tests (~15s, no extra deps)
 ```
 
 CI (`.github/workflows/ci.yml`) runs build + tests + smoke on node 20/22.

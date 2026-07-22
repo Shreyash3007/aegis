@@ -47,5 +47,14 @@ export function brainHashes() {
         if (fs.existsSync(p))
             h[path.relative(REPO, p)] = sha(JSON.stringify(stripVolatile(readJ(p))));
     }
+    // v0.4: per-app states are ground truth too - hash them canonicalized.
+    const appsDir = path.join(AEGIS_DIR, 'apps');
+    if (fs.existsSync(appsDir)) {
+        for (const app of fs.readdirSync(appsDir).sort()) {
+            const p = path.join(appsDir, app, 'state.json');
+            if (fs.existsSync(p))
+                h[path.relative(REPO, p)] = sha(JSON.stringify(stripVolatile(readJ(p))));
+        }
+    }
     return h;
 }

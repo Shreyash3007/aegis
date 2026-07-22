@@ -1,12 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { AEGIS_DIR, die, git, ok, readJ, writeJ } from '../lib/util.js';
-import { loadState } from '../lib/state.js';
+import { loadState, loadStateFrom, declaredApps, appStatePath } from '../lib/state.js';
 import { brainHashes } from '../lib/hashes.js';
 
 interface Checkpoint {
   id: string; at: string; skill: string;
   gitSha: string; hashes: Record<string, string>;
+  apps?: Record<string, string>; // v0.4: app -> current_skill (multi-app repos)
 }
 
 const cpDir = () => path.join(AEGIS_DIR, 'checkpoints');
@@ -16,12 +17,17 @@ export function checkpoint(args: string[]): void {
   const quiet = args.includes('--quiet');
   let gitSha = 'unknown';
   try { gitSha = git(['rev-parse', 'HEAD']); } catch { /* pre-first-commit */ }
+  const apps: Record<string, string> = {};
+  for (const a of declaredApps()) {
+    try { apps[a] = loadStateFrom(appStatePath(a)).current_skill; } catch { apps[a] = 'unknown'; }
+  }
   const cp: Checkpoint = {
     id: `cp-${Date.now()}`,
     at: new Date().toISOString(),
     skill: s.current_skill,
     gitSha,
     hashes: brainHashes(),
+    ...(Object.keys(apps).length ? { apps } : {}),
   };
   writeJ(path.join(cpDir(), `${cp.id}.json`), cp);
   if (!quiet) ok(`checkpoint ${cp.id} written (git ${gitSha.slice(0, 8)}, ${Object.keys(cp.hashes).length} files hashed)`);
@@ -49,6 +55,7 @@ export function resume(): void {
     'RECONSTRUCTION PACK',
     `  checkpoint: ${cp.id}`,
     `  resume at skill: ${cp.skill}`,
+    ...(cp.apps ? Object.entries(cp.apps).map(([a, sk]) => `  app ${a}: ${sk}`) : []),
     `  git HEAD at checkpoint: ${cp.gitSha.slice(0, 8)}`,
     `  integrity: VERIFIED (${Object.keys(cp.hashes).length} files match)${gitDrift}`,
   ].join('\n'));
