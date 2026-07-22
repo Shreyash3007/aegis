@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process';
-import { REPO, die, ok, writeJ } from '../lib/util.js';
-import { loadState, stateP } from '../lib/state.js';
+import { REPO, die, ok } from '../lib/util.js';
+import { acquireState, commitState, stateP } from '../lib/state.js';
 import { checkpoint } from './persist.js';
 /** aegis exec -- <cmd> (v0.4): enforcement for external executors (opencode,
  *  GLM, fork-agent waves) is prompt-deep - nothing forces their session to
@@ -14,7 +14,6 @@ export function exec(args) {
     const cmd = (dash === -1 ? args : args.slice(dash + 1)).join(' ').trim();
     if (!cmd)
         die(2, 'usage: aegis exec -- <command>');
-    const s = loadState();
     checkpoint(['--quiet']);
     let code = 0;
     // Shell on purpose: the operator types the full command. This is trusted
@@ -26,8 +25,12 @@ export function exec(args) {
     catch (e) {
         code = typeof e.status === 'number' ? e.status : 1;
     }
+    // Lock ONLY around the read-append-write - never during the command run
+    // (concurrent waves must not serialize their work, just their recording;
+    // the lock makes every event land, v0.4.1).
+    const s = acquireState(stateP);
     s.history.push({ skill: s.current_skill, at: new Date().toISOString(), event: `exec (exit ${code}): ${cmd}` });
-    writeJ(stateP, s);
+    commitState(stateP, s);
     checkpoint(['--quiet']);
     if (code !== 0) {
         console.error(`FAIL exec exit ${code}: ${cmd} (recorded in history)`);

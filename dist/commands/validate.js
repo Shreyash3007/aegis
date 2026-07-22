@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
-import { AEGIS_DIR, REPO, die, ok, readJ, writeJ } from '../lib/util.js';
+import { AEGIS_DIR, REPO, die, has, ok, readJ, writeJ } from '../lib/util.js';
 import { loadConfig, contractsPath } from '../lib/state.js';
 function runCmd(command, cwd = REPO) {
     try {
@@ -55,14 +55,44 @@ async function measureApiP95(url, n = 20) {
 const suites = {
     contracts: () => {
         const cp = contractsPath();
-        const hasContracts = fs.existsSync(path.join(REPO, cp));
-        const tscBin = fs.existsSync(path.join(REPO, 'node_modules', '.bin', 'tsc'))
-            ? `"${path.join(REPO, 'node_modules', '.bin', 'tsc')}"` : 'tsc';
+        const cpAbs = path.join(REPO, cp);
+        const hasContracts = fs.existsSync(cpAbs);
+        if (!hasContracts)
+            return { suite: 'contracts', tool: 'tsc', command: 'tsc --noEmit',
+                status: 'UNMEASURED', summary: `no ${cp} - N1 not applicable yet` };
+        // BlindFolio trial: two honest-degradation cases must never hard-FAIL
+        // (FAIL here blocks every push via the pre-push hook):
+        // 1. doc-style contracts (markdown/json fixtures, no .ts) - tsc is the
+        //    wrong oracle; semantic checking belongs in a custom suite.
+        const tsFiles = [];
+        const walk = (d) => {
+            for (const f of fs.readdirSync(d)) {
+                const p = path.join(d, f);
+                if (fs.statSync(p).isDirectory())
+                    walk(p);
+                else if (/\.tsx?$/.test(f))
+                    tsFiles.push(p);
+            }
+        };
+        if (fs.statSync(cpAbs).isDirectory())
+            walk(cpAbs);
+        else if (/\.tsx?$/.test(cpAbs))
+            tsFiles.push(cpAbs);
+        if (!tsFiles.length)
+            return { suite: 'contracts', tool: 'tsc', command: 'tsc --noEmit',
+                status: 'UNMEASURED',
+                summary: `${cp} holds doc-style contracts (no .ts) - presence verified; register a custom suite for semantics: aegis config set validate_suite.contracts_doc "<cmd>"` };
+        // 2. monorepo: toolchain lives per-app, not at repo root - no tsc here.
+        const localBin = path.join(REPO, 'node_modules', '.bin', 'tsc');
+        const tscBin = fs.existsSync(localBin) ? `"${localBin}"` : has('tsc') ? 'tsc' : null;
+        if (!tscBin)
+            return { suite: 'contracts', tool: 'tsc', command: 'tsc --noEmit',
+                status: 'UNMEASURED',
+                summary: `${tsFiles.length} contract .ts files present but tsc unavailable at repo root (monorepo? per-app toolchains) - presence verified, typecheck honestly skipped` };
         const r = runCmd(`${tscBin} --noEmit`);
         return { suite: 'contracts', tool: 'tsc', command: `${tscBin} --noEmit`,
-            status: !hasContracts ? 'UNMEASURED' : r.code === 0 ? 'PASS' : 'FAIL',
-            summary: !hasContracts ? `no ${cp} - N1 not applicable yet`
-                : r.code === 0 ? 'typecheck clean, contracts present' : r.out.split('\n').slice(0, 8).join(' | ') };
+            status: r.code === 0 ? 'PASS' : 'FAIL',
+            summary: r.code === 0 ? 'typecheck clean, contracts present' : r.out.split('\n').slice(0, 8).join(' | ') };
     },
     tests: () => {
         const pkgP = path.join(REPO, 'package.json');

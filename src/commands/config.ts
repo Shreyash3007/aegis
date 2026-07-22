@@ -73,6 +73,14 @@ export function config(args: string[]): void {
     }
     if (!SETTABLE[key])
       die(4, `unknown key '${key}' - valid keys: ${Object.keys(SETTABLE).join(', ')}, validate_suite.<name>`);
+    // '-' removes optional scalar keys (storing the literal "-" would make
+    // the config lie - BlindFolio trial). App state files are kept on disk.
+    if (value === '-' && ['contracts_path', 'token_budget', 'apps'].includes(key)) {
+      delete cfg[key];
+      writeJ(configP, cfg);
+      ok(`config: ${key} removed (back to default)`);
+      return;
+    }
     SETTABLE[key](cfg, value);
     writeJ(configP, cfg);
     ok(`config: ${key} = ${JSON.stringify(key === 'model_strong' ? (cfg.model_tiers as Config['model_tiers']).strong : cfg[key])}`);

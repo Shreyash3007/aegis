@@ -1,5 +1,5 @@
 import { die, git, gitTry, ok, writeJ } from '../lib/util.js';
-import { resolveState, stripAppArg, FixRecord, StateCtx } from '../lib/state.js';
+import { resolveState, stripAppArg, commitState, FixRecord, StateCtx } from '../lib/state.js';
 import { checkpoint } from './persist.js';
 import { runSuite } from './validate.js';
 
@@ -19,7 +19,7 @@ function open(ctx: StateCtx, rec: FixRecord): void {
     die(4, `fix already open: "${s.fix.active.desc}" - run aegis fix done / abandon first`);
   s.fix.active = rec;
   s.history.push({ skill: s.current_skill, at: rec.opened_at, event: `fix-start: ${rec.desc}` });
-  writeJ(ctx.p, s);
+  commitState(ctx.p, s);
   checkpoint(['--quiet']);
   ok(`fix open${ctx.app ? ` (app ${ctx.app})` : ''}: "${rec.desc}" - work, then: aegis fix done`);
 }
@@ -47,7 +47,7 @@ export function fix(args: string[]): void | Promise<void> {
     s.fix.log.push(rec);
     s.fix.active = null;
     s.history.push({ skill: s.current_skill, at: rec.closed_at, event: 'fix-abandon', reason });
-    writeJ(ctx.p, s);
+    commitState(ctx.p, s);
     checkpoint(['--quiet']);
     ok(`fix abandoned (recorded): ${reason}`);
     return;
@@ -71,7 +71,7 @@ async function done(args: string[]): Promise<void> {
   s.fix!.log.push(rec);
   s.fix!.active = null;
   s.history.push({ skill: s.current_skill, at: rec.closed_at, event: `fix-done: ${rec.desc} [${verdict}]` });
-  writeJ(ctx.p, s);
+  commitState(ctx.p, s);
   checkpoint(['--quiet']);
   ok(`fix closed: "${rec.desc}" - validation: ${verdict}`);
   // Guardrail (BlindFolio trial): the fast lane gates tests, not merges. A
@@ -97,7 +97,7 @@ export function chore(args: string[]): void {
   s.fix ??= { active: null, log: [] };
   s.fix.log.push(rec);
   s.history.push({ skill: s.current_skill, at, event: `chore: ${desc}` });
-  writeJ(ctx.p, s);
+  commitState(ctx.p, s);
   checkpoint(['--quiet']);
   ok(`chore recorded${ctx.app ? ` (app ${ctx.app})` : ''}: "${desc}"`);
 }

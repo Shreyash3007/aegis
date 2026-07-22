@@ -135,13 +135,13 @@ Multi-app repos (config `apps` set): every state mutation takes `--app` —
 the CLI refuses to guess (exit 2). Gates and fast lanes are per-app; lanes
 are global. `aegis status` without `--app` is the repo overview.
 
-Concurrent agents on one shared tree (fork-agent waves): checkpoints and
-read-only commands are freely parallel. STATE MUTATIONS are serialized —
-exactly one agent runs transition/gate/fix/chore/loops; everyone else
-reports and lets that agent record. Measured 2026-07-21: unserialized
-mutations keep integrity (atomic writes) but lose audit events. External
-executors should wrap runs as `aegis exec -- <cmd>` so work is recorded
-even when they can't drive the pipeline.
+Concurrent agents on one shared tree (fork-agent waves): all aegis commands
+are concurrency-safe since v0.4.1 — state mutations take a lockfile around
+the read-modify-write, stale locks are stolen, and measured runs record
+10/10 events under 10 concurrent writers. Event order is timing-dependent
+but the trail is complete. External executors should wrap runs as
+`aegis exec -- <cmd>` so work is recorded even when they can't drive the
+pipeline.
 
 ### `aegis eval` model judge (opt-in, failure-strict)
 

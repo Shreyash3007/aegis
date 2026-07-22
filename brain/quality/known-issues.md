@@ -6,7 +6,7 @@
 2. ~~Repo's own brain docs missing~~ FIXED 2026-07-21: this repo ran its own
    00d import bridge; `aegis import check` passes 4/4.
    cites: `aegis import check` (exit 0, 4/4 OK)
-3. Tests: 63/63 PASS. cites: `npm test` (node --test test/*.test.js)
+3. Tests: 69/69 PASS. cites: `npm test` (node --test test/*.test.js)
 4. Dependencies: 0 vulnerabilities. cites: `aegis validate deps` (npm audit --json)
 5. Contracts suite: UNMEASURED by design (no contracts dir in this repo).
    cites: `aegis validate contracts`
@@ -14,7 +14,7 @@
    PATH still resolves (observed 2026-07-21: global aegis pointed at a deleted
    temp copy). Mitigation: `aegis update` tarball path.
    cites: readlink -f $(which aegis) pointing into ~/.claude/jobs tmp dir
-7. Concurrent state mutations on a shared tree are last-writer-wins (3/5
-   trials lost one audit event). By design serialized per AGENTS.md; atomic
-   writes keep integrity regardless.
-   cites: docs/PLATFORM-MATRIX.md "shared-tree concurrency (2026-07-21)"
+7. ~~Concurrent state mutations lose events~~ FIXED in v0.4.1 (lockfile
+   around read-modify-write; stale locks stolen). Measured after fix: 6/6
+   events x5 trials, 10/10 concurrent exec.
+   cites: docs/PLATFORM-MATRIX.md "shared-tree concurrency (re-run v0.4.1)"

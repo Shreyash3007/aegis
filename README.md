@@ -12,13 +12,13 @@ If a rule must be enforced, it lives in code. Nothing is enforced by prose.
 - Hash-verified crash recovery covering `state.json` itself, deterministic
   artifacts, cycle detection
 - Honest validation: every metric cited or labeled UNMEASURED
-- Battle-tested: 63 integration tests replaying every enforcement scenario,
+- Battle-tested: 69 integration tests replaying every enforcement scenario,
   CI on node 20/22, full end-to-end dogfood (`docs/DOGFOOD-v0.2.md`)
 
 ## Install
 
 ```bash
-npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.4.0.tar.gz
+npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.4.1.tar.gz
 # (dist/ is committed, so no build step is needed on install)
 # npm 11 note: `npm install -g github:Shreyash3007/aegis` hits an npm client bug
 # (global git installs symlink to a deleted cache dir) — add --install-links
@@ -86,7 +86,7 @@ Platform matrix in docs/PLATFORM-MATRIX.md — Kimi Code (Linux) VERIFIED
 
 ```bash
 npm install && npm run build   # strict tsc
-npm test                       # 63 integration tests replaying the
+npm test                       # 69 integration tests replaying the
                                # enforcement contract (~6s, zero extra deps)
 ```
 
@@ -252,3 +252,16 @@ rule repaired: commands.ts<->eval.ts cycle broken by injection (found by
 dogfooding `aegis ast build` on this repo). Self-hosting: aegis-cli now
 runs Aegis on itself - brain docs drafted via the 00d import bridge,
 import check 4/4. 63/63 integration tests, eval 66/66.
+
+v0.4.1 correctness (2026-07-21): the metis-nda trial caught concurrent
+`aegis exec` silently dropping history (3/5, 4/10 recorded) - atomic writes
+prevented torn files but not lost updates, and resume VERIFIED cannot see
+a missing event. Fixed with a lockfile around every state read-modify-write
+(all mutating commands, not just exec); stale locks (dead pid / >60s) are
+stolen so a crash never wedges the repo. After: 10/10 concurrent exec,
+6/6 chore x5 trials. BlindFolio catches: `validate contracts` no longer
+hard-FAILs (blocking every push via pre-push) when tsc is absent at repo
+root (monorepo per-app toolchains) or when contracts are doc-style
+(markdown/fixtures, no .ts) - both degrade to honest UNMEASURED with
+guidance; `config set <key> -` now removes optional keys (contracts_path,
+token_budget, apps) instead of storing the literal "-". 69/69 tests.

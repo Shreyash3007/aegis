@@ -42,10 +42,10 @@ unverified axis. Known patterns, none verified except the first:
 | Pattern | Status | Notes |
 |---------|--------|-------|
 | Worktree-per-slice (`aegis slice create`, N2) | ✅ VERIFIED (Kimi Code, 2026-07-21 dogfood) | the designed path |
-| Fork/sub-agent waves on ONE shared working tree (e.g. 5 agents dispatched in parallel waves, metis-nda style) | ⚠️ PARTIAL (2026-07-21, concurrency substrate) | integrity safe; state mutations must be serialized - see results below |
+| Fork/sub-agent waves on ONE shared working tree (e.g. 5 agents dispatched in parallel waves, metis-nda style) | ✅ SUBSTRATE VERIFIED (2026-07-21, v0.4.1 lockfile) | all commands concurrency-safe; full agent waves untested |
 | External executors (opencode+GLM) driving aegis by prompt | ⬜ UNTESTED | enforcement is prompt-deep here; `aegis exec -- <cmd>` (v0.4) is the recording wrapper; drift detection (`aegis doctor`) is the after-the-fact net |
 
-### Experiment: shared-tree concurrency (2026-07-21, v0.4)
+### Experiment: shared-tree concurrency (2026-07-21, v0.4; re-run v0.4.1)
 
 What was run (the substrate a fork-agent wave stands on - not full agent
 waves, which need a real multi-agent harness):
@@ -53,16 +53,18 @@ waves, which need a real multi-agent harness):
 - 5 parallel `aegis checkpoint` on one shared tree: all exit 0,
   `aegis resume` VERIFIED. (Covered by integration test.)
 - 6 parallel state-mutating commands (`aegis chore`) on one shared tree,
-  x5 trials: resume VERIFIED every trial (atomic tmp+rename writes - no torn
-  state.json ever observed), but 3/5 trials recorded 5/6 events: concurrent
-  read-modify-write is last-writer-wins and an event was lost.
+  x5 trials, BEFORE the state lock (v0.4.0): resume VERIFIED every trial,
+  but 3/5 trials recorded 5/6 events - concurrent read-modify-write was
+  last-writer-wins (metis-nda independently measured 3/5 and 4/10 with
+  concurrent `aegis exec`).
+- SAME battery AFTER the lockfile (v0.4.1): 6/6 events in all 5 trials,
+  resume VERIFIED. 10 concurrent `aegis exec` -> 10/10 (integration test).
 
 Conclusions, binding until re-tested:
 
-1. **Checkpoints and read-only commands are freely parallel-safe.**
-2. **State mutations (transition/gate/fix/chore/loops) must be SERIALIZED**
-   by the wave prompt: one agent owns state transitions; workers report,
-   they do not transition. Integrity is never at risk; the AUDIT TRAIL is
-   (lost events = unrecorded work).
-3. Full fork-agent waves (real agents, disjoint file scopes, one tree)
-   remain ⬜ UNTESTED - the substrate says the pattern is viable under rule 2.
+1. **All aegis commands are now safe under concurrent use on a shared tree.**
+   State mutations take a lockfile around the read-modify-write; stale locks
+   (dead pid or >60s) are stolen, so a crash mid-mutation never wedges the
+   repo. Event ORDER under concurrency is timing-dependent but COMPLETE.
+2. Full fork-agent waves (real agents, disjoint file scopes, one tree)
+   remain ⬜ UNTESTED - the substrate now says the pattern is viable.

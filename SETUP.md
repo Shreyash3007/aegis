@@ -4,7 +4,7 @@
 
 ```bash
 # From GitHub (recommended once the repo is published):
-npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.4.0.tar.gz
+npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.4.1.tar.gz
 
 # Already installed? `aegis update` self-updates to the latest tag (same tarball path).
 
@@ -92,11 +92,10 @@ Executor waves (opencode/GLM/fork agents): wrap runs so they're recorded:
 aegis exec -- node scripts/verify-sync-wave.mjs   # recorded + checkpointed, exit code passes through
 ```
 
-Concurrent agents on one shared tree: checkpoints are freely parallel-safe,
-but STATE MUTATIONS (transition/gate/fix/chore) must be serialized — one
-agent owns transitions, workers report. Measured 2026-07-21: integrity holds
-either way (atomic writes); unserialized mutations lose audit events
-(docs/PLATFORM-MATRIX.md).
+Concurrent agents on one shared tree: all aegis commands are
+concurrency-safe (v0.4.1 state lockfile; measured 10/10 events under 10
+concurrent writers — docs/PLATFORM-MATRIX.md). Event order is
+timing-dependent; the audit trail is complete.
 
 Gate approvals require an interactive terminal (retype the gate name to
 confirm). In CI/non-interactive runs, set `AEGIS_HUMAN_TOKEN=1` — approvals
@@ -126,7 +125,7 @@ AEGIS_JUDGE_API_KEY=... aegis eval --all   # opt-in model judge (strict on fail)
 
 ```bash
 npm install && npm run build   # strict tsc, dist/ is committed
-npm test                       # 63 integration tests (~15s, no extra deps)
+npm test                       # 69 integration tests (~15s, no extra deps)
 ```
 
 CI (`.github/workflows/ci.yml`) runs build + tests + smoke on node 20/22.

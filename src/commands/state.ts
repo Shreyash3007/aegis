@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { die, git, gitTry, ok, writeJ } from '../lib/util.js';
-import { loadState, loadStateFrom, loadTransitions, loadConfig, contractsPath, declaredApps, appStatePath, resolveState, stateP, State, Transitions, Edge } from '../lib/state.js';
+import { loadState, loadStateFrom, loadTransitions, loadConfig, contractsPath, declaredApps, appStatePath, resolveState, commitState, acquireState, stateP, State, Transitions, Edge } from '../lib/state.js';
 
 function blockers(s: State, t: Transitions, e: Edge): string[] {
   const b: string[] = [];
@@ -91,7 +91,7 @@ export function gate(args: string[]): void {
   const ctx = resolveState(args, true);
   const s = ctx.s;
   s.gates[name] = { status: 'approved', at: new Date().toISOString(), by };
-  writeJ(ctx.p, s);
+  commitState(ctx.p, s);
   ok(`gate ${name} approved and recorded${ctx.app ? ` (app ${ctx.app})` : ''}`);
 }
 
@@ -120,7 +120,7 @@ export function transition(args: string[]): void {
 
   s.history.push({ skill: s.current_skill, at: new Date().toISOString() });
   s.current_skill = to;
-  writeJ(ctx.p, s);
+  commitState(ctx.p, s);
   ok(`transition ${e.from} -> ${to} recorded${ctx.app ? ` (app ${ctx.app})` : ''} (edge ${s.loop_counters[key]}/${t.max_loop}, state-visits ${s.state_visits[to]}/${t.max_loop})`);
 }
 
@@ -145,7 +145,7 @@ export function contracts(args: string[]): void {
   const unmerged = gitTry(['diff', '--name-only', base, 'HEAD', '--', cp]);
   if (unmerged) die(4, `contract changes not merged to ${base}: ${unmerged.split('\n').join(', ')}`);
   s.contracts_merged = true;
-  writeJ(ctx.p, s);
+  commitState(ctx.p, s);
   if (base.startsWith('origin/')) ok(`contract PR verified merged to ${base} - 04a unlocked (N1)${ctx.app ? ` (app ${ctx.app})` : ''}`);
   else ok(`contracts verified against local ${base}; ` +
     `${gitTry(['remote']) ? 'remote base branch not found' : 'no remote'} - UNVERIFIED for PR merge`);
@@ -168,13 +168,13 @@ export function loops(args: string[]): void {
     skill: s.current_skill, at: new Date().toISOString(),
     event: 'loops-reset', reason, cleared,
   });
-  writeJ(ctx.p, s);
+  commitState(ctx.p, s);
   ok(`loop + cycle counters reset (${cleared.length} cleared) - recorded in history`);
 }
 
 export function lane(args: string[]): void {
   const [op, slice] = args;
-  const s = loadState();
+  const s = acquireState(stateP); // lanes are global (root state), lock held
   if (op === 'open') {
     if (!slice) die(4, 'usage: aegis lane open <slice>');
     if (s.lanes.active.length >= s.lanes.max)
@@ -185,5 +185,5 @@ export function lane(args: string[]): void {
     s.lanes.active = s.lanes.active.filter((x) => x !== slice);
     ok(`lane closed: ${slice}`);
   } else die(4, 'usage: aegis lane <open|close> <slice>');
-  writeJ(stateP, s);
+  commitState(stateP, s);
 }
