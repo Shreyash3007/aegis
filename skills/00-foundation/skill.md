@@ -11,6 +11,7 @@ Everything else in Aegis depends on this family being correct.
 | 00b | 00b-context-lock.md | Setup interview + locked manifest | The interview itself |
 | 00c | 00c-resume.md | Crash/session recovery with verified integrity | Integrity failure |
 | 00d | 00d-brownfield.md | Reverse-discovery: brain FROM existing code | Inference confirmation |
+| 00e | 00e-ask-aegis.md | Next-action advisor: ONE recommended step + evidence | Gate approval / loop escalation |
 
 ## Shared Rules (all sub-skills)
 1. **Brain protocol:** read `brain/context-window.md` before any edit; write outputs
@@ -26,3 +27,4 @@ Everything else in Aegis depends on this family being correct.
 - greenfield: 00a -> 00b -> 01a
 - brownfield: 00a -> 00b -> 00d -> (01a for new features | 07a for hardening)
 - crash/interruption: 00c -> checkpoint target
+- unsure / blocked / cold session: 00e (ask-aegis) -> the one legal next action
