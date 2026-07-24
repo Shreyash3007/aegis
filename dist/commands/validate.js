@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
-import { AEGIS_DIR, REPO, die, has, ok, readJ, writeJ } from '../lib/util.js';
+import { AEGIS_DIR, REPO, die, detectPackageManager, has, ok, readJ, writeJ } from '../lib/util.js';
 import { loadConfig, contractsPath } from '../lib/state.js';
 function runCmd(command, cwd = REPO) {
     try {
@@ -139,8 +139,12 @@ const suites = {
         const script = pkg.scripts?.test;
         if (!script || script.includes('no test specified'))
             return { suite: 'tests', tool: 'npm', command: 'npm test', status: 'UNMEASURED', summary: 'no test script defined' };
-        const r = runCmd('npm test');
-        return { suite: 'tests', tool: 'npm', command: 'npm test',
+        // Run the script with the repo's actual package manager (npm/yarn/pnpm/bun)
+        // so pnpm/yarn/bun repos aren't falsely UNMEASURED or mis-cited as npm.
+        const pm = detectPackageManager();
+        const command = `${pm} test`;
+        const r = runCmd(command);
+        return { suite: 'tests', tool: pm, command,
             status: r.code === 0 ? 'PASS' : 'FAIL',
             summary: r.out.split('\n').filter(Boolean).slice(-3).join(' | ') || `exit ${r.code}, no output` };
     },

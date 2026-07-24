@@ -56,6 +56,7 @@ export interface Config {
   contracts_path?: string; // default 'src/contracts' - where N1 contracts live in THIS repo
   contracts_path_apps?: Record<string, string>; // v0.4.2: per-app overrides in multi-app repos
   apps?: string[]; // v0.4 monorepo: per-app pipeline states under .aegis/apps/
+  profile?: 'minimal' | 'standard' | 'full'; // install profile (minimal = standalone tools only, no hooks/brain)
 }
 
 /** Where N1 contracts live (default src/contracts; BlindFolio trial: real

@@ -62,3 +62,28 @@ export const has = (bin) => {
         return false;
     }
 };
+/** Detect the package manager for a repo. The packageManager field in
+ *  package.json wins (e.g. "pnpm@9.0.0" -> "pnpm"); otherwise the first
+ *  lockfile present in priority order; otherwise "npm" as the safe default.
+ *  A missing or unparseable package.json falls through to the lockfile probe
+ *  rather than throwing - the caller decides how to handle "no package.json". */
+export function detectPackageManager(cwd = REPO) {
+    try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
+        const pm = typeof pkg.packageManager === 'string' ? pkg.packageManager.split('@')[0] : '';
+        if (pm === 'pnpm' || pm === 'yarn' || pm === 'bun' || pm === 'npm')
+            return pm;
+    }
+    catch { /* no/invalid package.json - fall through to lockfile probe */ }
+    const lockfiles = [
+        ['pnpm-lock.yaml', 'pnpm'],
+        ['yarn.lock', 'yarn'],
+        ['bun.lockb', 'bun'],
+        ['bun.lock', 'bun'],
+        ['package-lock.json', 'npm'],
+    ];
+    for (const [file, pm] of lockfiles)
+        if (fs.existsSync(path.join(cwd, file)))
+            return pm;
+    return 'npm';
+}

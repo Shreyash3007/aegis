@@ -11,9 +11,17 @@ import { checkpoint } from './persist.js';
  *  The command's exit code passes through unchanged. */
 export function exec(args) {
     const dash = args.indexOf('--');
-    const cmd = (dash === -1 ? args : args.slice(dash + 1)).join(' ').trim();
-    if (!cmd)
+    const raw = dash === -1 ? args : args.slice(dash + 1);
+    if (!raw.length)
         die(2, 'usage: aegis exec -- <command>');
+    // Two calling conventions: ONE arg after -- is a full shell command string
+    // (run verbatim: aegis exec -- "npm test && npm run build"); MULTIPLE args
+    // are an argv to reassemble safely - bare joining loses the caller's
+    // quoting, so an arg with shell metacharacters (parens in natural language,
+    // semicolons) breaks or executes as shell syntax (found dogfooding: an
+    // opencode prompt with parens died 'Syntax error: ( unexpected').
+    const q = (s) => `'${s.replace(/'/g, `'\\''`)}'`;
+    const cmd = raw.length === 1 ? raw[0] : raw.map(q).join(' ');
     checkpoint(['--quiet']);
     let code = 0;
     // Shell on purpose: the operator types the full command. This is trusted

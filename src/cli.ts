@@ -11,12 +11,17 @@ const HELP = `aegis - the enforcement layer for AI-native development
 Usage: aegis <command> [args]
 
 Phase 0 (this build):
-  init [--yes] [--overwrite] [--apps web,api]
+  init [--yes] [--overwrite] [--apps web,api] [--profile minimal|standard|full]
                                scaffold .aegis/ + brain/ + git hooks + interview
                                (--apps declares per-app states: monorepo, v0.4)
+                               (--profile: minimal = standalone tools only, no
+                                hooks/brain; standard = full pipeline, default;
+                                full = reserved, currently same as standard)
   doctor [--save]              detect environment, prune stale worktrees, drift notes
-  status [--app <name>]        current state, legal transitions, lanes
+  status [--app <name>] [--markdown]
+                               current state, legal transitions, lanes
                                (multi-app: summary without --app, detail with)
+                               (--markdown also writes a portable brain/handoff.md)
   next                         recommended next legal skill (lists all legal edges)
   gate <name> --approve [--app <name>]   record human gate approval
   transition <skill> [--reason t] [--app <name>]  record a validated transition
