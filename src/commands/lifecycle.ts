@@ -46,6 +46,15 @@ export async function init(args: string[]): Promise<void> {
   }
   const minimal = profile === 'minimal';
 
+  // Preserve owner-declared config across re-inits (BlindFolio trial: a plain
+  // --overwrite silently wiped registered validate_suites, contracts_path*,
+  // and app declarations). Interview answers win on conflict; anything the
+  // interview doesn't produce carries over.
+  let preserved: Record<string, unknown> = {};
+  if (fs.existsSync(configP)) {
+    try { preserved = JSON.parse(fs.readFileSync(configP, 'utf8')) as Record<string, unknown>; } catch { preserved = {}; }
+  }
+
   fs.rmSync(AEGIS_DIR, { recursive: true, force: true });
 
   const doc = doctor();
@@ -66,6 +75,11 @@ export async function init(args: string[]): Promise<void> {
   // runs validate tests), standard -> standard. minimal installs NO hooks at
   // all (handled below), so hooks_profile is left unset rather than lying.
   if (!minimal) config.hooks_profile = profile === 'full' ? 'strict' : 'standard';
+  // Merge back preserved owner-declared keys the interview doesn't produce.
+  const mutableConfig = config as unknown as Record<string, unknown>;
+  for (const [k, v] of Object.entries(preserved)) {
+    if (mutableConfig[k] === undefined) mutableConfig[k] = v;
+  }
   writeJ(configP, config);
 
   // Lane cap (N5): human comfort cap throttled by RAM. lane_costs_mb prices one
@@ -81,13 +95,16 @@ export async function init(args: string[]): Promise<void> {
   writeJ(stateP, { ...freshState(laneMax) });
 
   // v0.4 monorepo: --apps web,api declares per-app pipeline states up front
-  // (same effect as `aegis config set apps` post-init).
+  // (same effect as `aegis config set apps` post-init). Apps restored from a
+  // preserved config (no --apps this time) also get their state files back.
   const ai = args.indexOf('--apps');
   if (ai !== -1 && args[ai + 1]) {
     const names = args[ai + 1].split(',').map((x) => x.trim()).filter(Boolean);
     config.apps = names;
     writeJ(configP, config);
-    for (const n of names) {
+  }
+  for (const n of config.apps ?? []) {
+    if (!fs.existsSync(appStatePath(n))) {
       fs.mkdirSync(path.dirname(appStatePath(n)), { recursive: true });
       writeJ(appStatePath(n), freshState());
     }

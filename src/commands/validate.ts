@@ -65,14 +65,15 @@ async function measureApiP95(url: string, n = 20): Promise<number | null> {
   return times[Math.ceil(0.95 * times.length) - 1];
 }
 
-const suites: Record<string, () => Result | Promise<Result>> = {
-  contracts: () => {
-    const cp = contractsPath();
-    const cpAbs = path.join(REPO, cp);
-    const hasContracts = fs.existsSync(cpAbs);
-    if (!hasContracts)
-      return { suite: 'contracts', tool: 'tsc', command: 'tsc --noEmit',
-        status: 'UNMEASURED', summary: `no ${cp} - N1 not applicable yet` };
+/** Evaluate the contracts gate for ONE contract home (a directory or a file).
+ *  `label` prefixes the summary so multi-app aggregation stays readable. */
+function contractsAt(cp: string, label?: string): Result {
+  const tag = label ? `[${label}] ` : '';
+  const cpAbs = path.join(REPO, cp);
+  const hasContracts = fs.existsSync(cpAbs);
+  if (!hasContracts)
+    return { suite: 'contracts', tool: 'tsc', command: 'tsc --noEmit',
+      status: 'UNMEASURED', summary: `${tag}no ${cp} - N1 not applicable yet` };
     // Collect contract source files by stack so the typecheck oracle uses the
     // RIGHT checker: .ts -> tsc (current behavior); .go/.rs/.py -> the repo's
     // real checker via typecheckCommand. Doc-only contracts (md/json/yaml) fall
@@ -153,20 +154,60 @@ const suites: Record<string, () => Result | Promise<Result>> = {
       const stats = `${docFiles.length} doc(s), ${substantive} substantive lines, ${citations} code citations`;
       if (!docFiles.length)
         return { suite: 'contracts', tool: 'contracts_doc', command: `scan ${cp}`,
-          status: 'UNMEASURED', summary: `${cp} exists but holds no contract docs` };
+          status: 'UNMEASURED', summary: `${tag}${cp} exists but holds no contract docs` };
       if (substantive >= 10 && citations >= 1)
         return { suite: 'contracts', tool: 'contracts_doc', command: `scan ${cp}`,
-          status: 'PASS', summary: `doc contracts substantive + code-cited (${stats})` };
+          status: 'PASS', summary: `${tag}doc contracts substantive + code-cited (${stats})` };
       return { suite: 'contracts', tool: 'contracts_doc', command: `scan ${cp}`,
         status: 'FAIL',
-        summary: `doc contracts too thin to gate (${stats}) - a contract that doesn't cite code pins nothing` };
+        summary: `${tag}doc contracts too thin to gate (${stats}) - a contract that doesn't cite code pins nothing` };
     }
     // 2. monorepo: toolchain lives per-app, not at repo root - unreachable for
     //    doc contracts (handled above); source contracts returned from the
     //    typecheck oracle. Kept as an explicit honest UNMEASURED terminus.
     return { suite: 'contracts', tool: 'tsc', command: 'tsc --noEmit',
-      status: 'UNMEASURED', summary: `${cp} holds no typecheckable source or doc contracts` };
-  },
+      status: 'UNMEASURED', summary: `${tag}${cp} holds no typecheckable source or doc contracts` };
+}
+
+/** Repo-level contracts gate: with `--app`, that app's contract home only.
+ *  Root invocation in a multi-app repo AGGREGATES every declared contract
+ *  home (per-app overrides + the repo-global path, deduped) so the pre-push
+ *  hook enforces all apps at once: any app FAIL fails the gate; at least one
+ *  PASS with no FAIL passes; everything unavailable stays an honest skip. */
+function contractsGate(app?: string): Result {
+  if (app) return contractsAt(contractsPath(app), app);
+  let apps: string[] = [];
+  let overrides: Record<string, string> = {};
+  let globalPath: string | undefined;
+  try {
+    const c = loadConfig() as { apps?: string[]; contracts_path_apps?: Record<string, string>; contracts_path?: string };
+    apps = c.apps ?? [];
+    overrides = c.contracts_path_apps ?? {};
+    globalPath = c.contracts_path;
+  } catch { /* single-app or no config */ }
+  if (apps.length > 0) {
+    const targets: Array<[string, string]> = [];
+    const seen = new Set<string>();
+    for (const a of apps) {
+      const p = overrides[a];
+      if (p && !seen.has(p)) { seen.add(p); targets.push([a, p]); }
+    }
+    if (globalPath && !seen.has(globalPath)) { seen.add(globalPath); targets.push(['repo', globalPath]); }
+    if (targets.length > 1) {
+      const results = targets.map(([label, p]) => contractsAt(p, label));
+      const summary = results.map((r) => r.summary).join(' | ');
+      if (results.some((r) => r.status === 'FAIL'))
+        return { suite: 'contracts', tool: 'multi', command: `aggregate ${targets.length} contract homes`, status: 'FAIL', summary };
+      if (results.some((r) => r.status === 'PASS'))
+        return { suite: 'contracts', tool: 'multi', command: `aggregate ${targets.length} contract homes`, status: 'PASS', summary };
+      return { suite: 'contracts', tool: 'multi', command: `aggregate ${targets.length} contract homes`, status: 'UNMEASURED', summary };
+    }
+  }
+  return contractsAt(contractsPath());
+}
+
+const suites: Record<string, (app?: string) => Result | Promise<Result>> = {
+  contracts: (app?: string) => contractsGate(app),
   tests: () => {
     const pkgP = path.join(REPO, 'package.json');
     if (!fs.existsSync(pkgP))
@@ -257,8 +298,8 @@ export const BUILTIN_SUITES = Object.keys(suites);
  *  smoke scripts: "run this, exit 0 = PASS"). Trusted input by design - the
  *  owner declares their own gates; the command string is recorded verbatim
  *  as the citation. Returns null when neither builtin nor custom exists. */
-export async function runSuite(suite: string): Promise<Result | null> {
-  if (suites[suite]) return suites[suite]();
+export async function runSuite(suite: string, app?: string): Promise<Result | null> {
+  if (suites[suite]) return suites[suite](app);
   let custom: string | undefined;
   try { custom = loadConfig().validate_suites?.[suite]; } catch { custom = undefined; }
   if (!custom) return null;
@@ -270,14 +311,17 @@ export async function runSuite(suite: string): Promise<Result | null> {
 
 export async function validate(args: string[]): Promise<void> {
   const suite = args[0];
-  const r = suite ? await runSuite(suite) : null;
+  const appIdx = args.indexOf('--app');
+  const app = appIdx >= 0 ? args[appIdx + 1] : undefined;
+  if (appIdx >= 0 && !app) die(2, 'usage: aegis validate <suite> [--app <name>]');
+  const r = suite ? await runSuite(suite, app) : null;
   if (!r) {
     let custom: string[] = [];
     try { custom = Object.keys(loadConfig().validate_suites ?? {}); } catch { /* no config */ }
-    die(2, `usage: aegis validate <${[...BUILTIN_SUITES, ...custom].join('|')}>`);
+    die(2, `usage: aegis validate <${[...BUILTIN_SUITES, ...custom].join('|')}> [--app <name>]`);
   }
   record(r);
-  const line = `${r.suite}: ${r.status} - ${r.summary}`;
+  const line = `${r.suite}${app ? ` (${app})` : ''}: ${r.status} - ${r.summary}`;
   if (r.status === 'FAIL') die(9, line);
   ok(line + (r.status === 'UNMEASURED' ? ' (honest skip - tool/env unavailable)' : ''));
 }

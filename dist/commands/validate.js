@@ -53,118 +53,165 @@ async function measureApiP95(url, n = 20) {
     times.sort((a, b) => a - b);
     return times[Math.ceil(0.95 * times.length) - 1];
 }
-const suites = {
-    contracts: () => {
-        const cp = contractsPath();
-        const cpAbs = path.join(REPO, cp);
-        const hasContracts = fs.existsSync(cpAbs);
-        if (!hasContracts)
-            return { suite: 'contracts', tool: 'tsc', command: 'tsc --noEmit',
-                status: 'UNMEASURED', summary: `no ${cp} - N1 not applicable yet` };
-        // Collect contract source files by stack so the typecheck oracle uses the
-        // RIGHT checker: .ts -> tsc (current behavior); .go/.rs/.py -> the repo's
-        // real checker via typecheckCommand. Doc-only contracts (md/json/yaml) fall
-        // through to the contracts_doc semantic gate below.
-        const stack = detectStack();
-        const STACK_EXT = {
-            typescript: /\.tsx?$/, rust: /\.rs$/, go: /\.go$/, python: /\.py$/,
-        };
-        const tsFiles = [];
-        const stackFiles = [];
-        const walk = (d) => {
+/** Evaluate the contracts gate for ONE contract home (a directory or a file).
+ *  `label` prefixes the summary so multi-app aggregation stays readable. */
+function contractsAt(cp, label) {
+    const tag = label ? `[${label}] ` : '';
+    const cpAbs = path.join(REPO, cp);
+    const hasContracts = fs.existsSync(cpAbs);
+    if (!hasContracts)
+        return { suite: 'contracts', tool: 'tsc', command: 'tsc --noEmit',
+            status: 'UNMEASURED', summary: `${tag}no ${cp} - N1 not applicable yet` };
+    // Collect contract source files by stack so the typecheck oracle uses the
+    // RIGHT checker: .ts -> tsc (current behavior); .go/.rs/.py -> the repo's
+    // real checker via typecheckCommand. Doc-only contracts (md/json/yaml) fall
+    // through to the contracts_doc semantic gate below.
+    const stack = detectStack();
+    const STACK_EXT = {
+        typescript: /\.tsx?$/, rust: /\.rs$/, go: /\.go$/, python: /\.py$/,
+    };
+    const tsFiles = [];
+    const stackFiles = [];
+    const walk = (d) => {
+        for (const f of fs.readdirSync(d)) {
+            const p = path.join(d, f);
+            if (fs.statSync(p).isDirectory())
+                walk(p);
+            else {
+                if (/\.tsx?$/.test(f))
+                    tsFiles.push(p);
+                else if (stack !== 'typescript' && STACK_EXT[stack]?.test(f))
+                    stackFiles.push(p);
+            }
+        }
+    };
+    if (fs.statSync(cpAbs).isDirectory())
+        walk(cpAbs);
+    else {
+        if (/\.tsx?$/.test(cpAbs))
+            tsFiles.push(cpAbs);
+        else if (stack !== 'typescript' && STACK_EXT[stack]?.test(cpAbs))
+            stackFiles.push(cpAbs);
+    }
+    // Typecheck oracle: .ts contracts keep current tsc behavior; a non-TS stack
+    // whose contracts hold that stack's source files uses typecheckCommand. Both
+    // degrade honestly (UNMEASURED) when the toolchain is missing - never fake a
+    // pass, never hard-fail for a missing foreign toolchain.
+    if (tsFiles.length || stackFiles.length) {
+        const wantTs = tsFiles.length > 0;
+        const command = wantTs
+            ? (fs.existsSync(path.join(REPO, 'node_modules', '.bin', 'tsc'))
+                ? `"${path.join(REPO, 'node_modules', '.bin', 'tsc')}" --noEmit`
+                : has('tsc') ? 'tsc --noEmit' : null)
+            : typecheckCommand();
+        const tool = wantTs || stack === 'typescript' ? 'tsc'
+            : stack === 'go' ? 'go vet' : stack === 'rust' ? 'cargo check'
+                : stack === 'python' ? 'compileall' : 'tsc';
+        if (!command) {
+            const cause = stack === 'unknown' ? 'no recognized stack markers' : `${stack} toolchain unavailable`;
+            const n = tsFiles.length || stackFiles.length;
+            return { suite: 'contracts', tool, command: `${tool} (unavailable)`,
+                status: 'UNMEASURED',
+                summary: `${n} contract source file(s) present but ${cause} - presence verified, typecheck honestly skipped` };
+        }
+        const r = runCmd(command);
+        return { suite: 'contracts', tool, command,
+            status: r.code === 0 ? 'PASS' : 'FAIL',
+            summary: r.code === 0 ? `${stack} typecheck clean, contracts present` : r.out.split('\n').slice(0, 8).join(' | ') };
+    }
+    if (!tsFiles.length) {
+        // v0.4.2 contracts_doc mode: doc-style contracts get REAL semantics,
+        // not just presence (BlindFolio). A contract that can't be tied back to
+        // code pins nothing: require substance (>=10 substantive lines) and at
+        // least one code citation (backticked path or source: reference).
+        // Stub contracts FAIL - a gate that never fires is not a gate.
+        const docFiles = [];
+        const walkDoc = (d) => {
             for (const f of fs.readdirSync(d)) {
                 const p = path.join(d, f);
                 if (fs.statSync(p).isDirectory())
-                    walk(p);
-                else {
-                    if (/\.tsx?$/.test(f))
-                        tsFiles.push(p);
-                    else if (stack !== 'typescript' && STACK_EXT[stack]?.test(f))
-                        stackFiles.push(p);
-                }
+                    walkDoc(p);
+                else if (/\.(md|txt|json|ya?ml)$/.test(f))
+                    docFiles.push(p);
             }
         };
         if (fs.statSync(cpAbs).isDirectory())
-            walk(cpAbs);
-        else {
-            if (/\.tsx?$/.test(cpAbs))
-                tsFiles.push(cpAbs);
-            else if (stack !== 'typescript' && STACK_EXT[stack]?.test(cpAbs))
-                stackFiles.push(cpAbs);
+            walkDoc(cpAbs);
+        else
+            docFiles.push(cpAbs);
+        let substantive = 0, citations = 0;
+        for (const f of docFiles) {
+            const body = fs.readFileSync(f, 'utf8');
+            substantive += body.split('\n').filter((l) => {
+                const t = l.trim();
+                return t && !t.startsWith('#') && !t.startsWith('<!--') && !t.startsWith('//');
+            }).length;
+            const m = body.match(/`[^`]+\.(ts|tsx|js|py|go|rs)`|source:\s*\S+|[a-zA-Z0-9_-]+\/[a-zA-Z0-9_/.-]+\.(ts|tsx|js)/g);
+            citations += m ? m.length : 0;
         }
-        // Typecheck oracle: .ts contracts keep current tsc behavior; a non-TS stack
-        // whose contracts hold that stack's source files uses typecheckCommand. Both
-        // degrade honestly (UNMEASURED) when the toolchain is missing - never fake a
-        // pass, never hard-fail for a missing foreign toolchain.
-        if (tsFiles.length || stackFiles.length) {
-            const wantTs = tsFiles.length > 0;
-            const command = wantTs
-                ? (fs.existsSync(path.join(REPO, 'node_modules', '.bin', 'tsc'))
-                    ? `"${path.join(REPO, 'node_modules', '.bin', 'tsc')}" --noEmit`
-                    : has('tsc') ? 'tsc --noEmit' : null)
-                : typecheckCommand();
-            const tool = wantTs || stack === 'typescript' ? 'tsc'
-                : stack === 'go' ? 'go vet' : stack === 'rust' ? 'cargo check'
-                    : stack === 'python' ? 'compileall' : 'tsc';
-            if (!command) {
-                const cause = stack === 'unknown' ? 'no recognized stack markers' : `${stack} toolchain unavailable`;
-                const n = tsFiles.length || stackFiles.length;
-                return { suite: 'contracts', tool, command: `${tool} (unavailable)`,
-                    status: 'UNMEASURED',
-                    summary: `${n} contract source file(s) present but ${cause} - presence verified, typecheck honestly skipped` };
-            }
-            const r = runCmd(command);
-            return { suite: 'contracts', tool, command,
-                status: r.code === 0 ? 'PASS' : 'FAIL',
-                summary: r.code === 0 ? `${stack} typecheck clean, contracts present` : r.out.split('\n').slice(0, 8).join(' | ') };
-        }
-        if (!tsFiles.length) {
-            // v0.4.2 contracts_doc mode: doc-style contracts get REAL semantics,
-            // not just presence (BlindFolio). A contract that can't be tied back to
-            // code pins nothing: require substance (>=10 substantive lines) and at
-            // least one code citation (backticked path or source: reference).
-            // Stub contracts FAIL - a gate that never fires is not a gate.
-            const docFiles = [];
-            const walkDoc = (d) => {
-                for (const f of fs.readdirSync(d)) {
-                    const p = path.join(d, f);
-                    if (fs.statSync(p).isDirectory())
-                        walkDoc(p);
-                    else if (/\.(md|txt|json|ya?ml)$/.test(f))
-                        docFiles.push(p);
-                }
-            };
-            if (fs.statSync(cpAbs).isDirectory())
-                walkDoc(cpAbs);
-            else
-                docFiles.push(cpAbs);
-            let substantive = 0, citations = 0;
-            for (const f of docFiles) {
-                const body = fs.readFileSync(f, 'utf8');
-                substantive += body.split('\n').filter((l) => {
-                    const t = l.trim();
-                    return t && !t.startsWith('#') && !t.startsWith('<!--') && !t.startsWith('//');
-                }).length;
-                const m = body.match(/`[^`]+\.(ts|tsx|js|py|go|rs)`|source:\s*\S+|[a-zA-Z0-9_-]+\/[a-zA-Z0-9_/.-]+\.(ts|tsx|js)/g);
-                citations += m ? m.length : 0;
-            }
-            const stats = `${docFiles.length} doc(s), ${substantive} substantive lines, ${citations} code citations`;
-            if (!docFiles.length)
-                return { suite: 'contracts', tool: 'contracts_doc', command: `scan ${cp}`,
-                    status: 'UNMEASURED', summary: `${cp} exists but holds no contract docs` };
-            if (substantive >= 10 && citations >= 1)
-                return { suite: 'contracts', tool: 'contracts_doc', command: `scan ${cp}`,
-                    status: 'PASS', summary: `doc contracts substantive + code-cited (${stats})` };
+        const stats = `${docFiles.length} doc(s), ${substantive} substantive lines, ${citations} code citations`;
+        if (!docFiles.length)
             return { suite: 'contracts', tool: 'contracts_doc', command: `scan ${cp}`,
-                status: 'FAIL',
-                summary: `doc contracts too thin to gate (${stats}) - a contract that doesn't cite code pins nothing` };
+                status: 'UNMEASURED', summary: `${tag}${cp} exists but holds no contract docs` };
+        if (substantive >= 10 && citations >= 1)
+            return { suite: 'contracts', tool: 'contracts_doc', command: `scan ${cp}`,
+                status: 'PASS', summary: `${tag}doc contracts substantive + code-cited (${stats})` };
+        return { suite: 'contracts', tool: 'contracts_doc', command: `scan ${cp}`,
+            status: 'FAIL',
+            summary: `${tag}doc contracts too thin to gate (${stats}) - a contract that doesn't cite code pins nothing` };
+    }
+    // 2. monorepo: toolchain lives per-app, not at repo root - unreachable for
+    //    doc contracts (handled above); source contracts returned from the
+    //    typecheck oracle. Kept as an explicit honest UNMEASURED terminus.
+    return { suite: 'contracts', tool: 'tsc', command: 'tsc --noEmit',
+        status: 'UNMEASURED', summary: `${tag}${cp} holds no typecheckable source or doc contracts` };
+}
+/** Repo-level contracts gate: with `--app`, that app's contract home only.
+ *  Root invocation in a multi-app repo AGGREGATES every declared contract
+ *  home (per-app overrides + the repo-global path, deduped) so the pre-push
+ *  hook enforces all apps at once: any app FAIL fails the gate; at least one
+ *  PASS with no FAIL passes; everything unavailable stays an honest skip. */
+function contractsGate(app) {
+    if (app)
+        return contractsAt(contractsPath(app), app);
+    let apps = [];
+    let overrides = {};
+    let globalPath;
+    try {
+        const c = loadConfig();
+        apps = c.apps ?? [];
+        overrides = c.contracts_path_apps ?? {};
+        globalPath = c.contracts_path;
+    }
+    catch { /* single-app or no config */ }
+    if (apps.length > 0) {
+        const targets = [];
+        const seen = new Set();
+        for (const a of apps) {
+            const p = overrides[a];
+            if (p && !seen.has(p)) {
+                seen.add(p);
+                targets.push([a, p]);
+            }
         }
-        // 2. monorepo: toolchain lives per-app, not at repo root - unreachable for
-        //    doc contracts (handled above); source contracts returned from the
-        //    typecheck oracle. Kept as an explicit honest UNMEASURED terminus.
-        return { suite: 'contracts', tool: 'tsc', command: 'tsc --noEmit',
-            status: 'UNMEASURED', summary: `${cp} holds no typecheckable source or doc contracts` };
-    },
+        if (globalPath && !seen.has(globalPath)) {
+            seen.add(globalPath);
+            targets.push(['repo', globalPath]);
+        }
+        if (targets.length > 1) {
+            const results = targets.map(([label, p]) => contractsAt(p, label));
+            const summary = results.map((r) => r.summary).join(' | ');
+            if (results.some((r) => r.status === 'FAIL'))
+                return { suite: 'contracts', tool: 'multi', command: `aggregate ${targets.length} contract homes`, status: 'FAIL', summary };
+            if (results.some((r) => r.status === 'PASS'))
+                return { suite: 'contracts', tool: 'multi', command: `aggregate ${targets.length} contract homes`, status: 'PASS', summary };
+            return { suite: 'contracts', tool: 'multi', command: `aggregate ${targets.length} contract homes`, status: 'UNMEASURED', summary };
+        }
+    }
+    return contractsAt(contractsPath());
+}
+const suites = {
+    contracts: (app) => contractsGate(app),
     tests: () => {
         const pkgP = path.join(REPO, 'package.json');
         if (!fs.existsSync(pkgP))
@@ -264,9 +311,9 @@ export const BUILTIN_SUITES = Object.keys(suites);
  *  smoke scripts: "run this, exit 0 = PASS"). Trusted input by design - the
  *  owner declares their own gates; the command string is recorded verbatim
  *  as the citation. Returns null when neither builtin nor custom exists. */
-export async function runSuite(suite) {
+export async function runSuite(suite, app) {
     if (suites[suite])
-        return suites[suite]();
+        return suites[suite](app);
     let custom;
     try {
         custom = loadConfig().validate_suites?.[suite];
@@ -283,17 +330,21 @@ export async function runSuite(suite) {
 }
 export async function validate(args) {
     const suite = args[0];
-    const r = suite ? await runSuite(suite) : null;
+    const appIdx = args.indexOf('--app');
+    const app = appIdx >= 0 ? args[appIdx + 1] : undefined;
+    if (appIdx >= 0 && !app)
+        die(2, 'usage: aegis validate <suite> [--app <name>]');
+    const r = suite ? await runSuite(suite, app) : null;
     if (!r) {
         let custom = [];
         try {
             custom = Object.keys(loadConfig().validate_suites ?? {});
         }
         catch { /* no config */ }
-        die(2, `usage: aegis validate <${[...BUILTIN_SUITES, ...custom].join('|')}>`);
+        die(2, `usage: aegis validate <${[...BUILTIN_SUITES, ...custom].join('|')}> [--app <name>]`);
     }
     record(r);
-    const line = `${r.suite}: ${r.status} - ${r.summary}`;
+    const line = `${r.suite}${app ? ` (${app})` : ''}: ${r.status} - ${r.summary}`;
     if (r.status === 'FAIL')
         die(9, line);
     ok(line + (r.status === 'UNMEASURED' ? ' (honest skip - tool/env unavailable)' : ''));
