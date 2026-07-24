@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AEGIS — The enforcement layer for AI-native development</title>
+<meta name="description" content="Your AI agent is fast. Aegis makes fast trustworthy — enforcement in code, judgment in skills, proof on record.">
+<style>
+  :root {
+    --ink: #1f2328; --muted: #59636e; --faint: #8b949e;
+    --line: #d0d7de; --bg: #ffffff; --bg-soft: #f6f8fa;
+    --accent: #0969da; --accent-ink: #0550ae;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+         color: var(--ink); background: var(--bg); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
+
+  /* nav */
+  nav { border-bottom: 1px solid var(--line); }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+  .brand { font-weight: 700; letter-spacing: 2px; font-size: 15px; }
+  .brand span { color: var(--accent); }
+  nav .links { display: flex; gap: 22px; align-items: center; font-size: 14px; }
+  nav a { color: var(--muted); text-decoration: none; }
+  nav a:hover { color: var(--ink); }
+  .btn { display: inline-block; font-size: 14px; font-weight: 600; padding: 8px 18px; border-radius: 8px;
+         text-decoration: none; transition: all .15s ease; }
+  .btn-primary { background: var(--ink); color: #fff; }
+  .btn-primary:hover { background: #000; }
+  .btn-ghost { border: 1px solid var(--line); color: var(--ink); background: #fff; }
+  .btn-ghost:hover { border-color: var(--faint); }
+
+  /* hero */
+  .hero { text-align: center; padding: 110px 0 90px; }
+  .hero h1 { font-size: clamp(42px, 7vw, 76px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; }
+  .hero h1 em { font-style: normal; color: var(--accent); }
+  .hero p.sub { font-size: clamp(17px, 2.4vw, 21px); color: var(--muted); max-width: 640px;
+                margin: 24px auto 0; }
+  .hero .cta { margin-top: 36px; display: flex; gap: 12px; justify-content: center; }
+  .hero .cta .btn { font-size: 15px; padding: 12px 26px; border-radius: 10px; }
+  .install { margin: 40px auto 0; max-width: 640px; background: var(--bg-soft); border: 1px solid var(--line);
+             border-radius: 10px; padding: 14px 18px; font-family: var(--mono); font-size: 12px;
+             color: var(--ink); text-align: left; white-space: normal; word-break: break-all; }
+  .install .c { color: var(--faint); }
+  .install .p { color: var(--accent-ink); user-select: none; }
+
+  /* sections */
+  section { padding: 80px 0; }
+  section.alt { background: var(--bg-soft); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .kicker { font-family: var(--mono); font-size: 12px; color: var(--accent); letter-spacing: 1px;
+            text-transform: uppercase; margin-bottom: 14px; }
+  h2 { font-size: clamp(28px, 4vw, 40px); font-weight: 750; letter-spacing: -0.02em; line-height: 1.15; }
+  .lead { color: var(--muted); font-size: 17px; max-width: 640px; margin-top: 16px; }
+
+  .grid { display: grid; gap: 16px; margin-top: 44px; }
+  .grid.c3 { grid-template-columns: repeat(3, 1fr); }
+  .grid.c2 { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 760px) { .grid.c3, .grid.c2 { grid-template-columns: 1fr; } }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 24px; }
+  section.alt .card { background: #fff; }
+  .card h3 { font-size: 16px; font-weight: 650; margin-bottom: 8px; }
+  .card p { font-size: 14px; color: var(--muted); }
+  .card .mono { font-family: var(--mono); font-size: 12px; color: var(--accent-ink); margin-top: 12px; display: block; }
+  .card.pain { border-left: 3px solid #cf222e; }
+  .card.pain h3 { color: #cf222e; }
+
+  /* steps */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 44px; }
+  @media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+  .step { padding: 24px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+  .step .n { font-family: var(--mono); font-size: 13px; color: var(--accent); }
+  .step h3 { font-size: 17px; font-weight: 700; margin: 10px 0 8px; }
+  .step p { font-size: 14px; color: var(--muted); }
+
+  /* guide callout */
+  .callout { text-align: center; padding: 90px 0; }
+  .callout .sentence { font-family: var(--mono); font-size: clamp(16px, 3vw, 24px); background: var(--ink);
+                       color: #fff; display: inline-block; padding: 18px 32px; border-radius: 12px; margin-top: 28px; }
+
+  /* numbers */
+  .numbers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 44px; text-align: center; }
+  @media (max-width: 760px) { .numbers { grid-template-columns: repeat(2, 1fr); } }
+  .num .v { font-size: clamp(28px, 4vw, 42px); font-weight: 800; letter-spacing: -0.02em; }
+  .num .k { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  footer { border-top: 1px solid var(--line); padding: 32px 0; font-size: 13px; color: var(--faint); }
+  footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  footer a { color: var(--muted); text-decoration: none; }
+  footer a:hover { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="brand">AEGIS<span>.</span></div>
+    <div class="links">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#proof">Proof</a>
+      <a class="btn btn-primary" href="https://github.com/Shreyash3007/aegis">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>Your AI agent is fast.<br>We make it <em>trustworthy</em>.</h1>
+    <p class="sub">Agents sometimes claim work they never verified. Aegis puts the rules in code —
+      gates, proofs, and a memory your repo keeps — so you can trust the speed without losing the truth.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="#install">Get started</a>
+      <a class="btn btn-ghost" href="#guide">“Walk me through Aegis”</a>
+    </div>
+    <div class="install" id="install"><span class="p">$</span> npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.5.2.tar.gz
+      <span class="c"># then in any git repo: aegis init — or just tell your agent "walk me through Aegis"</span></div>
+  </div>
+</header>
+
+<section class="alt">
+  <div class="wrap">
+    <div class="kicker">The problem</div>
+    <h2>The fastest developer you ever hired<br>is also the one that says “all tests pass” without running them.</h2>
+    <div class="grid c3">
+      <div class="card pain"><h3>The unverified victory lap</h3>
+        <p>The agent reports success. You ship. The login flow is broken — it described the code it wrote; it never ran the app.</p></div>
+      <div class="card pain"><h3>Monday amnesia</h3>
+        <p>Friday's agent knew everything — branches, decisions, that workaround. Monday's session knows none of it.</p></div>
+      <div class="card pain"><h3>The parallel collision</h3>
+        <p>Three agents at once is the dream — until two silently overwrite each other's records and everything still <i>looks</i> fine.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="kicker">How it works</div>
+    <h2>Rules in code. Judgment in skills.<br>Proof on record.</h2>
+    <p class="lead">A prompt is text the agent is free to ignore. Aegis splits the job: a small CLI
+      enforces mechanically, 68 skill files guide the agent's thinking — and every claim is cited or honestly labeled.</p>
+    <div class="steps">
+      <div class="step"><div class="n">01</div><h3>Enforcement, in code</h3>
+        <p>A state machine for the work itself. Illegal jumps refused. Five sacred gates pause for a human.
+           Hand-edit the record and resume refuses.</p></div>
+      <div class="step"><div class="n">02</div><h3>Judgment, in skills</h3>
+        <p>68 eval-tested skill files: adversarial PRD review, contract-first design, security checklists,
+           bug hunting. The agent reads them; the CLI verifies it acted.</p></div>
+      <div class="step"><div class="n">03</div><h3>A repo that remembers</h3>
+        <p>brain/ is committed — the permanent second brain. Monday's agent wakes up knowing what Friday's knew.
+           Not because the model remembered — because the repo did.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="features">
+  <div class="wrap">
+    <div class="kicker">Features</div>
+    <h2>Ceremony priced to the size of the change.</h2>
+    <div class="grid c3">
+      <div class="card"><h3>Fast lane</h3><p>Small fixes skip the funnel — but your tests still have to pass.</p>
+        <span class="mono">aegis fix start · fix done · chore</span></div>
+      <div class="card"><h3>Merge oracle</h3><p>Real merge + real typecheck + contract diff before anything lands.</p>
+        <span class="mono">aegis merge check &lt;branch&gt;</span></div>
+      <div class="card"><h3>Any stack</h3><p>tsc, cargo check, go vet, py_compile — or an honest UNMEASURED, never a fake pass.</p>
+        <span class="mono">aegis typecheck</span></div>
+      <div class="card"><h3>Monorepo native</h3><p>Per-app pipelines, gates, and contract paths. One shared brain.</p>
+        <span class="mono">aegis init --apps web,api</span></div>
+      <div class="card"><h3>Agent waves</h3><p>Parallel executors recorded + checkpointed; lockfile-guarded state. 10/10 events, measured.</p>
+        <span class="mono">aegis exec -- &lt;cmd&gt; · aegis wave</span></div>
+      <div class="card"><h3>Honest validation</h3><p>Your smoke scripts become first-class gates. Every metric cites its tool — or admits UNMEASURED.</p>
+        <span class="mono">aegis validate &lt;suite&gt;</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="callout" id="guide">
+  <div class="wrap">
+    <div class="kicker">Zero manual</div>
+    <h2>Don't want to read docs? Don't.</h2>
+    <p class="lead" style="margin-left:auto;margin-right:auto">Tell your AI agent one sentence. The aegis-guide skill
+      does the setup with you — explaining each step, asking only when a decision is truly yours.</p>
+    <div class="sentence">“walk me through Aegis”</div>
+  </div>
+</section>
+
+<section class="alt" id="proof">
+  <div class="wrap">
+    <div class="kicker">Proof, not promises</div>
+    <h2>Tested. Trialed on production repos.<br>Run on itself.</h2>
+    <div class="numbers">
+      <div class="num"><div class="v">101</div><div class="k">integration tests,<br>CI on node 20/22</div></div>
+      <div class="num"><div class="v">9.5/10</div><div class="k">real monorepo trial —<br>“must-fix list is empty”</div></div>
+      <div class="num"><div class="v">68/68</div><div class="k">skill files pass<br>deterministic eval</div></div>
+      <div class="num"><div class="v">10/10</div><div class="k">events under 10 concurrent<br>writers, measured</div></div>
+    </div>
+    <p class="lead" style="margin-top:36px">Every release survives independent adversarial re-testing on real repos —
+      and Aegis runs on its own repo, hooks and all. The honesty contract is the product:
+      cited or UNMEASURED, never fabricated.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>AEGIS · MIT License · v0.5.2</div>
+    <div>
+      <a href="https://github.com/Shreyash3007/aegis">GitHub</a> ·
+      <a href="https://github.com/Shreyash3007/aegis/releases">Releases</a> ·
+      <a href="https://github.com/Shreyash3007/aegis/blob/main/SETUP.md">Setup guide</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
