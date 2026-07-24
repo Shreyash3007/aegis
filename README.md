@@ -18,7 +18,7 @@ Aegis separates the two things an AI workflow needs:
   owns deterministic truth: pipeline state, human gates, transitions,
   checkpoints, merge validation. The agent *cannot* bypass it, because it
   isn't prose.
-- **Judgment lives in skills** — 66 markdown skill files that tell the agent
+- **Judgment lives in skills** — 67 markdown skill files that tell the agent
   *how* to think at each stage (adversarial PRD review, contract-first
   design, bug hunting, ship verdicts). The agent reads them; the CLI verifies
   it acted.
@@ -26,7 +26,7 @@ Aegis separates the two things an AI workflow needs:
 ```
 you / your agent  ──►  aegis CLI  ──►  .aegis/ (machine state, hash-verified)
                             │          brain/   (committed docs, the "why")
-                            └────►  .aegis/skills/ (66 judgment files)
+                            └────►  .aegis/skills/ (67 judgment files)
 ```
 
 ## What it actually does
@@ -67,7 +67,7 @@ you / your agent  ──►  aegis CLI  ──►  .aegis/ (machine state, hash-
 
 ## Proven, not just tested
 
-- **72 integration tests** replaying every enforcement scenario (node:test,
+- **97 integration tests** replaying every enforcement scenario (node:test,
   zero extra deps, ~15s), CI on node 20/22.
 - **Two independent production trials** drove four releases: a 4-app monorepo
   team (rating went 8.5 → 9 → 9.5/10, "the must-fix list is now empty") and
@@ -90,7 +90,7 @@ aegis init --yes && aegis ast build   # one trial found 2 real circular deps thi
 Requires Node 18+ and git. GitHub-only distribution (never on npm registry).
 
 ```bash
-npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.4.2.tar.gz
+npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.5.0.tar.gz
 # already have v0.3.0+? just: aegis update
 ```
 
@@ -136,7 +136,7 @@ enforces the rules mechanically whichever agent you use.
 |---|---|---|
 | `.aegis/` | Machine state: state.json, checkpoints, per-app states. Gitignored, hash-verified, **never hand-edited** | the CLI |
 | `brain/` | Committed docs: architecture, quality log, context. The human-readable "why" | skills draft, humans confirm |
-| `.aegis/skills/` | 66 skill files: the judgment layer (persona, steps, self-critique, exit conditions per state) | the agent reads them |
+| `.aegis/skills/` | 67 skill files: the judgment layer (persona, steps, self-critique, exit conditions per state) | the agent reads them |
 | git hooks | pre-commit (checkpoint + typecheck), post-commit (checkpoint), pre-push (contract validation) — chained onto any hooks you already have | the CLI |
 | `AGENTS.md` / `CLAUDE.md` | Your agent's entry point; Aegis owns only a marked block inside them | you + `aegis sync` |
 
@@ -144,16 +144,17 @@ enforces the rules mechanically whichever agent you use.
 
 | Command | Behavior | Exit codes |
 |---|---|---|
-| `aegis init [--yes] [--overwrite] [--apps a,b]` | Scaffold .aegis/ + brain/, git hooks (existing preserved + chained), doctor, interview (brownfield auto-detected) | 0 / 1 / 2 |
+| `aegis init [--yes] [--overwrite] [--apps a,b] [--profile min\|std\|full]` | Scaffold .aegis/ + brain/, git hooks (existing preserved + chained), doctor, interview (brownfield auto-detected); minimal profile = standalone tools only (no hooks/brain) | 0 / 1 / 2 |
 | `aegis doctor [--save]` | Environment report, stale-worktree prune, state-vs-git drift notes | 0 |
-| `aegis status [--app n]` / `next` | State, legal transitions, lanes / recommended next skill | 0 / 3 |
+| `aegis status [--app n] [--markdown]` / `next` | State, legal transitions, lanes / recommended next skill; --markdown writes a deterministic brain/handoff.md | 0 / 3 |
 | `aegis transition <s> [--reason t] [--app n]` | Record a validated move (illegal refused; loops escalate) | 0 / 4 / 5 |
 | `aegis gate <name> --approve [--app n]` | Human gate approval (TTY confirm / CI token / autonomy=full) | 0 / 7 |
 | `aegis contracts [--app n]` | Verify contracts merged to base branch (N1) | 0 / 4 |
 | `aegis fix start\|done\|abandon` / `chore` | Fast lane for small changes; `done` requires tests | 0 / 4 / 9 |
 | `aegis slice create\|list\|remove` | Worktree-per-slice + lane caps (N2/N5) | 0 / 2 / 4 |
 | `aegis merge check <branch>` | Merge oracle: real merge + tsc + contract drift (N3) | 0 / 9 / 13 |
-| `aegis validate <suite>` | contracts (tsc or contracts_doc) / tests / deps / perf / e2e + your custom suites | 0 / 9 |
+| `aegis validate <suite>` | contracts (tsc or contracts_doc) / tests (auto-detects npm/yarn/pnpm/bun) / deps / perf / e2e + your custom suites | 0 / 9 |
+| `aegis typecheck` | Multi-stack typecheck oracle: tsc / cargo check / go vet / py_compile, or honest UNMEASURED | 0 / 9 |
 | `aegis checkpoint` / `resume` | Snapshot / hash-verified recovery | 0 / 2 / 6 |
 | `aegis ast build` / `diff` | Deterministic module graph, circular deps / impact analysis | 0 / 8 / 2 |
 | `aegis import check` | Verify brownfield brain docs exist, substantive, cited | 0 / 2 / 4 |
@@ -164,6 +165,7 @@ enforces the rules mechanically whichever agent you use.
 | `aegis monitor --once` | Post-ship health pass for cron/CI | 0 / 10 |
 | `aegis eval <file\|--all>` | Skill-file eval harness; opt-in model judge | 0 / 11 |
 | `aegis update [--check]` / `--version` | Self-update from latest tag / print version | 0 / 2 |
+| `aegis hooks [--profile min\|std\|strict]` | Hook strictness: minimal (record-only) / standard / strict (+ tests on pre-push) | 0 / 4 |
 | `aegis migrate` | Schema migration across CLI versions | 0 / 12 |
 
 Exit codes: `0 ok · 1 not a git repo · 2 missing/corrupt state · 3 blocked ·
@@ -199,14 +201,16 @@ Exit codes: `0 ok · 1 not a git repo · 2 missing/corrupt state · 3 blocked ·
 
 ```bash
 npm install && npm run build   # strict tsc, dist/ is committed
-npm test                       # 72 integration tests (~15s, no extra deps)
-aegis eval --all               # 66/66 skill files conform
+npm test                       # 97 integration tests (~20s, no extra deps)
+aegis eval --all               # 67/67 skill files conform
 ```
 
 This repo runs Aegis on itself — hooks, brain docs, import check included.
 
 ## Release history
 
+v0.5.0 multi-language oracles + install/hook profiles + ask-aegis skill
+(built by opencode/GLM-5.2 via `aegis exec` waves, maintainer-audited) ·
 v0.4.2 doc-contract gates + per-app paths · v0.4.1 concurrency correctness
 (state lock) · v0.4.0 monorepo + exec + self-hosting · v0.3.0 fast lane +
 import bridge + custom validators + drift detection · v0.2.1 brownfield

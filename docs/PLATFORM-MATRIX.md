@@ -43,7 +43,26 @@ unverified axis. Known patterns, none verified except the first:
 |---------|--------|-------|
 | Worktree-per-slice (`aegis slice create`, N2) | ✅ VERIFIED (Kimi Code, 2026-07-21 dogfood) | the designed path |
 | Fork/sub-agent waves on ONE shared working tree (e.g. 5 agents dispatched in parallel waves, metis-nda style) | ✅ SUBSTRATE VERIFIED (2026-07-21, v0.4.1 lockfile) | all commands concurrency-safe; full agent waves untested |
-| External executors (opencode+GLM) driving aegis by prompt | ⬜ UNTESTED | enforcement is prompt-deep here; `aegis exec -- <cmd>` (v0.4) is the recording wrapper; drift detection (`aegis doctor`) is the after-the-fact net |
+| External executors (opencode+GLM) driving aegis by prompt | ✅ VERIFIED (2026-07-21, implementation waves) | 6 waves driven through `aegis exec`, all recorded + audited - see below |
+
+### Evidence: opencode + GLM-5.2 implementation waves (2026-07-21)
+
+Six implementation tasks (PM detection, status --markdown, install profiles,
+multi-language oracles, hook profiles, ask-aegis skill) were delegated to
+opencode 1.18.1 (zai-coding-plan/glm-5.2) inside the self-hosted aegis-cli
+repo, each driven through `aegis exec -- opencode run ...` so every run was
+recorded in state history with checkpoints before/after.
+
+- Every wave's diff was audited line-by-line by the maintainer and the full
+  integration suite run before acceptance (74 -> 97 tests, all green).
+- All six completed their specs with zero corrective reverts; two waves
+  exceeded spec quality (unspecified edge cases handled: source-existence
+  probe in typecheck, marker-guarded hook removal).
+- `aegis exec` itself caught one real bug during the run (shell-quoting of
+  natural-language args) - fixed, retested, and the retry succeeded.
+- Conclusion: opencode+GLM reliably drives the exec/recording surface; the
+  full pipeline (transitions/gates) was not exercised by the executor in
+  this trial and remains partially evidenced.
 
 ### Experiment: shared-tree concurrency (2026-07-21, v0.4; re-run v0.4.1)
 

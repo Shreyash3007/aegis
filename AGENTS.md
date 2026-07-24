@@ -100,7 +100,7 @@ yourself; it is the owner's posture choice. Unknown gate names are refused
 
 | Command | Use |
 |---|---|
-| `aegis init [--yes] [--apps a,b]` | bootstrap project (interview / defaults; --apps: monorepo per-app states) |
+| `aegis init [--yes] [--apps a,b] [--profile min\|std\|full]` | bootstrap project (interview / defaults; --apps: monorepo per-app states; --profile minimal: standalone tools only, no hooks/brain) |
 | `aegis doctor` | environment report, prune stale worktrees, state-vs-git drift notes |
 | `aegis status [--app n]` / `next` | state / one legal next skill (3=blocked); multi-app: summary without --app |
 | `aegis transition <s> [--reason] [--app n]` | move (4=illegal, 5=loop/cycle; 2=--app required in multi-app) |
@@ -120,8 +120,10 @@ yourself; it is the owner's posture choice. Unknown gate names are refused
 | `aegis sync` / `gc` | regenerate AGENTS.md etc. / retention |
 | `aegis monitor --once` | post-ship check (10=breach) |
 | `aegis eval <file\|--all>` | skill-file lint (11=regression) |
-| `aegis config [set k v]` | view/update interview answers (keys: platform, project_type, stack, team, autonomy, human_lane_cap, model_strong, ship_profile, environment_level, mode, pii_logs, token_budget, contracts_path, contracts_path.&lt;app&gt;, apps, validate_suite.&lt;name&gt;; '-' removes optional keys); `token_budget N` is advisory-only |
+| `aegis config [set k v]` | view/update interview answers (keys: platform, project_type, stack, team, autonomy, human_lane_cap, model_strong, ship_profile, environment_level, mode, pii_logs, token_budget, contracts_path, contracts_path.&lt;app&gt;, apps, validate_suite.&lt;name&gt;, hooks_profile; '-' removes optional keys); `token_budget N` is advisory-only |
 | `aegis migrate` | schema upgrades (12=version mismatch) |
+| `aegis typecheck` | multi-stack typecheck oracle (tsc/cargo/go vet/compileall; honest UNMEASURED) |
+| `aegis hooks [--profile]` | hook strictness: minimal / standard / strict (4=invalid) |
 
 Fast-lane scope: `fix`/`chore` are for genuinely small, single-session
 changes (typos, copy, config, isolated one-file fixes). Anything touching

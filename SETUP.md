@@ -4,7 +4,7 @@
 
 ```bash
 # From GitHub (recommended once the repo is published):
-npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.4.2.tar.gz
+npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.5.0.tar.gz
 
 # Already installed? `aegis update` self-updates to the latest tag (same tarball path).
 
@@ -68,7 +68,14 @@ aegis import check                # verify 00d brain docs exist, substantive + c
 aegis config set validate_suite.smoke "node scripts/verify-sync.mjs"
 aegis validate smoke              # owner-declared suites, exit code = verdict
 aegis doctor                      # also reports state-vs-git drift (lanes, stale checkpoints)
+aegis status --markdown           # write brain/handoff.md - portable position snapshot
+aegis typecheck                   # stack-aware typecheck (tsc/cargo/go vet/compileall)
+aegis hooks --profile strict      # pre-push also gates on validate tests
 ```
+
+Install profiles (v0.5): `aegis init --profile minimal` installs standalone
+tools only (ast/validate/checkpoint/exec/fix) — no git hooks, no brain/, no
+pipeline ceremony. `standard` is the full pipeline; `full` adds strict hooks.
 
 Doc-style contracts (markdown/fixtures instead of `src/contracts` TS) get a
 real gate since v0.4.2: `validate contracts` scans them and PASSes only when

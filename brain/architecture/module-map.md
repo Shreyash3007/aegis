@@ -31,6 +31,11 @@
 - imports: ../lib/state.js, ../lib/util.js, ./persist.js, ./validate.js
 - depends on: src/commands/persist.ts, src/commands/validate.ts, src/lib/state.ts, src/lib/util.ts
 
+## src/commands/hooks.ts
+- exports: hooks(args: string[]): void
+- imports: ../lib/hooks.js, ../lib/state.js, ../lib/util.js, node:fs
+- depends on: src/lib/hooks.ts, src/lib/state.ts, src/lib/util.ts
+
 ## src/commands/import.ts
 - exports: importCmd(args: string[]): void
 - imports: ../lib/util.js, node:fs, node:path
@@ -43,8 +48,8 @@
 
 ## src/commands/merge.ts
 - exports: merge(args: string[]): void
-- imports: ../lib/state.js, ../lib/util.js, node:child_process, node:fs, node:os, node:path
-- depends on: src/lib/state.ts, src/lib/util.ts
+- imports: ../lib/oracles.js, ../lib/state.js, ../lib/util.js, node:child_process, node:fs, node:os, node:path
+- depends on: src/lib/oracles.ts, src/lib/state.ts, src/lib/util.ts
 
 ## src/commands/migrate.ts
 - exports: migrate(): void
@@ -68,13 +73,18 @@
 
 ## src/commands/state.ts
 - exports: contracts(args: string[]): void | gate(args: string[]): void | lane(args: string[]): void | loops(args: string[]): void | next(args: string[]): void | status(args: string[]): void | transition(args: string[]): void
-- imports: ../lib/state.js, ../lib/util.js, node:fs
+- imports: ../lib/state.js, ../lib/util.js, node:fs, node:path
 - depends on: src/lib/state.ts, src/lib/util.ts
 
 ## src/commands/sync.ts
 - exports: gc(): void | sync(): void
 - imports: ../lib/state.js, ../lib/util.js, node:fs, node:path
 - depends on: src/lib/state.ts, src/lib/util.ts
+
+## src/commands/typecheck.ts
+- exports: typecheck(_args: string[]): void
+- imports: ../lib/oracles.js, ../lib/util.js, node:child_process, node:fs, node:path
+- depends on: src/lib/oracles.ts, src/lib/util.ts
 
 ## src/commands/update.ts
 - exports: latestTag(lsRemote: string): string | null | update(args: string[]): void
@@ -83,8 +93,8 @@
 
 ## src/commands/validate.ts
 - exports: BUILTIN_SUITES: string[] | Result { command: string; status: "PASS" | "FAIL" | "UNMEASURED"; suite: string; summary: string; tool: string } | runSuite(suite: string): Promise<import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/commands/validate").Result | null> | validate(args: string[]): Promise<void>
-- imports: ../lib/state.js, ../lib/util.js, node:child_process, node:fs, node:path, node:perf_hooks
-- depends on: src/lib/state.ts, src/lib/util.ts
+- imports: ../lib/oracles.js, ../lib/state.js, ../lib/util.js, node:child_process, node:fs, node:path, node:perf_hooks
+- depends on: src/lib/oracles.ts, src/lib/state.ts, src/lib/util.ts
 
 ## src/lib/astgraph.ts
 - exports: ModuleGraph { modules: import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/astgraph").ModuleNode[] } | ModuleNode { edges: string[]; exports: string[]; file: string; hash: string; imports: string[] } | buildGraph(): import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/astgraph").ModuleGraph | dependentsOf(g: import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/astgraph").ModuleGraph, file: string): string[] | findCycles(g: import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/astgraph").ModuleGraph): string[][] | renderModuleMap(g: import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/astgraph").ModuleGraph): string
@@ -93,8 +103,8 @@
 
 ## src/lib/commands.ts
 - exports: COMMANDS: string[] | run(cmd: string, args: string[]): Promise<boolean>
-- imports: ../commands/ast.js, ../commands/config.js, ../commands/eval.js, ../commands/exec.js, ../commands/fix.js, ../commands/import.js, ../commands/lifecycle.js, ../commands/merge.js, ../commands/migrate.js, ../commands/monitor.js, ../commands/persist.js, ../commands/slice.js, ../commands/state.js, ../commands/sync.js, ../commands/update.js, ../commands/validate.js
-- depends on: src/commands/ast.ts, src/commands/config.ts, src/commands/eval.ts, src/commands/exec.ts, src/commands/fix.ts, src/commands/import.ts, src/commands/lifecycle.ts, src/commands/merge.ts, src/commands/migrate.ts, src/commands/monitor.ts, src/commands/persist.ts, src/commands/slice.ts, src/commands/state.ts, src/commands/sync.ts, src/commands/update.ts, src/commands/validate.ts
+- imports: ../commands/ast.js, ../commands/config.js, ../commands/eval.js, ../commands/exec.js, ../commands/fix.js, ../commands/hooks.js, ../commands/import.js, ../commands/lifecycle.js, ../commands/merge.js, ../commands/migrate.js, ../commands/monitor.js, ../commands/persist.js, ../commands/slice.js, ../commands/state.js, ../commands/sync.js, ../commands/typecheck.js, ../commands/update.js, ../commands/validate.js
+- depends on: src/commands/ast.ts, src/commands/config.ts, src/commands/eval.ts, src/commands/exec.ts, src/commands/fix.ts, src/commands/hooks.ts, src/commands/import.ts, src/commands/lifecycle.ts, src/commands/merge.ts, src/commands/migrate.ts, src/commands/monitor.ts, src/commands/persist.ts, src/commands/slice.ts, src/commands/state.ts, src/commands/sync.ts, src/commands/typecheck.ts, src/commands/update.ts, src/commands/validate.ts
 
 ## src/lib/detect.ts
 - exports: DoctorReport { cpu_cores: number; environment_level: "L0" | "L1" | "L2"; git: string; in_ci: boolean; node: string; platform_hint: string; project_type_hint: "greenfield" | "brownfield"; ram_free_mb: number; ram_total_mb: number; shell_access: boolean; tools: Record<string, boolean>; worktrees_pruned: boolean } | doctor(): import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/detect").DoctorReport
@@ -107,7 +117,7 @@
 - depends on: src/lib/util.ts
 
 ## src/lib/hooks.ts
-- exports: installHooks(): string[]
+- exports: HookProfile = import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/hooks").HookProfile | installHooks(profile: import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/hooks").HookProfile): string[] | managedHookNames(): string[]
 - imports: ./util.js, node:fs, node:path
 - depends on: src/lib/util.ts
 
@@ -116,13 +126,18 @@
 - imports: ./detect.js, ./state.js, node:readline
 - depends on: src/lib/detect.ts, src/lib/state.ts
 
+## src/lib/oracles.ts
+- exports: Stack = import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/oracles").Stack | detectStack(cwd: string): import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/oracles").Stack | typecheckCommand(cwd: string): string | null
+- imports: ./util.js, node:fs, node:path
+- depends on: src/lib/util.ts
+
 ## src/lib/state.ts
-- exports: Config { apps: string[] | undefined; autonomy: "assisted" | "semi" | "full"; contracts_path: string | undefined; contracts_path_apps: Record<string, string> | undefined; environment_level: "L0" | "L1" | "L2"; human_lane_cap: number; lane_costs_mb: { browser_e2e: number; dev_server: number; codegen: number; }; mode: "runtime" | "manual"; model_tiers: { strong: string; standard: string; light: string; }; pii_logs: boolean; platform: string; project_type: "greenfield" | "brownfield"; ram_mb: number; schema_version: number; ship_profile: "prototype" | "production"; stack: string | undefined; team: "solo" | "small-team" | undefined; token_budget: number | undefined; validate_suites: Record<string, string> | undefined } | Edge { backward: boolean | undefined; from: string; gate: string | undefined; requiresContracts: boolean | undefined; to: string } | FixRecord { abandoned_reason: string | undefined; closed_at: string | undefined; desc: string; kind: "fix" | "chore"; opened_at: string; validation: string | undefined } | GateRecord { at: string; by: string; status: "approved" } | HistoryEntry { at: string; cleared: string[] | undefined; event: string | undefined; reason: string | undefined; skill: string } | SCHEMA_VERSION: 1 | State { contracts_merged: boolean; current_skill: string; fix: { active: import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").FixRecord | null; log: import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").FixRecord[]; } | undefined; gates: Record<string, import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").GateRecord>; history: import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").HistoryEntry[]; lanes: { max: number; active: string[]; }; loop_counters: Record<string, number>; schema_version: number; state_visits: Record<string, number> } | StateCtx { app: string | null; p: string; s: import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").State } | Transitions { edges: import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").Edge[]; gates: Record<string, string>; max_loop: number } | acquireState(p: string): import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").State | appStatePath: (name: string) => string | commitState(p: string, s: import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").State): void | configP: any | contractsPath(app: string | null | undefined): string | declaredApps(): string[] | freshState(laneMax: number): import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").State | loadConfig: () => import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").Config | loadState(): import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").State | loadStateFrom(p: string): import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").State | loadTransitions: () => import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").Transitions | resolveState(args: string[], mutate: boolean): import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").StateCtx | stateP: any | stripAppArg(args: string[]): string[] | transP: any
+- exports: Config { apps: string[] | undefined; autonomy: "assisted" | "semi" | "full"; contracts_path: string | undefined; contracts_path_apps: Record<string, string> | undefined; environment_level: "L0" | "L1" | "L2"; hooks_profile: "minimal" | "standard" | "strict" | undefined; human_lane_cap: number; lane_costs_mb: { browser_e2e: number; dev_server: number; codegen: number; }; mode: "runtime" | "manual"; model_tiers: { strong: string; standard: string; light: string; }; pii_logs: boolean; platform: string; profile: "minimal" | "standard" | "full" | undefined; project_type: "greenfield" | "brownfield"; ram_mb: number; schema_version: number; ship_profile: "prototype" | "production"; stack: string | undefined; team: "solo" | "small-team" | undefined; token_budget: number | undefined; validate_suites: Record<string, string> | undefined } | Edge { backward: boolean | undefined; from: string; gate: string | undefined; requiresContracts: boolean | undefined; to: string } | FixRecord { abandoned_reason: string | undefined; closed_at: string | undefined; desc: string; kind: "fix" | "chore"; opened_at: string; validation: string | undefined } | GateRecord { at: string; by: string; status: "approved" } | HistoryEntry { at: string; cleared: string[] | undefined; event: string | undefined; reason: string | undefined; skill: string } | SCHEMA_VERSION: 1 | State { contracts_merged: boolean; current_skill: string; fix: { active: import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").FixRecord | null; log: import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").FixRecord[]; } | undefined; gates: Record<string, import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").GateRecord>; history: import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").HistoryEntry[]; lanes: { max: number; active: string[]; }; loop_counters: Record<string, number>; schema_version: number; state_visits: Record<string, number> } | StateCtx { app: string | null; p: string; s: import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").State } | Transitions { edges: import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").Edge[]; gates: Record<string, string>; max_loop: number } | acquireState(p: string): import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").State | appStatePath: (name: string) => string | commitState(p: string, s: import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").State): void | configP: any | contractsPath(app: string | null | undefined): string | declaredApps(): string[] | freshState(laneMax: number): import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").State | loadConfig: () => import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").Config | loadState(): import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").State | loadStateFrom(p: string): import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").State | loadTransitions: () => import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").Transitions | resolveState(args: string[], mutate: boolean): import("/media/shreyash/Projects/Projects/Aegis/aegis-cli/src/lib/state").StateCtx | stateP: any | stripAppArg(args: string[]): string[] | transP: any
 - imports: ./util.js, node:fs, node:path
 - depends on: src/lib/util.ts
 
 ## src/lib/util.ts
-- exports: AEGIS_DIR: any | REPO: string | die(code: number, msg: string): never | git: (args: string[], cwd?: string) => string | gitRaw: (args: string[], cwd?: string) => string | gitTry: (args: string[], cwd?: string) => string | has: (bin: string) => boolean | ok: (msg: string) => void | readJ: <T>(p: string) => T | sha: (s: any) => string | writeJ: (p: string, o: unknown) => void
+- exports: AEGIS_DIR: any | REPO: string | detectPackageManager(cwd: string): "npm" | "yarn" | "pnpm" | "bun" | die(code: number, msg: string): never | git: (args: string[], cwd?: string) => string | gitRaw: (args: string[], cwd?: string) => string | gitTry: (args: string[], cwd?: string) => string | has: (bin: string) => boolean | ok: (msg: string) => void | readJ: <T>(p: string) => T | sha: (s: any) => string | writeJ: (p: string, o: unknown) => void
 - imports: node:child_process, node:crypto, node:fs, node:path
 - depends on: (none)
 
