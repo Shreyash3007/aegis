@@ -4,6 +4,7 @@ import { execSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
 import { AEGIS_DIR, REPO, die, detectPackageManager, has, ok, readJ, writeJ } from '../lib/util.js';
 import { loadConfig, contractsPath } from '../lib/state.js';
+import { detectStack, typecheckCommand } from '../lib/oracles.js';
 function runCmd(command, cwd = REPO) {
     try {
         return { code: 0, out: execSync(command, { cwd, encoding: 'utf8', stdio: 'pipe' }) };
@@ -60,24 +61,63 @@ const suites = {
         if (!hasContracts)
             return { suite: 'contracts', tool: 'tsc', command: 'tsc --noEmit',
                 status: 'UNMEASURED', summary: `no ${cp} - N1 not applicable yet` };
-        // BlindFolio trial: two honest-degradation cases must never hard-FAIL
-        // (FAIL here blocks every push via the pre-push hook):
-        // 1. doc-style contracts (markdown/json fixtures, no .ts) - tsc is the
-        //    wrong oracle; semantic checking belongs in a custom suite.
+        // Collect contract source files by stack so the typecheck oracle uses the
+        // RIGHT checker: .ts -> tsc (current behavior); .go/.rs/.py -> the repo's
+        // real checker via typecheckCommand. Doc-only contracts (md/json/yaml) fall
+        // through to the contracts_doc semantic gate below.
+        const stack = detectStack();
+        const STACK_EXT = {
+            typescript: /\.tsx?$/, rust: /\.rs$/, go: /\.go$/, python: /\.py$/,
+        };
         const tsFiles = [];
+        const stackFiles = [];
         const walk = (d) => {
             for (const f of fs.readdirSync(d)) {
                 const p = path.join(d, f);
                 if (fs.statSync(p).isDirectory())
                     walk(p);
-                else if (/\.tsx?$/.test(f))
-                    tsFiles.push(p);
+                else {
+                    if (/\.tsx?$/.test(f))
+                        tsFiles.push(p);
+                    else if (stack !== 'typescript' && STACK_EXT[stack]?.test(f))
+                        stackFiles.push(p);
+                }
             }
         };
         if (fs.statSync(cpAbs).isDirectory())
             walk(cpAbs);
-        else if (/\.tsx?$/.test(cpAbs))
-            tsFiles.push(cpAbs);
+        else {
+            if (/\.tsx?$/.test(cpAbs))
+                tsFiles.push(cpAbs);
+            else if (stack !== 'typescript' && STACK_EXT[stack]?.test(cpAbs))
+                stackFiles.push(cpAbs);
+        }
+        // Typecheck oracle: .ts contracts keep current tsc behavior; a non-TS stack
+        // whose contracts hold that stack's source files uses typecheckCommand. Both
+        // degrade honestly (UNMEASURED) when the toolchain is missing - never fake a
+        // pass, never hard-fail for a missing foreign toolchain.
+        if (tsFiles.length || stackFiles.length) {
+            const wantTs = tsFiles.length > 0;
+            const command = wantTs
+                ? (fs.existsSync(path.join(REPO, 'node_modules', '.bin', 'tsc'))
+                    ? `"${path.join(REPO, 'node_modules', '.bin', 'tsc')}" --noEmit`
+                    : has('tsc') ? 'tsc --noEmit' : null)
+                : typecheckCommand();
+            const tool = wantTs || stack === 'typescript' ? 'tsc'
+                : stack === 'go' ? 'go vet' : stack === 'rust' ? 'cargo check'
+                    : stack === 'python' ? 'compileall' : 'tsc';
+            if (!command) {
+                const cause = stack === 'unknown' ? 'no recognized stack markers' : `${stack} toolchain unavailable`;
+                const n = tsFiles.length || stackFiles.length;
+                return { suite: 'contracts', tool, command: `${tool} (unavailable)`,
+                    status: 'UNMEASURED',
+                    summary: `${n} contract source file(s) present but ${cause} - presence verified, typecheck honestly skipped` };
+            }
+            const r = runCmd(command);
+            return { suite: 'contracts', tool, command,
+                status: r.code === 0 ? 'PASS' : 'FAIL',
+                summary: r.code === 0 ? `${stack} typecheck clean, contracts present` : r.out.split('\n').slice(0, 8).join(' | ') };
+        }
         if (!tsFiles.length) {
             // v0.4.2 contracts_doc mode: doc-style contracts get REAL semantics,
             // not just presence (BlindFolio). A contract that can't be tied back to
@@ -119,17 +159,11 @@ const suites = {
                 status: 'FAIL',
                 summary: `doc contracts too thin to gate (${stats}) - a contract that doesn't cite code pins nothing` };
         }
-        // 2. monorepo: toolchain lives per-app, not at repo root - no tsc here.
-        const localBin = path.join(REPO, 'node_modules', '.bin', 'tsc');
-        const tscBin = fs.existsSync(localBin) ? `"${localBin}"` : has('tsc') ? 'tsc' : null;
-        if (!tscBin)
-            return { suite: 'contracts', tool: 'tsc', command: 'tsc --noEmit',
-                status: 'UNMEASURED',
-                summary: `${tsFiles.length} contract .ts files present but tsc unavailable at repo root (monorepo? per-app toolchains) - presence verified, typecheck honestly skipped` };
-        const r = runCmd(`${tscBin} --noEmit`);
-        return { suite: 'contracts', tool: 'tsc', command: `${tscBin} --noEmit`,
-            status: r.code === 0 ? 'PASS' : 'FAIL',
-            summary: r.code === 0 ? 'typecheck clean, contracts present' : r.out.split('\n').slice(0, 8).join(' | ') };
+        // 2. monorepo: toolchain lives per-app, not at repo root - unreachable for
+        //    doc contracts (handled above); source contracts returned from the
+        //    typecheck oracle. Kept as an explicit honest UNMEASURED terminus.
+        return { suite: 'contracts', tool: 'tsc', command: 'tsc --noEmit',
+            status: 'UNMEASURED', summary: `${cp} holds no typecheckable source or doc contracts` };
     },
     tests: () => {
         const pkgP = path.join(REPO, 'package.json');

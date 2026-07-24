@@ -1,9 +1,10 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { execFileSync } from 'node:child_process';
+import { execSync } from 'node:child_process';
 import { REPO, die, git, gitRaw, ok } from '../lib/util.js';
 import { contractsPath } from '../lib/state.js';
+import { detectStack, typecheckCommand } from '../lib/oracles.js';
 
 /** aegis merge check <branch> - the merge oracle (N3, simulation-proven).
  *  Real git merge in an OS-temp worktree (A1.5), tsc, contract immutability
@@ -51,16 +52,22 @@ export function merge(args: string[]): void {
     catch { /* different layout or fs restriction - oracle degrades honestly below */ }
   }
 
-  // oracle 1: typecheck (degrade honestly if tsc unavailable)
-  const hasLocalTsc = fs.existsSync(path.join(REPO, 'node_modules', '.bin', 'tsc'));
-  if (hasLocalTsc) {
-    try { execFileSync(path.join(REPO, 'node_modules', '.bin', 'tsc'), ['--noEmit', '-p', tmp], { stdio: 'pipe', encoding: 'utf8' }); }
+  // oracle 1: typecheck the MERGED worktree with the repo's real checker
+  // (typecheckCommand), degrading honestly to an advisory UNVERIFIED when the
+  // toolchain is missing - never hard-fail a foreign-toolchain merge.
+  const stack = detectStack(tmp);
+  const tcCommand = typecheckCommand(tmp);
+  const tcLabel = stack === 'typescript' ? 'tsc --noEmit'
+    : stack === 'go' ? 'go vet' : stack === 'rust' ? 'cargo check'
+    : stack === 'python' ? 'compileall' : 'typecheck';
+  if (tcCommand) {
+    try { execSync(tcCommand, { cwd: tmp, encoding: 'utf8', stdio: 'pipe' }); }
     catch (e: any) {
       const out = [e.stdout, e.stderr].filter(Boolean).join('\n') || e.message;
-      failed.push('tsc --noEmit FAILED:\n' + String(out).split('\n').slice(0, 12).join('\n'));
+      failed.push(`${tcLabel} FAILED:\n${String(out).split('\n').slice(0, 12).join('\n')}`);
     }
   } else {
-    console.log('warn: tsc unavailable in target repo - typecheck oracle UNVERIFIED (advisory)');
+    console.log(`warn: ${stack === 'unknown' ? 'no recognized stack' : `${stack} toolchain unavailable`} in target repo - typecheck oracle UNVERIFIED (advisory)`);
   }
 
   // oracle 2: contract immutability (git-native diff, A1.1)
@@ -69,5 +76,5 @@ export function merge(args: string[]): void {
 
   cleanup();
   if (failed.length) die(9, `MERGE ORACLE REFUSED ${branch}:\n${failed.join('\n')}`);
-  ok(`merge oracle PASSED ${branch} (tsc ${hasLocalTsc ? 'clean' : 'UNVERIFIED'}, contracts intact)`);
+  ok(`merge oracle PASSED ${branch} (${tcCommand ? `${tcLabel} clean` : 'typecheck UNVERIFIED'}, contracts intact)`);
 }

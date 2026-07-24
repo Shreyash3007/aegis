@@ -62,6 +62,10 @@ export async function init(args: string[]): Promise<void> {
 
   const config = await runInterview(doc, args.includes('--yes'));
   config.profile = profile;
+  // Hook strictness tracks the install profile: full -> strict (push also
+  // runs validate tests), standard -> standard. minimal installs NO hooks at
+  // all (handled below), so hooks_profile is left unset rather than lying.
+  if (!minimal) config.hooks_profile = profile === 'full' ? 'strict' : 'standard';
   writeJ(configP, config);
 
   // Lane cap (N5): human comfort cap throttled by RAM. lane_costs_mb prices one
@@ -101,7 +105,7 @@ export async function init(args: string[]): Promise<void> {
   const nSkills = copyDir(path.join(PKG_ROOT, 'skills'), path.join(AEGIS_DIR, 'skills'));
   const nTpl = minimal ? 0 : copyDir(path.join(PKG_ROOT, 'templates', 'brain'), path.join(REPO, 'brain'));
 
-  const hooks = minimal ? [] : installHooks();
+  const hooks = minimal ? [] : installHooks(config.hooks_profile ?? 'standard');
   ok(`Aegis initialized (env ${config.environment_level}, platform ${config.platform}, RAM ${doc.ram_free_mb}/${doc.ram_total_mb} MB free)`);
   if (hooks.length) ok(`git hooks installed: ${hooks.join(', ')}`);
   ok(`skills installed: ${nSkills} files -> .aegis/skills/${minimal ? '' : ` | brain templates: ${nTpl} files`}`);

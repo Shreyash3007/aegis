@@ -14,9 +14,13 @@ Phase 0 (this build):
   init [--yes] [--overwrite] [--apps web,api] [--profile minimal|standard|full]
                                scaffold .aegis/ + brain/ + git hooks + interview
                                (--apps declares per-app states: monorepo, v0.4)
-                               (--profile: minimal = standalone tools only, no
-                                hooks/brain; standard = full pipeline, default;
-                                full = reserved, currently same as standard)
+                                (--profile: minimal = standalone tools only, no
+                                 hooks/brain; standard = full pipeline, default;
+                                 full = reserved, currently same as standard)
+  hooks [--profile minimal|standard|strict]
+                               reinstall git hooks at a strictness profile
+                               (minimal = post-commit only; standard = the three
+                                hooks; strict = standard + validate tests on push)
   doctor [--save]              detect environment, prune stale worktrees, drift notes
   status [--app <name>] [--markdown]
                                current state, legal transitions, lanes
@@ -38,6 +42,9 @@ Phase 0 (this build):
   slice <create|list|remove>   worktree-per-slice + lane management (Phase 6)
   validate <suite>             contracts|tests|deps|perf|e2e + owner-declared
                                custom suites (config set validate_suite.<name> "<cmd>")
+  typecheck                    run the repo's real typechecker (tsc / go vet /
+                               cargo check / compileall) or degrade honestly
+                               (UNMEASURED) - never fakes a pass (exit 0 / 9)
   fix start <desc> / done / abandon --reason t
                                fast lane for small fixes (tests must pass to close)
   chore <desc>                 record a docs/config-class change (no lifecycle)
