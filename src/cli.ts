@@ -51,6 +51,7 @@ Phase 0 (this build):
   import check                 verify 00d brownfield import bridge (brain docs cited)
   update [--check]             self-update from the latest GitHub tag tarball
   exec -- <cmd>                run a command recorded + checkpointed (executor waves)
+  wave                         emit the executor prompt block (brain/wave-prompt.md)
   monitor --once               one post-ship check pass for cron/CI (Phase 9)
   eval <file|--all>            skill-file eval harness (Phase 10)
   migrate                      schema migration across versions (Phase 12)

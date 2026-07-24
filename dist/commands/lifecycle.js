@@ -145,6 +145,40 @@ export function doctorCmd(args) {
         console.log('warn: no tsc/npx found - typecheck hooks will degrade');
     for (const d of drift())
         console.log(`note: drift: ${d}`);
+    for (const a of attention())
+        console.log(`note: attention: ${a}`);
+}
+/** The AFK morning-coffee report (v0.5.1): what will PARK an unattended run.
+ *  Exit-5 loop escalations and OPEN gates stop for a human by design - so
+ *  surface them BEFORE the run parks: nonzero loop counters, gate-blocked
+ *  forward edges, and any open fix. Advisory only (exit 0). */
+function attention() {
+    const notes = [];
+    if (!fs.existsSync(stateP))
+        return notes;
+    let s;
+    try {
+        s = JSON.parse(fs.readFileSync(stateP, 'utf8'));
+    }
+    catch {
+        return notes;
+    } // unparseable: drift() already reports it
+    let t;
+    try {
+        t = JSON.parse(fs.readFileSync(transP, 'utf8'));
+    }
+    catch {
+        return notes;
+    }
+    if (s.fix?.active)
+        notes.push(`fix OPEN: "${s.fix.active.desc}" - close it (aegis fix done) or abandon with --reason`);
+    for (const [edge, n] of Object.entries(s.loop_counters ?? {}))
+        if (n > 0)
+            notes.push(`loop counter ${edge} at ${n}/${t.max_loop} - ${t.max_loop - n} more traversal(s) parks the run (exit 5)`);
+    for (const e of (t.edges ?? []).filter((e) => e.from === s.current_skill && !e.backward))
+        if (e.gate && s.gates?.[e.gate]?.status !== 'approved')
+            notes.push(`gate ${e.gate} OPEN blocks ${e.from}->${e.to} - an AFK run parks here; approve it or delegate explicitly`);
+    return notes;
 }
 /** State-vs-reality reconciliation (v0.3): enforcement is prompt-deep for
  *  external agents - they can do git work without recording transitions, and

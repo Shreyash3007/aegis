@@ -67,7 +67,7 @@ you / your agent  ──►  aegis CLI  ──►  .aegis/ (machine state, hash-
 
 ## Proven, not just tested
 
-- **97 integration tests** replaying every enforcement scenario (node:test,
+- **101 integration tests** replaying every enforcement scenario (node:test,
   zero extra deps, ~15s), CI on node 20/22.
 - **Two independent production trials** drove four releases: a 4-app monorepo
   team (rating went 8.5 → 9 → 9.5/10, "the must-fix list is now empty") and
@@ -90,7 +90,7 @@ aegis init --yes && aegis ast build   # one trial found 2 real circular deps thi
 Requires Node 18+ and git. GitHub-only distribution (never on npm registry).
 
 ```bash
-npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.5.0.tar.gz
+npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.5.1.tar.gz
 # already have v0.3.0+? just: aegis update
 ```
 
@@ -159,6 +159,7 @@ enforces the rules mechanically whichever agent you use.
 | `aegis ast build` / `diff` | Deterministic module graph, circular deps / impact analysis | 0 / 8 / 2 |
 | `aegis import check` | Verify brownfield brain docs exist, substantive, cited | 0 / 2 / 4 |
 | `aegis exec -- <cmd>` | Recorded + checkpointed command run (executor waves) | passthrough |
+| `aegis wave` | Emit the executor prompt block (brain/wave-prompt.md) — paste into every wave prompt | 0 |
 | `aegis sync` / `gc` | Sync AGENTS.md/CLAUDE.md AEGIS block / checkpoint retention | 0 |
 | `aegis lane open\|close <s>` / `loops reset --reason` | Lane management / audited loop-counter reset | 0 / 4 |
 | `aegis config [set k v]` | Interview answers, `contracts_path[.<app>]`, `validate_suite.<name>`, `apps` | 0 / 4 |
@@ -201,7 +202,7 @@ Exit codes: `0 ok · 1 not a git repo · 2 missing/corrupt state · 3 blocked ·
 
 ```bash
 npm install && npm run build   # strict tsc, dist/ is committed
-npm test                       # 97 integration tests (~20s, no extra deps)
+npm test                       # 101 integration tests (~20s, no extra deps)
 aegis eval --all               # 67/67 skill files conform
 ```
 
@@ -209,6 +210,7 @@ This repo runs Aegis on itself — hooks, brain docs, import check included.
 
 ## Release history
 
+v0.5.1 AFK autonomy + ghost-binary tripwire + wave prompt block ·
 v0.5.0 multi-language oracles + install/hook profiles + ask-aegis skill
 (built by opencode/GLM-5.2 via `aegis exec` waves, maintainer-audited) ·
 v0.4.2 doc-contract gates + per-app paths · v0.4.1 concurrency correctness

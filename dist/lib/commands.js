@@ -16,12 +16,14 @@ import { update } from '../commands/update.js';
 import { exec } from '../commands/exec.js';
 import { typecheck } from '../commands/typecheck.js';
 import { hooks } from '../commands/hooks.js';
+import { wave } from '../commands/wave.js';
 /** The dispatch table - single source of truth for the command set. COMMANDS
  *  is derived from its keys, so cli.ts and eval.ts can never drift. */
 const DISPATCH = {
     init, doctor: doctorCmd, status, next, gate, transition, contracts, loops, lane,
     checkpoint, resume, ast, sync, gc, config, merge, slice, validate, monitor,
     eval: evalCmd, migrate, fix, chore, import: importCmd, update, exec, typecheck, hooks,
+    wave,
 };
 export const COMMANDS = Object.keys(DISPATCH);
 // Inject the command set into eval (no reverse import - DAG stays clean).

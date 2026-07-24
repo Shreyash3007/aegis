@@ -180,7 +180,11 @@ export function transition(args: string[]): void {
   const b = blockers(s, t, e);
   if (b.length) {
     const isEscalation = b.some((x) => x.includes('cycle guard') || x.includes('loop limit'));
-    die(isEscalation ? 5 : 4, `${isEscalation ? 'ESCALATION' : 'ILLEGAL'}: ${b.join('; ')} - CLI refuses`);
+    // Exit-5 parks AFK runs BY DESIGN (the tripwire). Tell the returning
+    // human exactly how to unpark: review the loop, then reset with a reason.
+    die(isEscalation ? 5 : 4,
+      `${isEscalation ? 'ESCALATION' : 'ILLEGAL'}: ${b.join('; ')} - CLI refuses` +
+      (isEscalation ? `\n  recovery: a human reviews the loop, then: aegis loops reset --reason "<why it looped>"` : ''));
   }
 
   // blockers() already refused at >= max_loop, so one traversal here can at

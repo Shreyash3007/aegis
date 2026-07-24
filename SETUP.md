@@ -4,7 +4,7 @@
 
 ```bash
 # From GitHub (recommended once the repo is published):
-npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.5.0.tar.gz
+npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.5.1.tar.gz
 
 # Already installed? `aegis update` self-updates to the latest tag (same tarball path).
 
@@ -113,7 +113,13 @@ aegis exec -- node scripts/verify-sync-wave.mjs   # recorded + checkpointed, exi
 Concurrent agents on one shared tree: all aegis commands are
 concurrency-safe (v0.4.1 state lockfile; measured 10/10 events under 10
 concurrent writers — docs/PLATFORM-MATRIX.md). Event order is
-timing-dependent; the audit trail is complete.
+timing-dependent; the audit trail is complete. Generate the executor prompt
+block for wave prompts with `aegis wave` (writes brain/wave-prompt.md).
+
+Ghost binaries: hooks bake the CLI version at install time and warn (never
+block) when the resolved `aegis` is a different version — e.g. a stale
+global link left by another session. Repair with `aegis hooks` (re-resolve)
+or `aegis update`.
 
 Gate approvals require an interactive terminal (retype the gate name to
 confirm). In CI/non-interactive runs, set `AEGIS_HUMAN_TOKEN=1` — approvals
@@ -127,9 +133,11 @@ remains, the TTY ritual does not.
 Planning AFK/autonomous sessions: gate approval is solved by `autonomy full`,
 but **loop/cycle escalation (exit 5) still stops for a human — by design.**
 An agent ping-ponging between states is exactly the failure you want a human
-paged for. Plan AFK sessions around it: size tasks so a stuck run can wait
-for you without blocking a release, and treat a waiting exit-5 run as the
-tripwire working, not the tool failing.
+paged for. Before going AFK, run `aegis doctor` — its **attention report**
+lists everything that will park a run: OPEN gates on your forward edges,
+nonzero loop counters (with how many traversals remain), and any open fix.
+When a run does park, the exit-5 message names the exact recovery command
+(`aegis loops reset --reason "..."`).
 
 Optional extras:
 

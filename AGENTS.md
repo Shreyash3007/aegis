@@ -115,6 +115,7 @@ yourself; it is the owner's posture choice. Unknown gate names are refused
 | `aegis import check` | verify 00d brain docs exist, substantive, evidence-cited (4=incomplete) |
 | `aegis update [--check]` | self-update from latest GitHub tag tarball |
 | `aegis exec -- <cmd>` | run recorded + checkpointed (exit code passes through) |
+| `aegis wave` | emit the executor prompt block for wave prompts |
 | `aegis checkpoint` / `resume` | snapshot / verified recovery (6=integrity) |
 | `aegis ast build\|diff` | module graph (8=cycles) / impact analysis |
 | `aegis sync` / `gc` | regenerate AGENTS.md etc. / retention |
