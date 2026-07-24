@@ -212,6 +212,8 @@ aegis eval --all               # 68/68 skill files conform
 ```
 
 This repo runs Aegis on itself — hooks, brain docs, import check included.
+Contributions welcome: see [CONTRIBUTING.md](CONTRIBUTING.md) (trials first,
+code second) and [SECURITY.md](SECURITY.md) for responsible disclosure.
 
 ## Release history
 
