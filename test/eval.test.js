@@ -24,9 +24,9 @@ test('eval: a skill file referencing a phantom command fails (exit 11)', (t) => 
   assert.match(r.stdout, /cli-refs-exist: warp/);
 });
 
-test('eval --all: the stock skills pass (67/67)', (t) => {
+test('eval --all: the stock skills pass (68/68)', (t) => {
   const dir = scratch(t);
   const r = aegis(dir, ['eval', '--all']);
   assert.equal(r.status, 0, r.stderr);
-  assert.match(r.stdout, /eval: 67\/67 passed/);
+  assert.match(r.stdout, /eval: 68\/68 passed/);
 });

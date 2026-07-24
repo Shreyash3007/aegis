@@ -18,7 +18,7 @@ Aegis separates the two things an AI workflow needs:
   owns deterministic truth: pipeline state, human gates, transitions,
   checkpoints, merge validation. The agent *cannot* bypass it, because it
   isn't prose.
-- **Judgment lives in skills** — 67 markdown skill files that tell the agent
+- **Judgment lives in skills** — 68 markdown skill files that tell the agent
   *how* to think at each stage (adversarial PRD review, contract-first
   design, bug hunting, ship verdicts). The agent reads them; the CLI verifies
   it acted.
@@ -26,7 +26,7 @@ Aegis separates the two things an AI workflow needs:
 ```
 you / your agent  ──►  aegis CLI  ──►  .aegis/ (machine state, hash-verified)
                             │          brain/   (committed docs, the "why")
-                            └────►  .aegis/skills/ (67 judgment files)
+                            └────►  .aegis/skills/ (68 judgment files)
 ```
 
 ## What it actually does
@@ -90,7 +90,7 @@ aegis init --yes && aegis ast build   # one trial found 2 real circular deps thi
 Requires Node 18+ and git. GitHub-only distribution (never on npm registry).
 
 ```bash
-npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.5.1.tar.gz
+npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.5.2.tar.gz
 # already have v0.3.0+? just: aegis update
 ```
 
@@ -107,6 +107,11 @@ aegis init               # interview (auto-detects brownfield; --yes for default
 aegis status             # where you are, what's legal next
 aegis next               # the one recommended next step
 ```
+
+**Know nothing about any of this?** Just tell your AI agent: *"walk me
+through Aegis."* The `00f aegis-guide` skill takes over — it does the setup
+for you, explains every step in plain language, and only asks you when a
+real decision is needed (like your autonomy posture). No manual required.
 
 Small change? Fast lane:
 
@@ -136,7 +141,7 @@ enforces the rules mechanically whichever agent you use.
 |---|---|---|
 | `.aegis/` | Machine state: state.json, checkpoints, per-app states. Gitignored, hash-verified, **never hand-edited** | the CLI |
 | `brain/` | Committed docs: architecture, quality log, context. The human-readable "why" | skills draft, humans confirm |
-| `.aegis/skills/` | 67 skill files: the judgment layer (persona, steps, self-critique, exit conditions per state) | the agent reads them |
+| `.aegis/skills/` | 68 skill files: the judgment layer (persona, steps, self-critique, exit conditions per state) | the agent reads them |
 | git hooks | pre-commit (checkpoint + typecheck), post-commit (checkpoint), pre-push (contract validation) — chained onto any hooks you already have | the CLI |
 | `AGENTS.md` / `CLAUDE.md` | Your agent's entry point; Aegis owns only a marked block inside them | you + `aegis sync` |
 
@@ -203,14 +208,16 @@ Exit codes: `0 ok · 1 not a git repo · 2 missing/corrupt state · 3 blocked ·
 ```bash
 npm install && npm run build   # strict tsc, dist/ is committed
 npm test                       # 101 integration tests (~20s, no extra deps)
-aegis eval --all               # 67/67 skill files conform
+aegis eval --all               # 68/68 skill files conform
 ```
 
 This repo runs Aegis on itself — hooks, brain docs, import check included.
 
 ## Release history
 
-v0.5.1 AFK autonomy + ghost-binary tripwire + wave prompt block ·
+v0.5.2 aegis-guide skill (00f): "walk me through Aegis" conversational
+onboarding · v0.5.1 AFK autonomy + ghost-binary tripwire + wave prompt
+block ·
 v0.5.0 multi-language oracles + install/hook profiles + ask-aegis skill
 (built by opencode/GLM-5.2 via `aegis exec` waves, maintainer-audited) ·
 v0.4.2 doc-contract gates + per-app paths · v0.4.1 concurrency correctness

@@ -12,6 +12,7 @@ Everything else in Aegis depends on this family being correct.
 | 00c | 00c-resume.md | Crash/session recovery with verified integrity | Integrity failure |
 | 00d | 00d-brownfield.md | Reverse-discovery: brain FROM existing code | Inference confirmation |
 | 00e | 00e-ask-aegis.md | Next-action advisor: ONE recommended step + evidence | Gate approval / loop escalation |
+| 00f | 00f-aegis-guide.md | Interactive onboarding: agent does setup, explains, asks | Consent + autonomy choice |
 
 ## Shared Rules (all sub-skills)
 1. **Brain protocol:** read `brain/context-window.md` before any edit; write outputs
@@ -28,3 +29,4 @@ Everything else in Aegis depends on this family being correct.
 - brownfield: 00a -> 00b -> 00d -> (01a for new features | 07a for hardening)
 - crash/interruption: 00c -> checkpoint target
 - unsure / blocked / cold session: 00e (ask-aegis) -> the one legal next action
+- "guide me" / first contact / knows nothing: 00f (aegis-guide) -> configured + understood setup

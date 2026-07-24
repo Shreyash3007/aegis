@@ -4,7 +4,7 @@
 
 ```bash
 # From GitHub (recommended once the repo is published):
-npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.5.1.tar.gz
+npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.5.2.tar.gz
 
 # Already installed? `aegis update` self-updates to the latest tag (same tarball path).
 
@@ -19,6 +19,11 @@ npm install && npm run build && npm link
 
 Requirements: Node 18+, git. TypeScript in the target project for full
 enforcement (without it Aegis degrades honestly and tells you).
+
+**Don't want to read this guide?** You don't have to — after install, tell
+your AI agent: *"walk me through Aegis."* The `00f aegis-guide` skill does
+the setup with you, explaining every step and asking only when a decision
+is genuinely yours. This file is the reference; the skill is the tour.
 
 ## Set up any project
 
