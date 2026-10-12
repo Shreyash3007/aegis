@@ -49,6 +49,10 @@ Phase 0 (this build):
                                record memory: typed decision/contract/finding/
                                assumption records with confidence, citations,
                                expiry; contradictions open reconcile tasks
+  jev <judge|triage|score|classify|cite> --file <request.json>
+                               judgment ring: batched Noul/Choice/Score over
+                               direct TypeSafe HTTPS (needs TYPESAFE_API_KEY;
+                               no key = degraded mode, announced verbatim)
   slice <create|list|remove>   worktree-per-slice + lane management (Phase 6)
   validate <suite>             contracts|tests|deps|perf|e2e + owner-declared
                                custom suites (config set validate_suite.<name> "<cmd>")

@@ -40,8 +40,9 @@ Works matters less than maintainable-in-two-years.
 ## Red Flags
 - Critical architectural flaw -> rollback to 02a with specifics.
 - Minor issues -> 07a backlog, never dropped silently.
+- Findings worth a second opinion -> triage them as judgment input, never as verdict: `aegis jev triage`
 
 ## Interactions
-- CLI: `aegis ast build`, `aegis ast diff`, `aegis transition 07a`, `aegis transition 02a --reason`.
+- CLI: `aegis ast build`, `aegis ast diff`, `aegis jev triage`, `aegis transition 07a`, `aegis transition 02a --reason`.
 - Brain: read codebase, standards, system, module graph; write `review-report.md`.
 - Next: `07a-tech-debt` or `08a-verdict`. Touchpoint: critical flaw.

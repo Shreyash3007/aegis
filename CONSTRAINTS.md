@@ -29,10 +29,10 @@ Zero gate passes without evidence. Every file maps slice → contract → eviden
 
 ## 4. Judge thresholds (tunable without re-inference)
 
-- Jev Noul triage: act only on findings with confidence ≥0.7; below = re-verify or escalate.
+- Jev Noul triage: act only on findings with confidence ≥0.7; below = re-verify or escalate (enforced by `aegis jev triage`, threshold tunable per call).
 - Actionability Score per review cycle: all-noise cycles = doubt theater → escalate, never silent-pass.
 - Citation-check Noul: claim without supporting evidence fails the gate.
-- Degraded mode (no `TYPESAFE_API_KEY`): small-model/frontier judges, and the output says so verbatim.
+- Degraded mode (no `TYPESAFE_API_KEY`): small-model/frontier judges, and the output says so verbatim (`aegis jev` prints DEGRADED on its first line).
 
 ## 5. Drafting checklist (mechanical fail, never taste)
 
