@@ -61,7 +61,7 @@ export function frontmatterOrder(fm: Record<string, string>): string[] {
   return (fm as Record<string, string> & { __order?: string[] }).__order ?? [];
 }
 
-function splitList(v: string): string[] {
+export function splitList(v: string): string[] {
   const t = (v ?? '').trim().replace(/^\[(.*)\]$/, '$1');
   return t.split(/[,;\n]/).map((s) => s.replace(/^-\s*/, '').trim()).filter(Boolean);
 }

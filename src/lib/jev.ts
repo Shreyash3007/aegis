@@ -15,6 +15,8 @@
  *  Degraded (no key, no mock flag) never judges: every verdict escalates
  *  with reason `unreachable`, and the caller must announce it verbatim. */
 
+import { postJson } from './http.js';
+
 export interface JevQuestion {
   id?: string; type: 'noul' | 'choice' | 'score'; question: string;
   options?: Record<string, string> | string[];
@@ -39,8 +41,6 @@ export const JEV_DEFAULT_MODEL = 'jev-latest';
 const REPORTED_THRESHOLD = 0.5;
 const ESTIMATED_THRESHOLD = 0.4;
 const MAX_STATE_CHARS = 120_000; // ~30k tokens, the published state ceiling
-const TIMEOUT_MS = 10_000;
-const MAX_RETRIES = 2;
 
 export interface JevBackend {
   name: 'typesafe' | 'mock' | 'degraded';
@@ -104,32 +104,13 @@ function parseAnswers(body: any, questions: (JevQuestion & { id: string })[]): R
   });
 }
 
-async function postJson(url: string, headers: Record<string, string>, body: unknown): Promise<unknown> {
-  let last: BackendError = new BackendError('unreachable');
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    if (attempt > 0) await new Promise((r) => setTimeout(r, 500 * attempt));
-    const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
-    try {
-      const res = await fetch(url, {
-        method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json', ...headers },
-        body: JSON.stringify(body), signal: ctl.signal,
-      });
-      if (res.ok) return await res.json() as unknown;
-      const retryable = res.status === 408 || res.status === 429 || res.status >= 500;
-      last = new BackendError(`HTTP ${res.status}`, res.status);
-      if (!retryable || attempt === MAX_RETRIES) throw last;
-    } catch (e) {
-      if (e instanceof BackendError) {
-        const retryable = e.status === undefined || e.status === 408 || e.status === 429 || e.status >= 500;
-        if (attempt === MAX_RETRIES || !retryable) throw e;
-        last = e; continue;
-      }
-      last = new BackendError((e as Error)?.name === 'AbortError' ? `request timed out after ${TIMEOUT_MS}ms` : 'unreachable');
-      if (attempt === MAX_RETRIES) throw last;
-    } finally { clearTimeout(timer); }
+async function postBackend(url: string, headers: Record<string, string>, body: unknown): Promise<unknown> {
+  try {
+    return await postJson(url, headers, body);
+  } catch (e) {
+    const err = e as { message?: string; status?: number };
+    throw new BackendError(err?.message ?? 'unreachable', err?.status);
   }
-  throw last;
 }
 
 /** FNV-1a (mirrors upstream mock.ts): stable across runs and platforms. */
@@ -235,7 +216,7 @@ export async function judge(
       model: backend.model ?? JEV_DEFAULT_MODEL, state,
       questions: Object.fromEntries(qs.map((q) => [q.id, toNativeQuestion(q)])),
     };
-    const res = await postJson(`${backend.baseUrl}/v1/systemone`,
+    const res = await postBackend(`${backend.baseUrl}/v1/systemone`,
       { authorization: `Bearer ${backend.key}` }, body) as any;
     const verdicts = parseAnswers(res, qs).map((raw, i) => withThreshold(raw, qs[i], opts.threshold));
     return {

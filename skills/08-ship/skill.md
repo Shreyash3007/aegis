@@ -1,7 +1,7 @@
 ---
 name: 08-ship
 version: 0.6.0
-triggers: [ship verdict, go-no-go, post-ship monitor]
+triggers: [ship phase routing, release train verdict, post-ship cycle]
 not-triggers: [building, verification, autonomous release]
 inputs: [validation evidence, production feedback]
 outputs: [ship verdict, monitor reports, improvement proposals]
