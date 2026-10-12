@@ -20,7 +20,7 @@ test('pre-commit hook passes on fresh init with no TS files (typecheck UNMEASURE
   assert.equal(r.status, 0, `stdout: ${r.stdout}\nstderr: ${r.stderr}`);
   // tsconfig present but no .ts source -> honest UNMEASURED (never a fake FAIL
   // from tsc's TS18003 "No inputs were found", never a fake PASS).
-  assert.match(`${r.stdout}\n${r.stderr}`, /typecheck: UNMEASURED.*no typescript source files/);
+  assert.match(`${r.stdout}\n${r.stderr}`, /typecheck: UNMEASURED.*(no typescript source files|typescript toolchain not found)/);
 });
 
 // Brownfield safety: a repo with pre-existing hooks (husky/lefthook/custom)

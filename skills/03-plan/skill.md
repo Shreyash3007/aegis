@@ -1,3 +1,14 @@
+---
+name: 03-plan
+version: 0.6.0
+triggers: [execution plan, plan phase, lane assignment]
+not-triggers: [architecture, code, shipping]
+inputs: [frozen architecture, merged contracts]
+outputs: [slices, dependency DAG, lane plan, standards]
+chains-to: 04-build
+autonomy: L1
+tokens-budget: 1200
+---
 # SKILL-03: PLAN (Master Skill)
 
 ## Purpose

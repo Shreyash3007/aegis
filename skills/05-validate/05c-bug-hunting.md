@@ -1,79 +1,47 @@
+---
+name: 05c-bug-hunting
+version: 0.6.0
+triggers: [static bug sweep, dynamic hardening, flaky quarantine]
+not-triggers: [silent retries, unverified tool claims]
+inputs: [codebase, known issues, security gap report]
+outputs: [severity-tagged findings, quarantined flakies]
+chains-to: 05d-e2e-performance
+autonomy: L1
+tokens-budget: 1000
+---
 # SKILL-05c: BUG HUNTING & HARDENING
 
-## Expert Persona
-SRE (ex-Chaos Engineering, Netflix). "I break things for a living. If I can't
-break it, it's probably ready."
+## Overview
+Find bugs through static analysis, dynamic analysis, negative testing, and dependency audit.
+Break things for a living; what survives is probably ready.
 
-## Purpose
-Find bugs through static analysis, dynamic analysis, negative testing, and
-dependency audit - with real tools where the environment allows.
+## When
+- After 05b; codebase exists, UX flaws documented.
+- Static L0+; dynamic/fuzz/negative testing L1+ only.
 
-## Trigger
-After 05b.
+## When-NOT
+- Never silently retry a flaky test until it passes — quarantine, ticket, link.
+- Retry budget max 2 reruns; still failing = real failure, classified and fixed.
 
-## Entry Criteria
-- Codebase exists; UX flaws documented
+## Process
+- Typecheck + contract integrity: `aegis validate contracts`
+- Known CVEs via audit (critical/high = FAIL): `aegis validate deps`
+- Static sweep (smells, complexity, unused imports, secret leakage): `aegis validate`
+- Dynamic (L1+): runtime errors, unhandled promises, memory leaks: `aegis validate tests`
+- Negative testing (L1+): malformed inputs, oversized payloads, null injection: `aegis validate tests`
+- Race review (double-submit, concurrent writes, design level): `aegis validate tests`
+- Classify every finding (Critical/High/Medium/Low); quarantine flakies with rate + ticket; advance: `aegis transition 05d`
 
-## Environment Requirements
-- Static analysis: L0+ (reading) / L1+ (eslint, audit via CLI)
-- Dynamic analysis, fuzzing, negative testing: L1+ only
+## Verification
+- Every finding cites tool + command or is labeled STATIC REVIEW.
+- Flaky entries carry rate, first-seen, suspected cause, ticket link.
+- Critical = crash/data-loss/breach -> STOP, immediate fix.
 
-## Execution Steps
-1. `aegis validate contracts` - typecheck + contract integrity.
-2. `aegis validate deps` - known CVEs (critical/high = FAIL).
-3. Static: code smells, complexity, unused imports, secret leakage.
-4. Dynamic (L1+): runtime errors, unhandled promises, memory leaks.
-5. Negative testing (L1+): malformed inputs, oversized payloads, null injection.
-6. Race conditions: double-submit, concurrent writes (design-level review).
-7. Classify every finding by severity; self-critique; present.
+## Red Flags
+- Critical bug -> stop pipeline, immediate fix flag.
+- Dependency CVE (critical/high) -> update or replace flag.
 
-## Bug Categories
-- Critical: crash, data loss, security breach -> STOP, immediate fix
-- High: feature broken, perf degradation
-- Medium: UI glitch, minor error
-- Low: code smell, tech debt
-
-## Flaky Tests
-A flaky test is a bug in the suite, not a pass.
-- Quarantine procedure: mark the test (skip/quarantine tag), file a ticket,
-  link both in known-issues.md. Never silently retry until it passes.
-- Retry budget: max 2 reruns per run. Still failing after that = a real
-  failure - classify per Bug Categories above and fix.
-- Flaky rate must be measured and cited with tool + command per the
-  Measurement Citations rule (e.g. rerun counts from `aegis validate tests`,
-  or the runner repeat flag with output pasted).
-- known-issues.md entry format:
-  - [FLAKY] <test name> | first seen: <date> | rate: <x of y runs, tool
-    cited> | suspected cause: timing/order/env | ticket: <link>
-
-## Input Schema
-- Unified codebase
-- brain/quality/known-issues.md
-- brain/quality/security-gap-report.md
-
-## Brain Files
-Read: codebase, known-issues.md | Write: known-issues.md (updated)
-
-## Self-Critique Protocol (Deep)
-"What did I miss that a user will find in production? What edge case is so
-weird I'd never think of it - but a user hits daily?"
-
-## Error Escalation Protocol
-- Critical bug -> stop pipeline, flag for immediate fix.
-- Dependency CVE (critical/high) -> flag for update or replacement.
-
-## Output Schema
-- brain/quality/known-issues.md (severity-tagged, tool-cited)
-
-## Measurement Citations
-Every finding cites tool + command or is labeled STATIC REVIEW.
-
-## CLI Contract
-- Runtime: `aegis validate contracts|deps|tests`, `aegis transition 05d`
-- Manual: human runs.
-
-## Next Skill
-05d
-
-## Human Touchpoints
-Critical bug found.
+## Interactions
+- CLI: `aegis validate contracts|deps|tests`, `aegis transition 05d`.
+- Brain: read codebase + known-issues; write updated known-issues.
+- Next: `05d-e2e-performance`. Touchpoint: critical bug found.

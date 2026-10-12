@@ -1,79 +1,48 @@
+---
+name: 00e-ask-aegis
+version: 0.6.0
+triggers: [what next, blocked advisor, cold session orientation]
+not-triggers: [menus of options, forcing past blockers]
+inputs: [status output, next output, doctor drift notes]
+outputs: [ONE recommended action with quoted evidence]
+chains-to: next-per-status
+autonomy: L1
+tokens-budget: 800
+---
 # SKILL-00e: ASK-AEGIS (NEXT-ACTION ADVISOR)
 
-## Expert Persona
-Staff Engineer (ex-Stripe). Hates ambiguity with a passion. "A menu of ten
-options is zero decisions. Pick one. Show the command output behind it."
+## Overview
+At ANY pipeline position, answer exactly one question — "what do I do next?" — with ONE recommended action and the command output behind it. Never a menu.
 
-## Purpose
-At ANY pipeline position, answer exactly one question - "what do I do next?" -
-with ONE recommended action and the command output that justifies it. Never a menu.
+## When
+- Agent or human is unsure, blocked, or returning to a cold session.
+- Fast, evidence-backed orientation is needed.
 
-## Trigger
-Agent or human is unsure what to do next, is blocked, or is returning to a cold
-session and needs fast, evidence-backed orientation.
+## When-NOT
+- `.aegis/` state is absent — the only honest advice is `aegis init`; stop there.
+- Never force past a blocker; surface it verbatim.
 
-## Entry Criteria
-- A git repo. If `.aegis/` state is absent, the only honest advice is
-  `aegis init`; there is no pipeline state to advise on.
+## Process
+- Read current skill, lanes, open fix, blockers (multi-app: add `--app`; bare status prints summary; missing state -> recommend init, STOP): `aegis status`
+- Get the single recommended forward skill: `aegis next`
+- Refresh the portable position snapshot and read it: `aegis status --markdown`
+- Collect drift notes: `aegis doctor`
+- Reconcile BEFORE new work: open fix -> close first, never layer on top: `aegis fix done`
+- Reconcile BEFORE new work: open fix -> or abandon with reason: `aegis fix abandon --reason`
+- Drift notes exist -> surface and reconcile before new work: `aegis doctor`
+- Blocker names a gate -> prepare artifact, ask human to approve (only humans approve): `aegis gate`
+- Otherwise recommend the ONE legal transition returned, pointing at the skill file to execute: `aegis transition`
 
-## Environment Requirements
-Any level. L1/L2 (Runtime): agent runs commands directly. L0 (Manual): the human
-runs each command and pastes output; the agent never pretends enforcement ran.
+## Verification
+- Answer is exactly ONE action, with every state claim quoting its command line.
+- Open fix and doctor drift checked before anything new.
+- No invented command or state; anything without command output is UNMEASURED.
 
-## Input Schema
-- `aegis status [--app <name>]` (current skill, lanes, open fix, blockers)
-- `aegis next [--app <name>]` (the single legal forward transition)
-- `aegis doctor` (state-vs-git drift notes)
-- `aegis status --markdown` -> `brain/handoff.md` (portable position snapshot)
-
-## Execution Steps
-1. `aegis status` (add `--app <name>` in a multi-app repo; bare status prints the
-   repo summary). If it reports missing/uninitialized state -> recommend
-   `aegis init` and STOP.
-2. `aegis next` -> the single recommended forward skill.
-3. `aegis status --markdown` -> refresh `brain/handoff.md`; read it if present.
-4. `aegis doctor` -> collect drift notes.
-5. Reconcile BEFORE recommending new work, in this order:
-   a. Status shows an open fix -> close it first: `aegis fix done`, or
-      `aegis fix abandon --reason <text>`. Never layer parallel work on a fix.
-   b. Doctor drift notes exist -> surface them and reconcile before new work.
-   c. A blocker lists a gate (e.g. "gate PRD OPEN") -> prepare the artifact and
-      ask the human to approve (`aegis gate <name> --approve`); only humans
-      approve gates.
-6. Otherwise recommend the ONE legal transition `aegis next` returned, and point
-   at the skill file to read and execute next.
-
-## Self-Critique Protocol
-"Did I quote the evidence line, or am I asserting state from memory? Is my
-answer exactly ONE action? Did I check the open fix and doctor drift before
-suggesting anything new? Did I invent a command or a state I never saw?"
-
-## Error Escalation Protocol
-- `aegis next` exits 3 (blocked) -> surface the blocker verbatim; never force.
+## Red Flags
+- `aegis next` exits 3 (blocked) -> surface verbatim; never force.
 - `aegis transition` exits 5 (loop/cycle) -> STOP; present the cycle to the human.
-- Missing `.aegis/` -> recommend `aegis init`; say state is uninitialized.
 
-## Output Schema
-- ONE recommended next action (a command to run, or a gate to request).
-- Evidence: the exact `aegis status` / `aegis next` / `aegis doctor` lines quoted,
-  each cited by the command that produced it.
-- The skill file to read next: `.aegis/skills/<family>/<file>.md`.
-- No invented state; every claim traces to a command's output.
-
-## Measurement Citations
-Every state claim quotes the status/next/doctor line it came from. Anything with
-no command output behind it is labeled UNMEASURED, never asserted.
-
-## CLI Contract
-- Runtime: `aegis status`, `aegis next`, `aegis doctor`, `aegis init`, `aegis fix`,
-  `aegis gate`, `aegis transition`
-- Manual: human runs each command and pastes output; the agent advises from that.
-
-## Brain Files
-Read: handoff.md, context-window | Write: none (advisory only)
-
-## Next Skill
-Whatever `aegis next` recommends for the current state.
-
-## Human Touchpoints
-Gate approval (only humans approve gates). Loop/cycle escalation (exit 5).
+## Interactions
+- CLI: `aegis status`, `aegis next`, `aegis doctor`, `aegis init`, `aegis fix`, `aegis gate`, `aegis transition`
+- Brain: read `handoff.md`, context-window; write nothing (advisory only).
+- Next: whatever `aegis next` recommends. Touchpoints: gate approval, loop/cycle escalation.

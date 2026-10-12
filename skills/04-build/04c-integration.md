@@ -1,67 +1,46 @@
+---
+name: 04c-integration
+version: 0.6.0
+triggers: [contract validation, migration up down, cross-module typecheck]
+not-triggers: [happy-path-only testing, hidden skips]
+inputs: [merged main, api contracts, schema, integration suite]
+outputs: [cited validation report, finalized merge log]
+chains-to: 05a-traceability
+autonomy: L2
+tokens-budget: 800
+---
 # SKILL-04c: INTEGRATION & VALIDATION
 
-## Expert Persona
-Integration Engineer (ex-Netflix, ex-Uber). "If it doesn't integrate,
-it doesn't exist."
+## Overview
+Prove the merged codebase honors every contract: API spec, migrations, cross-module types, integration tests.
+If it doesn't integrate, it doesn't exist.
 
-## Purpose
-Prove the merged codebase honors every contract: API spec, migrations,
-cross-module types, integration tests.
+## When
+- After 04b; merged codebase on main, module graph current.
+- L1+ runs tests/migrations; L0 static contract review only, labeled UNVERIFIED.
 
-## Trigger
-After 04b (all slices merged).
+## When-NOT
+- Never happy-path-only; never hidden skips — skipped tests are reported.
+- Every endpoint matches spec exactly (shape, errors, auth); every migration reversible.
 
-## Entry Criteria
-- Merged codebase on main; module graph current
+## Process
+- Validate every API endpoint against the OpenAPI contract: `aegis validate`
+- Run migrations UP and DOWN on scratch DB; verify timestamp ordering survived parallel slices: `aegis validate`
+- Confirm no cycles in the merged graph: `aegis ast build`
+- Cross-module typecheck at repo root: `aegis typecheck`
+- Run integration tests with every acceptance criterion mapped to at least one test: `aegis validate tests`
+- Self-critique; present to gate; advance only on SACRED G3: `aegis transition 05a`
 
-## Environment Requirements
-L1+ (runs tests/migrations). L0: static contract review only, labeled UNVERIFIED.
+## Verification
+- Every result cites command + outcome; every module typechecks across boundaries; every test passes.
+- Self-check: happy path only? error-path test present? PRD adversarial edge case covered?
 
-## Execution Steps
-1. Validate every API endpoint against the OpenAPI contract.
-2. Run DB migrations UP and DOWN on a scratch database; verify timestamp-prefix
-   ordering survived parallel slices (O2 rebase rule).
-3. `aegis ast build` - confirm no cycles (exit 8) in the merged graph.
-4. Cross-module type check (tsc at repo root).
-5. Run integration tests; every acceptance criterion maps to at least one.
-6. Self-critique; present to gate.
-
-## Integration Rules
-- Every endpoint matches spec exactly - shape, errors, auth
-- Every migration reversible
-- Every module type-checks across boundaries
-- Every test passes; skipped tests are reported, not hidden
-
-## Input Schema
-- Merged codebase on main
-- brain/architecture/api-contracts.md, db-schema.md
-- Integration test suite
-
-## Self-Critique Protocol (Standard)
-"Did I test the happy path only? Where is the error-path test? The edge case
-from the PRD's adversarial round - is there a test for it?"
-
-## Error Escalation Protocol
+## Red Flags
 - API mismatch -> rollback to 02b with the diff.
 - Migration fails -> rollback to 02b.
-- Type failure across boundary -> rollback to 04b.
+- Cross-boundary type failure -> rollback to 04b.
 
-## Output Schema
-- Integration test results in brain/quality/validation-report.md (cited)
-- brain/execution/merge-log.md finalized
-
-## Measurement Citations
-Every result cites command + outcome (e.g., "migrations up/down: `npm run migrate` - 7 up, 7 down, 0 errors").
-
-## CLI Contract
-- Runtime: `aegis ast build`, `aegis validate` (P7), `aegis transition 05a` (blocked until G3)
-- Manual: human runs.
-
-## Brain Files
-Read: api-contracts, db-schema | Write: validation-report.md, merge-log.md
-
-## Next Skill
-05a - CLI-blocked until SACRED G3 approved
-
-## Human Touchpoints
-**SACRED GATE G3: Integration validation.** Never auto-approved.
+## Interactions
+- CLI: `aegis ast build`, `aegis validate`, `aegis typecheck`, `aegis transition 05a` (G3-blocked).
+- Brain: read api-contracts + db-schema; write `validation-report.md`, finalize `merge-log.md`.
+- Next: `05a-traceability`. Touchpoint: SACRED G3, never auto-approved.

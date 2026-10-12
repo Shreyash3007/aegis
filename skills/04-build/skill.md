@@ -1,3 +1,14 @@
+---
+name: 04-build
+version: 0.6.0
+triggers: [parallel build, build phase, integration merge]
+not-triggers: [planning, verification, shipping]
+inputs: [slices, merged contracts, lane plan]
+outputs: [built slices, integration tests, merge reports]
+chains-to: 05-validate
+autonomy: L2
+tokens-budget: 1500
+---
 # SKILL-04: BUILD (Master Skill)
 
 ## Purpose

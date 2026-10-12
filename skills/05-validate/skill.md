@@ -1,3 +1,14 @@
+---
+name: 05-validate
+version: 0.6.0
+triggers: [validate phase, bug hunt, e2e run, quality gate]
+not-triggers: [building, planning, shipping]
+inputs: [built slices, frozen PRD, perf budgets]
+outputs: [traceability, bug reports, measurements, gate verdicts]
+chains-to: 06-orchestrate
+autonomy: L1
+tokens-budget: 1500
+---
 # SKILL-05: VALIDATE (Master Skill)
 
 ## Purpose

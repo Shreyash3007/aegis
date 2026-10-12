@@ -1,67 +1,49 @@
+---
+name: 00a-installer
+version: 0.6.0
+triggers: [aegis init, repo without .aegis, 00a installer]
+not-triggers: [re-init without overwrite flag, non-git directory]
+inputs: [git repo, stack hint files, legacy aegis.config.json]
+outputs: [.aegis tree, brain tree, git hooks, .aegis/skills]
+chains-to: 00b-context-lock
+autonomy: L1
+tokens-budget: 800
+---
 # SKILL-00a: INSTALLER
 
-## Expert Persona
-DevOps Engineer (ex-GitHub, ex-Vercel). Obsessed with clean setup, idempotent
-scripts, zero assumptions. "If init isn't boring, it's wrong."
-
-## Purpose
+## Overview
 One-command installation of Aegis into any git repo.
+Boring by design: if init isn't boring, it's wrong.
 
-## Trigger
-`aegis init` (any other command in a repo without `.aegis/` fails with exit 2
-and directs here).
+## When
+- `aegis init` runs, or any other command fails with exit 2 in a repo without `.aegis/`.
+- Fresh scaffold or `--overwrite` re-install.
 
-## Entry Criteria
-- Git repo exists. (Missing -> exit 1, halt.)
-- Existing `.aegis/` is an ERROR PATH, not a contradiction: prompt overwrite
-  (`--overwrite` flag in Runtime mode).
+## When-NOT
+- Repo already has `.aegis/` and no `--overwrite` was passed — refuse, do not merge state.
+- Directory is not a git repo — halt with instructions, do not scaffold.
 
-## Environment Requirements
-Any (L0/L1/L2). In L0 the human runs the command.
+## Process
+- Detect platform, shell, RAM, tooling, environment level; prune stale worktrees: `aegis doctor`
+- Create `.aegis/` tree (state, transitions, checkpoints, ast, gates, config): `aegis init --yes`
+- Write `.gitignore` entry `.aegis/`; verify machine state never enters git: `git check-ignore .aegis/state.json`
+- Create `brain/` tree + `_templates/`: `aegis init --yes`
+- Install git hooks (pre-commit, post-commit, pre-push), CLI resolution PATH -> local build -> npx: `aegis hooks`
+- Write initial `transitions.json` + `state.json` with schema_version: `aegis status`
+- Install skill files into `.aegis/skills/` (refresh target for sync): `aegis sync`
+- Hand off to 00b unless `--yes` (defaults, agent mode): `aegis transition 00b`
 
-## Input Schema
-- Repo files: package.json / tsconfig.json / requirements.txt (stack hints)
-- Optional: `aegis.config.json` legacy file (migrate, never silently discard)
+## Verification
+- `.aegis/state.json` exists with current `schema_version`: `aegis status`
+- Every environment fact in the init report cites `aegis doctor` output; no invented capabilities.
+- Self-check: existing files that belong in brain captured? stack assumed anywhere? `.aegis/` really ignored?
 
-## Execution Steps
-1. `aegis doctor` - detect platform, shell, RAM, tooling, environment level;
-   prune stale worktree registrations (A1.6).
-2. Create `.aegis/` tree (state, transitions, checkpoints, ast, gates, config).
-3. Write `.gitignore` entry `.aegis/` - machine state NEVER enters git (A1.4).
-4. Create `brain/` tree + `_templates/`.
-5. Install git hooks (pre-commit, post-commit, pre-push) with CLI resolution
-   chain: PATH -> local build path -> npx.
-6. Write initial `transitions.json` + `state.json` (schema_version).
-7. Install skill files into `.aegis/skills/` (refresh target for `aegis sync`).
-8. Hand off to 00b (setup interview) unless `--yes` (defaults, agent mode).
-
-## Self-Critique Protocol (Light)
-"Did I miss existing files that belong in brain? Did I assume a stack? Is
-`.aegis/` really gitignored - verify with `git check-ignore`."
-
-## Error Escalation Protocol
+## Red Flags
 - Not a git repo -> exit 1, halt with instructions.
 - `.aegis/` exists without `--overwrite` -> exit 2, prompt.
-- Hooks not writable -> warn, continue (enforcement degraded; say so).
+- Hooks not writable -> warn and continue; enforcement degraded, say so verbatim.
 
-## Output Schema
-- `.aegis/` (state.json, transitions.json, config.json, checkpoints/, ast/, gates/)
-- `brain/` tree + `_templates/`
-- `.gitignore` entry, git hooks, `.aegis/skills/`
-
-## Measurement Citations
-Init reports environment facts from `aegis doctor` output only - no invented
-capabilities.
-
-## CLI Contract
-- Runtime: `aegis init [--yes] [--overwrite]`, `aegis doctor [--save]`
-- Manual: human runs the same; pastes output.
-
-## Brain Files
-Write: context/ (manifest placeholder), context-window.md, architecture/module-map.md placeholder
-
-## Next Skill
-00b (Context Lock + Setup Interview)
-
-## Human Touchpoints
-Overwrite confirmation. Nothing else - init is fully passive by design.
+## Interactions
+- CLI: `aegis init [--yes] [--overwrite]`, `aegis doctor [--save]`
+- Brain writes: `context/` manifest placeholder, `context-window.md`, `architecture/module-map.md` placeholder.
+- Next: `00b-context-lock`. Human touchpoint: overwrite confirmation only.

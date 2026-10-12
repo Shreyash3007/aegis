@@ -1,61 +1,45 @@
+---
+name: 01c-design-system
+version: 0.6.0
+triggers: [design tokens, user flows, component states]
+not-triggers: [ui code, silent a11y violations]
+inputs: [personas, v1 scope, brand guidelines]
+outputs: [design-system.md, user-flows.md]
+chains-to: 02a-system-design
+autonomy: L1
+tokens-budget: 800
+---
 # SKILL-01c: UX/UI DESIGN SYSTEM
 
-## Expert Persona
-Design Director (ex-Apple, ex-Airbnb). Obsessed with information hierarchy,
-cognitive load, accessibility. "Every pixel must earn its place."
+## Overview
+Define user flows, information architecture, design tokens, and component states before any UI code exists.
+Every pixel must earn its place.
 
-## Purpose
-Define user flows, information architecture, design tokens, and component
-states before any UI code exists.
+## When
+- After 01b, scope frozen; V1 scope defined, personas confirmed.
+- Document-driven; any environment.
 
-## Trigger
-After 01b (scope frozen).
+## When-NOT
+- Never design for the convenient persona only; never ship a component without an empty state.
+- Brand-vs-WCAG conflicts are flagged, never silently resolved either way.
 
-## Entry Criteria
-- V1 scope defined; personas confirmed
+## Process
+- Map user flows per V1 feature (happy + error + edge paths): `aegis status`
+- Define information architecture (what lives on each screen, and why): `aegis status`
+- Create design tokens (color, typography, spacing, elevation): `aegis status`
+- Inventory components with ALL states (default, hover, active, disabled, loading, error, empty): `aegis status`
+- Annotate a11y (WCAG 2.1 AA: 4.5:1 normal, 3:1 large; focus order; SR labels; keyboard paths), ratios cited numerically: `aegis status`
+- Present for design approval (APPROVAL tier), then advance: `aegis transition 02a`
 
-## Environment Requirements
-Any (document-driven).
+## Verification
+- Contrast ratios numeric; other design decisions labeled judgment.
+- Self-check: lost confused user? all personas covered? component missing empty state? simpler than it needs to be?
 
-## Input Schema
-- Personas, V1 scope, brand guidelines if any (brownfield: existing UI patterns)
+## Red Flags
+- Brand guidelines vs WCAG AA contrast -> human decides.
+- PRD contradiction -> `aegis transition 01a --reason "<contradiction>"`.
 
-## Execution Steps
-1. Map user flows for each V1 feature (happy path + error path + edge path).
-2. Define information architecture (what exists on each screen, and why).
-3. Create design tokens: color, typography, spacing, elevation.
-4. Component inventory with ALL states: default, hover, active, disabled,
-   loading, error, empty.
-5. Annotate accessibility requirements (WCAG 2.1 AA): contrast, focus order,
-   screen-reader labels, keyboard paths.
-6. Present for approval.
-
-## Measurement Citations
-Contrast ratios cited numerically (WCAG 2.1 AA: 4.5:1 normal text, 3:1 large). Other design decisions are judgment, labeled as such.
-
-## Self-Critique Protocol (Deep)
-"Would a confused user get lost? Did I design for ALL personas or just the
-convenient one? Which component has no empty state? Is this simpler than it
-needs to be?"
-
-## Error Escalation Protocol
-Brand guidelines conflict with WCAG AA contrast -> flag for human decision;
-never silently violate either.
-PRD contradiction discovered -> `aegis transition 01a --reason "<contradiction>"`.
-
-## Output Schema
-- `brain/design/design-system.md` (tokens + components + states)
-- `brain/design/user-flows.md` (per-feature flows incl. error paths)
-
-## CLI Contract
-- Runtime: `aegis transition 02a` after design approval (APPROVAL tier)
-- Manual: human runs.
-
-## Brain Files
-Read: personas/*, v1-scope.md | Write: design/design-system.md, design/user-flows.md
-
-## Next Skill
-02a (System Design)
-
-## Human Touchpoints
-Design system approval (APPROVAL tier).
+## Interactions
+- CLI: `aegis transition 02a` after design approval.
+- Brain: read `personas/*`, `v1-scope.md`; write `design/design-system.md`, `design/user-flows.md`.
+- Next: `02a-system-design`. Touchpoint: design approval.

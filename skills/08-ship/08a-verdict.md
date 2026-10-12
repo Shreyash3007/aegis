@@ -1,74 +1,44 @@
+---
+name: 08a-verdict
+version: 0.6.0
+triggers: [ship go no-go, release gates evaluation, deployment manifest]
+not-triggers: [eager shipping, stale report passes]
+inputs: [quality reports, ship profile]
+outputs: [verdict report, deployment manifest]
+chains-to: 08b-post-ship-monitor
+autonomy: L0
+tokens-budget: 800
+---
 # SKILL-08a: VERDICT & SHIP
 
-## Expert Persona
-Release Engineer (ex-Google, ex-Apple). "Ship is a verb, not a destination.
-If you're not ready, you don't ship - and 'ready' has a definition."
+## Overview
+Final Go/No-Go with explicit, measurable criteria and rollback routing.
+Ship is a verb with a definition; unready means no ship.
 
-## Purpose
-Final Go/No-Go decision with explicit, measurable criteria and rollback routing.
+## When
+- After 07c, or on ship request; all quality reports exist.
+- L1+ for measured gates; at L0 UNMEASURED gates = automatic production No-Go.
 
-## Trigger
-After 07c, or a ship request (`aegis transition 08a`).
+## When-NOT
+- Never eager shipping; never passing on stale or UNMEASURED reports.
+- Prototype profile: security + bugs mandatory, perf advisory — still explicit.
 
-## Entry Criteria
-- All quality reports exist; ship_profile from config (O6)
+## Process
+- Read all quality reports: `aegis status`
+- Evaluate each gate vs threshold, citing source per gate (PRD coverage >=95%; security 100%; a11y AA; 0 critical/<=3 minor bugs; perf budgets CITED; zero UNMEASURED on gate metrics): `aegis status`
+- All pass -> generate deployment manifest: `aegis status`
+- Any fail -> explicit rollback with reason (coverage -> 04a; security -> 02c; perf -> 04a/03a; bugs -> 05c): `aegis transition`
+- Present verdict with per-gate rationale; advance only on G4: `aegis transition 08b`
 
-## Environment Requirements
-L1+ for measured gates. At L0, UNMEASURED gates = automatic No-Go for
-production profile.
+## Verification
+- Every verdict cites source report + measured value.
+- Override path only: explicit "I accept the risk" -> ship-override gate, logged forever.
+- Self-check: too eager? 48-hour regret? stale/UNMEASURED pass?
 
-## Go/No-Go Gates (production profile)
-| Gate | Threshold | Source |
-|------|-----------|--------|
-| PRD coverage | >= 95% | traceability-matrix.md |
-| Security | 100% checklist | security-audit.md |
-| Accessibility | WCAG 2.1 AA pass | accessibility-audit.md |
-| Bugs | 0 critical, <= 3 minor | known-issues.md |
-| Performance | budgets met, CITED | validation-*.md |
-| Measurement honesty | no UNMEASURED on any gate metric | all reports |
+## Red Flags
+- Any gate UNMEASURED (production) -> automatic No-Go, route to owning skill.
 
-Prototype profile: security + bugs gates mandatory; perf gates advisory.
-
-## Execution Steps
-1. Read all quality reports.
-2. Evaluate each gate against its threshold. Cite the source document per gate.
-3. All pass -> generate deployment manifest.
-4. Any fail -> explicit rollback: coverage <95% -> 04a; security -> 02c;
-   perf -> 04a/03a; bugs -> 05c. Via `aegis transition --reason`.
-5. Present verdict with rationale per gate.
-
-## Input Schema
-- All brain/quality/* reports
-- .aegis/config.json (ship_profile)
-
-## Error Escalation Protocol
-- Any gate UNMEASURED (production) -> automatic No-Go, route to the owning skill.
-- Override -> ship-override gate, logged.
-
-## Measurement Citations
-Every gate verdict cites its source report and the measured value.
-
-## Brain Files
-Read: all quality reports | Write: verdict-report.md
-
-## Self-Critique Protocol (Deep)
-"Am I being too eager to ship? What would I regret in 48 hours? Is any gate
-passing on a stale or UNMEASURED report?"
-
-## Override
-Developer override of No-Go requires explicit "I accept the risk" ->
-`aegis gate ship-override --approve`. Logged forever.
-
-## Output Schema
-- brain/quality/verdict-report.md (per-gate: threshold, actual, source, pass/fail)
-- deployment manifest
-
-## CLI Contract
-- Runtime: `aegis transition 08b` - blocked until `aegis gate G4 --approve`
-- Manual: human runs.
-
-## Next Skill
-08b (Post-Ship Monitor)
-
-## Human Touchpoints
-**SACRED GATE G4: Ship decision is ALWAYS human.**
+## Interactions
+- CLI: `aegis transition 08b` (G4-blocked); human: `aegis gate G4 --approve`.
+- Brain: read all quality reports; write verdict-report + manifest.
+- Next: `08b-post-ship-monitor`. Touchpoint: SACRED G4, ALWAYS human.

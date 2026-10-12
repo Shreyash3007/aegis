@@ -1,3 +1,14 @@
+---
+name: 08-ship
+version: 0.6.0
+triggers: [ship verdict, go-no-go, post-ship monitor]
+not-triggers: [building, verification, autonomous release]
+inputs: [validation evidence, production feedback]
+outputs: [ship verdict, monitor reports, improvement proposals]
+chains-to: 07-maintain
+autonomy: L0
+tokens-budget: 1000
+---
 # SKILL-08: SHIP (Master Skill)
 
 ## Purpose

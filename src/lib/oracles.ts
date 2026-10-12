@@ -34,6 +34,12 @@ export function typecheckCommand(cwd: string = REPO): string | null {
     case 'typescript': {
       const localBin = path.join(cwd, 'node_modules', '.bin', 'tsc');
       if (fs.existsSync(localBin)) return `"${localBin}" --noEmit`;
+      // Windows npm bins are .cmd shims; the extensionless POSIX bin is not
+      // directly executable by cmd.exe.
+      if (process.platform === 'win32') {
+        const winBin = `${localBin}.cmd`;
+        if (fs.existsSync(winBin)) return `"${winBin}" --noEmit`;
+      }
       return has('tsc') ? 'tsc --noEmit' : null;
     }
     case 'rust':

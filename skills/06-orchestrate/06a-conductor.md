@@ -1,69 +1,46 @@
+---
+name: 06a-conductor
+version: 0.6.0
+triggers: [conductor dispatch, pipeline position, loop escalation surfacing]
+not-triggers: [playing instruments, blind retries, remembered state]
+inputs: [status output, config autonomy mode]
+outputs: [routing decision, recorded transition]
+chains-to: transitions-per-state
+autonomy: L1
+tokens-budget: 800
+---
 # SKILL-06a: THE CONDUCTOR
 
-## Expert Persona
-Systems Architect (ex-Kubernetes, ex-Airflow). "The orchestra doesn't play
-without a conductor. The conductor doesn't play the instruments."
+## Overview
+Read runtime state, decide the next skill, handle transitions, surface loops to the human.
+The orchestra doesn't play without a conductor; the conductor doesn't play the instruments.
 
-## Purpose
-Read runtime state, decide the next skill, handle transitions, surface loops
-and cycles to the human.
+## When
+- After any skill completes, on `aegis next`, or on human request; state file exists.
+- Autonomy modes: assisted (suggest), semi (auto between SACRED gates), full (auto; SACRED still hard-stop).
 
-## Trigger
-`aegis next`, after any skill completes, or on human request.
+## When-NOT
+- Never reason from remembered state — CLI output is truth.
+- Exit 4 (illegal): diagnose the blocker, never retry blindly.
 
-## Entry Criteria
-- `.aegis/state.json` exists (init complete)
+## Process
+- Read position, legal transitions, blockers, lanes: `aegis status`
+- Get the ONE legal forward skill: `aegis next`
+- Present position + recommendation + gates/loops/lanes; get human approval: `aegis status`
+- On approval, record the transition: `aegis transition`
+- Exit 5 (loop/cycle) -> STOP; present recurring state, last N transitions, resolution (rollback with reason or human decision): `aegis status`
+- Checkpoint after every transition: `aegis checkpoint`
 
-## Environment Requirements
-Any. Manual mode: human runs the commands, agent reasons over output.
+## Verification
+- Routing claims cite status/next output verbatim.
+- Self-check: reading or remembering? human about to be surprised? lane capacity checked?
 
-## Execution Steps
-1. `aegis status` - current state, legal transitions, blockers, lanes.
-2. `aegis next` - the ONE legal forward skill.
-3. Present to human (v1.4 is human-driven, O9):
-   - current position in the pipeline
-   - recommended next skill + why
-   - any open gates, loop counters, lane usage
-4. On human approval: `aegis transition <skill>`.
-5. Exit 5 (loop/cycle) -> STOP. Present the cycle to the human:
-   which state kept recurring, what the last N transitions were,
-   recommended resolution (usually: rollback with --reason, or human decision).
-6. Exit 4 (illegal) -> never retry blindly; diagnose the blocker first.
-7. Checkpoint after every transition (post-commit hook covers code changes).
-
-## Autonomy Modes (from config)
-- Assisted: conductor suggests, human invokes
-- Semi: auto-invoke between SACRED gates
-- Full: auto-invoke; SACRED gates (PRD, G1-G4) still hard-stop
-
-## Input Schema
-- `aegis status` output (authoritative)
-- .aegis/config.json (autonomy mode)
-
-## Measurement Citations
-Routing claims cite `aegis status`/`aegis next` output verbatim.
-
-## Self-Critique Protocol (Standard)
-"Am I reading state or remembering it? Is the human about to be surprised?
-Did I check lane capacity before suggesting parallel work?"
-
-## Error Escalation Protocol
+## Red Flags
 - Invalid state -> `aegis resume` to last checkpoint.
 - Skill failure -> invoke 06e.
 - Loop/cycle -> human, always.
 
-## Output Schema
-- Routing decision presented to human; transition recorded by CLI.
-
-## CLI Contract
-- Runtime: `aegis status`, `aegis next`, `aegis transition`, `aegis resume`
-- Manual: human runs; pastes output.
-
-## Brain Files
-Read: none directly (CLI state is truth) | Write: none directly
-
-## Next Skill
-Whatever transitions.json allows and the human approves.
-
-## Human Touchpoints
-Every routing decision (v1.4). All exit-5 escalations.
+## Interactions
+- CLI: `aegis status`, `aegis next`, `aegis transition`, `aegis resume`.
+- Brain: none directly (CLI state is truth).
+- Next: whatever transitions.json allows + human approves. Touchpoints: every routing decision, all exit-5 escalations.

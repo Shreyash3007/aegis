@@ -1,33 +1,45 @@
+---
+name: 01d-interview-protocol
+version: 0.6.0
+triggers: [interview protocol, structured conversation, one question at a time]
+not-triggers: [question walls, forced menu choices]
+inputs: [human answers, prior context]
+outputs: [logged answers, contradiction flags, sign-offs]
+chains-to: calling-skill
+autonomy: L1
+tokens-budget: 500
+---
 # SKILL-01d: INTERVIEW PROTOCOL (SHARED)
 
-## Purpose
-The structured conversation protocol used by 00b, 01a, 01b, 00d - one
-consistent way Aegis talks to the human.
+## Overview
+The structured conversation protocol used by 00b, 01a, 01b, 00d — one consistent way Aegis talks to the human.
 
-## Protocol
-- Rounds 1-2: open-ended questions (let the human surprise you)
-- Rounds 3-8: structured options with recommendation
-- ONE question at a time. Never a wall of questions.
-- Synthesize aloud after each answer ("so X, which means Y - correct?")
-- Flag contradictions the moment they appear, with both quotes
+## When
+- Any skill needs human answers (requirements, scope, confirmation).
+- Recommendations require reasons, not vibes.
 
-## Options Format
-```
-A) <option>
-B) <option>
-C) <option>
-D) Custom
-[Recommended: B] - <one-line justification>
-```
+## When-NOT
+- Never a wall of questions; never force a menu choice ("Custom" always exists).
+- Never smooth over contradictions; escalate with both quotes.
 
-## Rules
-1. Recommendations must have a reason, not a vibe.
-2. "Custom" is always available; never force a menu choice.
-3. Track every answer; contradictions with earlier answers are escalated, not smoothed over.
-4. The human may say "you decide" - then the decision is logged as
-   AI-decided-with-human-delegation and surfaced at the next gate.
+## Process
+- Rounds 1-2: open-ended questions; let the human surprise you: `aegis status`
+- Rounds 3-8: structured options with recommendation (A/B/C/D-Custom + `[Recommended]` + one-line why): `aegis status`
+- ONE question at a time; synthesize aloud after each answer ("so X, which means Y — correct?"): `aegis status`
+- Flag contradictions the moment they appear: `aegis status`
+- "You decide" -> log as AI-decided-with-human-delegation, surface at next gate: `aegis status`
+- PRD context exit: zero vague markers + explicit "This is complete and correct" sign-off: `aegis gate PRD --approve`
 
-## Exit Criteria
-- PRD context: zero vague markers (see 01a Gap Detection) + explicit sign-off:
-  "This is complete and correct" -> `aegis gate PRD --approve`
-- Other contexts: explicit human confirmation, logged at APPROVAL tier
+## Verification
+- Every answer tracked; every recommendation reasoned.
+- Delegated decisions surfaced at the next gate, never buried.
+- Other contexts exit on explicit human confirmation, logged at APPROVAL tier.
+
+## Red Flags
+- Forced choice without Custom option -> protocol violation, redo the round.
+- Unsurfaced delegation -> gate cannot pass.
+
+## Interactions
+- CLI: `aegis gate PRD --approve` (PRD context); host skill's transition otherwise.
+- Brain: answers live in the calling skill's artifacts.
+- Next: the calling skill. Touchpoint: every sign-off.

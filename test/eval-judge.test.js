@@ -22,11 +22,44 @@ const SECTIONS = [
   '## Next Skill', '## Human Touchpoints',
 ];
 
-/** A lint-clean skill file so only the judge verdict decides the outcome. */
+/** A lint-clean Margin Format skill file so only the judge verdict decides the outcome. */
 function writeSkill(dir) {
   const file = path.join(dir, 'judged.md');
-  const body = SECTIONS.map((s) => `${s}\n\ncontent`).join('\n\n');
-  fs.writeFileSync(file, `# SKILL-99z: JUDGED\n\n${body}\n`);
+  fs.writeFileSync(file, `---
+name: 99z-judged
+version: 0.6.0
+triggers: [judge fixture xyz]
+not-triggers: [anything else]
+inputs: [nothing]
+outputs: [nothing]
+chains-to: nowhere
+autonomy: L1
+tokens-budget: 100
+---
+# SKILL-99z: JUDGED
+
+## Overview
+A lint-clean fixture for the judge tests.
+
+## When
+Always in tests.
+
+## When-NOT
+Never in production.
+
+## Process
+- Do the judged thing: \`aegis status\`
+
+## Verification
+- Exit code observed.
+
+## Red Flags
+- None.
+
+## Interactions
+- CLI: \`aegis status\`.
+- Next: nowhere.
+`);
   return file;
 }
 

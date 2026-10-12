@@ -1,63 +1,44 @@
+---
+name: 07a-tech-debt
+version: 0.6.0
+triggers: [refactoring cycle, dead code sweep, brain hygiene]
+not-triggers: [big-bang rewrites, critical-path edits without review]
+inputs: [codebase, known issues, review report]
+outputs: [refactoring plan, updated code, decision records]
+chains-to: 07b-observability
+autonomy: L2
+tokens-budget: 800
+---
 # SKILL-07a: TECH DEBT & REFACTORING PIPELINE
 
-## Expert Persona
-Refactoring Specialist (ex-Sourcegraph). "Debt is fine if you pay it down.
-Ignored debt is bankruptcy."
+## Overview
+Scheduled cleanup: dead code, duplication, over-engineering, outdated deps — plus brain hygiene.
+Debt is fine if paid down; ignored debt is bankruptcy.
 
-## Purpose
-Scheduled cleanup: dead code, duplication, over-engineering, outdated deps -
-plus brain hygiene.
+## When
+- After 06b, every N cycles, or on demand; issues + review current.
+- L1+ (tests run before and after); L0 analysis only, no edits.
 
-## Trigger
-After 06b, or every N cycles (config), or on demand.
+## When-NOT
+- Never big-bang rewrites: ONE refactor type per cycle.
+- Never critical-path refactors without human review.
 
-## Entry Criteria
-- Codebase exists; known-issues + review-report current
+## Process
+- Read known-issues + review-report; identify dead code, duplication, over-engineering, outdated deps: `aegis status`
+- Generate refactoring plan, one type per cycle: `aegis status`
+- Execute with tests before AND after; revert immediately on failure: `aegis validate tests`
+- Brain hygiene (retention, archive resolved): `aegis gc`
+- Log every change as a decision record; advance: `aegis transition 07b`
 
-## Environment Requirements
-L1+ (tests must run before and after). L0: analysis only, no edits.
+## Verification
+- Safety claims cite before/after validation results.
+- Self-check: value or fun? simpler or just different? tests actually run?
 
-## Execution Steps
-1. Read known-issues.md and review-report.md.
-2. Identify: dead code, duplicated logic, over-engineered modules, outdated deps.
-3. Generate refactoring plan; ONE refactor type per cycle.
-4. Execute safe refactors. Tests before AND after (`aegis validate tests`).
-5. `aegis gc` - brain hygiene: checkpoint retention, archive resolved issues.
-6. Log every change as a decision record.
+## Red Flags
+- Post-refactor test failure -> revert immediately.
+- Dependency break -> pin previous version.
 
-## Refactoring Rules
-- Tests pass before AND after, or revert immediately
-- Never refactor the critical path without human review
-- One type per cycle - no big-bang rewrites
-
-## Input Schema
-- Unified codebase
-- brain/quality/known-issues.md, review-report.md
-
-## Error Escalation Protocol
-- Tests fail after refactor -> revert immediately.
-- Dependency update breaks -> pin previous version.
-
-## Measurement Citations
-Refactor safety claims cite before/after `aegis validate tests` results.
-
-## Brain Files
-Read: codebase, known-issues, review-report | Write: refactoring-plan.md, decisions.md
-
-## Self-Critique Protocol (Standard)
-"Am I refactoring for value or for fun? Is this simpler, or just different?
-Did the tests actually run, or am I assuming?"
-
-## Output Schema
-- brain/quality/refactoring-plan.md
-- Updated codebase + decisions.md entries
-
-## CLI Contract
-- Runtime: `aegis validate tests`, `aegis gc`, `aegis transition 07b`
-- Manual: human runs.
-
-## Next Skill
-07b
-
-## Human Touchpoints
-Critical-path refactor, major dependency bump.
+## Interactions
+- CLI: `aegis validate tests`, `aegis gc`, `aegis transition 07b`.
+- Brain: read codebase, known-issues, review-report; write refactoring-plan, decisions.
+- Next: `07b-observability`. Touchpoints: critical-path refactor, major dep bump.

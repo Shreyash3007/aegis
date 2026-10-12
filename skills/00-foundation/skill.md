@@ -1,3 +1,14 @@
+---
+name: 00-foundation
+version: 0.6.0
+triggers: [foundation setup, install aegis, session recovery, brownfield path]
+not-triggers: [feature work, architecture, shipping]
+inputs: [target repo, install profile]
+outputs: [.aegis state, locked manifest, recovered session]
+chains-to: 01-discover
+autonomy: L1
+tokens-budget: 1200
+---
 # SKILL-00: FOUNDATION (Master Skill)
 
 ## Purpose

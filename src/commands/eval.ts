@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { AEGIS_DIR, die, ok } from '../lib/util.js';
+import { lintSkillFile } from '../lib/skill-lint.js';
 
 /** aegis eval <file|--all> - prompt eval harness (O3).
  *  Deterministic checks always run. The model judge is opt-in: it activates
@@ -9,15 +10,10 @@ import { AEGIS_DIR, die, ok } from '../lib/util.js';
  *  (exit 11); judge errors degrade honestly and never affect the exit code.
  *  Without the key the behavior is byte-identical to lint-only mode. */
 
-const REQUIRED_SECTIONS = [
-  '## Expert Persona', '## Purpose', '## Trigger', '## Entry Criteria',
-  '## Environment Requirements', '## Input Schema', '## Execution Steps',
-  '## Self-Critique Protocol', '## Error Escalation Protocol', '## Output Schema',
-  '## Measurement Citations', '## CLI Contract', '## Brain Files',
-  '## Next Skill', '## Human Touchpoints',
-];
 const MASTER_SECTIONS = ['## Purpose', '## Sub-Skills', '## Routing'];
-const VAGUE = ['TBD', 'to be determined', "we'll see", 'somehow'];
+// Legacy section lists kept for reference: Margin Format is now enforced
+// through the shared checker (lib/skill-lint.js), single source of truth
+// with `lint-skills`. VAGUE-word and CLI-ref rules live there too.
 // The valid command set is INJECTED by the dispatcher (lib/commands.ts calls
 // setKnownCommands once at module load). No import of commands.ts here -
 // that import created the commands.ts <-> eval.ts cycle flagged by our own
@@ -27,37 +23,15 @@ export function setKnownCommands(cmds: string[]): void { KNOWN = [...cmds, 'help
 
 interface CheckResult { file: string; checks: { name: string; pass: boolean; detail?: string }[]; pass: boolean }
 
-const TEMPLATE_SECTIONS = ['## Expertise', '## Responsibilities', '## Self-Critique Checklist'];
-const SPEC_SECTIONS = ['## Domain', '## Additional Constraints'];
-const PROTOCOL_SECTIONS = ['## Purpose', '## Protocol'];
-
-function docType(file: string): string {
-  if (path.basename(file) === 'skill.md') return 'master';
-  if (file.includes('base-roles')) return 'template';
-  if (file.includes('specializations')) return 'spec';
-  if (file.includes('interview-protocol')) return 'protocol';
-  return 'subskill';
-}
+// Legacy per-doctype section lists retired in v0.6.0: Margin Format is
+// enforced through the shared checker (lib/skill-lint.js), single source
+// of truth with `lint-skills`.
 
 function evalFile(file: string): CheckResult {
-  const content = fs.readFileSync(file, 'utf8');
-  const type = docType(file);
-  const checks: CheckResult['checks'] = [];
-  const sections = type === 'master' ? MASTER_SECTIONS
-    : type === 'template' ? TEMPLATE_SECTIONS
-    : type === 'spec' ? SPEC_SECTIONS
-    : type === 'protocol' ? PROTOCOL_SECTIONS
-    : REQUIRED_SECTIONS;
-  const missing = sections.filter((s) => !content.includes(s));
-  checks.push({ name: 'required-sections', pass: missing.length === 0, detail: missing.join(', ') || undefined });
-  // vague markers: strip quoted/backticked spans first (01a lists them AS detection targets)
-  const unquoted = content.replace(/`[^`]*`|"[^"]*"|'[^']*'/g, '');
-  const vagueHits = type === 'subskill' ? VAGUE.filter((v) => unquoted.toLowerCase().includes(v.toLowerCase())) : [];
-  checks.push({ name: 'no-vague-markers', pass: vagueHits.length === 0, detail: vagueHits.join(', ') || undefined });
-  const cmdRefs = [...content.matchAll(/(?<![\w.])aegis ([a-z-]+)/g)].map((m) => m[1]);
-  const unknown = [...new Set(cmdRefs.filter((c) => !KNOWN.includes(c)))];
-  checks.push({ name: 'cli-refs-exist', pass: unknown.length === 0, detail: unknown.join(', ') || undefined });
-  return { file, checks, pass: checks.every((c) => c.pass) };
+  // Deterministic half delegates to the shared Margin Format checker:
+  // one rule set for `eval` and `lint-skills`, no drift between gates.
+  const r = lintSkillFile(file, KNOWN);
+  return { file, checks: r.checks.map((c) => ({ name: c.name, pass: c.pass, detail: c.detail })), pass: r.pass };
 }
 
 // ---- opt-in model judge ---------------------------------------------------

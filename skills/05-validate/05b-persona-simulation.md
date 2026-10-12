@@ -1,67 +1,43 @@
+---
+name: 05b-persona-simulation
+version: 0.6.0
+triggers: [persona walkthrough, adversarial simulation, a11y audit]
+not-triggers: [ai-thinking-like-ai, unverified live claims]
+inputs: [personas, user flows, codebase, threat model]
+outputs: [ux flaw report, accessibility audit, security gap report]
+chains-to: 05c-bug-hunting
+autonomy: L1
+tokens-budget: 800
+---
 # SKILL-05b: PERSONA-BASED ADVERSARIAL SIMULATION
 
-## Expert Persona
-UX Researcher (Google Ventures) + Penetration Tester. "How does a confused
-user break this? How does a malicious user break this?"
+## Overview
+Walk every persona through every flow. Find confusion, dead ends, a11y violations, security bypasses.
+Think like a real user — a mom, a 12-year-old, someone distracted on a train — not like an AI.
 
-## Purpose
-Walk every persona through every flow. Find confusion, dead ends, a11y
-violations, security bypasses.
+## When
+- After 05a; personas defined, flows mapped, codebase exists.
+- L0+: static walkthroughs (STATIC REVIEW — UNVERIFIED). L1+: live UI walks where configured.
 
-## Trigger
-After 05a.
+## When-NOT
+- Never present static walks as verified; live walks cite their run.
+- Five personas always: confused, power, accessibility, malicious, impatient.
 
-## Entry Criteria
-- Personas defined; user flows mapped; codebase exists
+## Process
+- Read all personas + user-flows.md: `aegis status`
+- Per persona x flow: walk it; document confusion points, dead ends, cognitive-load violations: `aegis status`
+- Accessibility simulation (contrast, focus order, labels, keyboard paths): `aegis status`
+- Malicious simulation against the security-audit threat model (injection, enumeration, ID tampering, bypass): `aegis status`
+- Generate reports; self-critique; present; advance: `aegis transition 05c`
 
-## Environment Requirements
-L0+: static walkthroughs (labeled STATIC REVIEW - UNVERIFIED).
-L1+: live UI walks via Playwright where configured.
+## Verification
+- Live walks cite their run; static walks labeled STATIC REVIEW — UNVERIFIED.
+- Reports written: ux-flaw, accessibility-audit, security-gap.
 
-## The Five Personas
-1. **Confused User:** random clicks, ignores instructions, leaves mid-flow
-2. **Power User:** shortcuts, keyboard nav, bulk actions
-3. **Accessibility User:** screen reader only, keyboard only, high contrast
-4. **Malicious User:** injection, enumeration, ID tampering, bypass attempts
-5. **Impatient User:** double-clicks, refreshes mid-transaction, goes offline
-
-## Execution Steps
-1. Read all personas + user-flows.md.
-2. For each persona x flow: walk it. Document confusion points, dead ends,
-   cognitive-load violations.
-3. Accessibility simulation: contrast, focus order, labels, keyboard paths.
-4. Malicious simulation: against the security-audit threat model.
-5. Generate reports; self-critique; present.
-
-## Input Schema
-- brain/personas/*.md
-- brain/design/user-flows.md
-- Unified codebase
-
-## Brain Files
-Read: personas/*, user-flows.md | Write: quality/ux-flaw-report.md, accessibility-audit.md, security-gap-report.md
-
-## Self-Critique Protocol (Deep)
-"Did I think like a real user or like an AI? What would my mom do? A
-12-year-old? Someone distracted on a train?"
-
-## Error Escalation Protocol
+## Red Flags
 - Critical a11y violation or security bypass -> STOP, immediate fix escalation.
 
-## Output Schema
-- brain/quality/ux-flaw-report.md
-- brain/quality/accessibility-audit.md
-- brain/quality/security-gap-report.md
-
-## Measurement Citations
-Live walks cite Playwright run; static walks labeled STATIC REVIEW - UNVERIFIED.
-
-## CLI Contract
-- Runtime: `aegis validate e2e` (where configured), `aegis transition 05c`
-- Manual: human runs.
-
-## Next Skill
-05c
-
-## Human Touchpoints
-Critical a11y/security finding.
+## Interactions
+- CLI: `aegis validate e2e` (where configured), `aegis transition 05c`.
+- Brain: read `personas/*`, `user-flows.md`; write the three quality reports.
+- Next: `05c-bug-hunting`. Touchpoint: critical a11y/security finding.

@@ -7,19 +7,24 @@ import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { scratch, gitIn, aegis, readState, CLI } from './helpers.js';
 
+// Cross-platform no-op: Unix `true` does not exist on Windows.
+const NOOP = process.platform === 'win32'
+  ? `"${process.execPath}" -e "process.exit(0)"`
+  : 'true';
+
 // THE bug: 10 concurrent `aegis exec` on one shared tree must record 10/10
 // events (metis-nda measured 3/5 and 4/10 before the state lock).
 test('10 concurrent exec calls: every event recorded, integrity holds', async (t) => {
   const dir = scratch(t);
   const run = (i) => new Promise((res) => {
-    const p = spawn(process.execPath, [CLI, 'exec', '--', `true`], { cwd: dir, env: process.env });
+    const p = spawn(process.execPath, [CLI, 'exec', '--', NOOP], { cwd: dir, env: process.env });
     let err = '';
     p.stderr.on('data', (d) => { err += d; });
     p.on('close', (code) => res({ code, err, i }));
   });
   const results = await Promise.all([...Array(10)].map((_, i) => run(i)));
   for (const r of results) assert.equal(r.code, 0, `exec ${r.i}: ${r.err}`);
-  const events = readState(dir).history.filter((h) => h.event?.startsWith('exec (exit 0): true'));
+  const events = readState(dir).history.filter((h) => h.event?.startsWith('exec (exit 0):'));
   assert.equal(events.length, 10, `expected 10/10 exec events, got ${events.length}`);
   const r = aegis(dir, ['resume']);
   assert.equal(r.status, 0, r.stderr);

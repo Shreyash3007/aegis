@@ -5,19 +5,47 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { scratch, aegis } from './helpers.js';
 
-const SECTIONS = [
-  '## Expert Persona', '## Purpose', '## Trigger', '## Entry Criteria',
-  '## Environment Requirements', '## Input Schema', '## Execution Steps',
-  '## Self-Critique Protocol', '## Error Escalation Protocol', '## Output Schema',
-  '## Measurement Citations', '## CLI Contract', '## Brain Files',
-  '## Next Skill', '## Human Touchpoints',
-];
+// Minimal Margin Format file: valid frontmatter + body order, one phantom CLI ref.
+const PHANTOM = `---
+name: 99z-phantom
+version: 0.6.0
+triggers: [phantom trigger xyz]
+not-triggers: [real commands]
+inputs: [nothing]
+outputs: [nothing]
+chains-to: nowhere
+autonomy: L1
+tokens-budget: 100
+---
+# SKILL-99z: PHANTOM
+
+## Overview
+A phantom skill for the eval harness.
+
+## When
+Always in tests.
+
+## When-NOT
+Never in production.
+
+## Process
+- Engage the warp drive: \`aegis warp\`
+
+## Verification
+- Exit code observed.
+
+## Red Flags
+- None.
+
+## Interactions
+- CLI: \`aegis warp\`.
+- Next: nowhere.
+`;
 
 test('eval: a skill file referencing a phantom command fails (exit 11)', (t) => {
   const dir = scratch(t);
   const file = path.join(dir, 'phantom.md');
-  const body = SECTIONS.map((s) => `${s}\n\ncontent`).join('\n\n');
-  fs.writeFileSync(file, `# SKILL-99z: PHANTOM\n\n${body}\n\nRun \`aegis warp\` to engage.\n`);
+  fs.writeFileSync(file, PHANTOM);
   const r = aegis(dir, ['eval', file]);
   assert.equal(r.status, 11);
   assert.match(r.stdout, /FAIL phantom\.md/);

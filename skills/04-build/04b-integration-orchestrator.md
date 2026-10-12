@@ -1,75 +1,48 @@
-# SKILL-04b: INTEGRATION ORCHESTRATOR (formerly "Semantic Merge Engine")
+---
+name: 04b-integration-orchestrator
+version: 0.6.0
+triggers: [dag merge order, oracle merge gate, conflict resolution]
+not-triggers: [adjudicating merges by opinion, counting empty slices]
+inputs: [slice branches, execution matrix, module graph]
+outputs: [unified main, merge log, updated graph]
+chains-to: 04c-integration
+autonomy: L2
+tokens-budget: 800
+---
+# SKILL-04b: INTEGRATION ORCHESTRATOR
 
-## Expert Persona
-Language Tooling Engineer (ex-TypeScript team). "The compiler is the oracle.
-I sequence merges; I don't adjudicate them."
+## Overview
+Merge slice branches in DAG order through the merge oracle.
+The compiler is the oracle; this skill sequences merges, never adjudicates them.
 
-## Purpose
-Merge slice branches in DAG order through the merge oracle. LLMs resolve only
-the conflicts git surfaces - with compiler output as context.
+## When
+- After 04a; slice branches exist and registered.
+- L1+ (real merges); at L0 integrate manually with a human.
 
-## Trigger
-After 04a (slices complete or a batch ready).
+## When-NOT
+- Never merge out of topological order; never count nothing-to-merge as done.
+- Never resolve conflicts by LLM inspection over compiler output.
 
-## Entry Criteria
-- Slice branches exist (aegis/slice-*), registered via `aegis slice list`
+## Process
+- Read topological merge order from the execution matrix: `aegis status`
+- Per branch run the oracle: `aegis merge check`
+- PASS (exit 0) -> lands; record in merge-log: `aegis merge check`
+- NOTHING TO MERGE (exit 13) -> investigate the empty slice, never mark done: `aegis merge check`
+- REFUSED (exit 9) -> read oracle output: contract drift (revert edit, adapter in feature code), tsc failure (resolve with compiler context), text conflict (resolve against contract, re-check): `aegis merge check`
+- Post-merge impact analysis and graph rebuild: `aegis ast diff`
+- Post-merge impact analysis and graph rebuild: `aegis ast build`
+- Post-merge checkpoint: `aegis checkpoint`
 
-## Environment Requirements
-L1+ (real merges). Not available at L0 - integrate manually with human.
+## Verification
+- Every merge cites its oracle exit code; "merges clean" without oracle output is forbidden.
+- Conflict categories from compiler output: type mismatch (unify/adapt), missing export (alias/update), signature change (callers/default), circular import (extract; exit-8 detects).
+- Self-check: compiles-but-wrong-behavior merge? runtime conflict invisible to types (shared mutable state, ordering)? behavior verified against acceptance criteria, not just types?
 
-## Execution Steps
-1. Read merge order from execution matrix (topological).
-2. For each branch: `aegis merge check aegis/slice-<name>`.
-3. PASS (exit 0) -> merge lands. Record in merge-log.
-4. NOTHING TO MERGE (exit 13) -> the slice produced nothing; investigate,
-   never count as merged (A1.6).
-5. REFUSED (exit 9) -> read the oracle output:
-   - CONTRACT DRIFT -> contracts are immutable after N1; revert the contract
-     edit in the slice; implement an adapter in feature code instead.
-   - tsc failure -> resolve with the compiler output as your context; common
-     categories below.
-   - text conflict -> resolve against the contract, then re-check.
-6. After all merges: `aegis ast diff` for impact analysis; `aegis ast build`.
-7. Post-merge checkpoint (post-commit hook handles this).
-
-## Conflict Categories (from compiler output, not LLM inspection)
-- Type mismatch -> unify to common supertype or adapter
-- Missing export -> restore old name as alias, or update callers
-- Signature change -> update callers or add default parameter
-- Circular import -> extract shared module (ast build exit 8 detects)
-
-## Input Schema
-- Slice branches aegis/slice-* (from `aegis slice list`)
-- brain/roadmap/execution-matrix.md (merge order)
-- .aegis/ast/module-graph.json
-
-## Self-Critique Protocol (Deep)
-"Did I create a merge that compiles but behaves wrong? Is there a runtime
-conflict the compiler can't see (shared mutable state, ordering assumptions)?
-Did I verify the merged behavior against the acceptance criteria, not just the types?"
-
-## Error Escalation Protocol
+## Red Flags
 - Unresolvable conflict -> human with both options + compiler context.
-- Repeated failure on one slice -> rebuild that slice (04a) with tighter spec.
+- Repeated failure on one slice -> rebuild it in 04a with tighter spec.
 
-## Output Schema
-- Unified codebase on main
-- brain/execution/merge-log.md (order, oracle results, resolutions)
-- Updated module graph
-
-## Measurement Citations
-Every merge cites the oracle exit code. "Merges clean" is not a claim you may
-make without `aegis merge check` output.
-
-## CLI Contract
-- Runtime: `aegis merge check`, `aegis ast diff`, `aegis ast build`, `aegis slice remove`
-- Manual: not available (L1+ only).
-
-## Brain Files
-Read: execution-matrix, module graph | Write: merge-log.md, ast snapshot (via CLI)
-
-## Next Skill
-04c (Integration & Validation)
-
-## Human Touchpoints
-Unresolvable semantic conflict.
+## Interactions
+- CLI: `aegis merge check`, `aegis ast diff`, `aegis ast build`, `aegis slice remove`.
+- Brain: read execution-matrix + module graph; write `merge-log.md`, AST snapshot via CLI.
+- Next: `04c-integration`. Touchpoint: unresolvable semantic conflict.

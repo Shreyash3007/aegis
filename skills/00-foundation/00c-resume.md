@@ -1,63 +1,48 @@
+---
+name: 00c-resume
+version: 0.6.0
+triggers: [aegis resume, crash recovery, session checkpoint restore]
+not-triggers: [fresh start, silent trust of flagged files]
+inputs: [checkpoint JSON, current brain and artifacts]
+outputs: [reconstruction pack, resume decision in history]
+chains-to: checkpoint-target
+autonomy: L1
+tokens-budget: 800
+---
 # SKILL-00c: RESUME
 
-## Expert Persona
-SRE (ex-Netflix). Obsessed with recovery, state reconstruction, zero data loss.
-"Everything fails. The question is whether you notice."
-
-## Purpose
+## Overview
 Recover interrupted sessions with cryptographically verified integrity.
+Everything fails; the question is whether you notice.
 
-## Trigger
-`aegis resume`, crash detected, or new session in a repo with checkpoints.
-
-## Entry Criteria
+## When
+- `aegis resume` runs, a crash is detected, or a new session finds checkpoints.
 - Checkpoints exist in `.aegis/checkpoints/` (none -> restart from 00a).
 
-## Environment Requirements
-Any. In Manual mode the human runs `aegis resume` and pastes the output.
+## When-NOT
+- No checkpoints — restart from 00a and say the data-loss window is unknown.
+- Never silently trust a file the hasher just flagged.
 
-## Input Schema
-- Latest checkpoint JSON (state, git SHA, file hashes)
-- Current brain + generated artifacts on disk
+## Process
+- Run hash verification automatically: `aegis resume`
+- If VERIFIED: read the reconstruction pack (skill, git SHA, integrity): `aegis resume`
+- Present resume plan (what was in flight, what is next); confirm with human: `aegis status`
+- Transition back into the checkpointed skill, or revert to known-good on human preference: `aegis transition`
+- If INTEGRITY MISMATCH (exit 6): corrupted GENERATED views -> regenerate and retry: `aegis ast build`
+- If INTEGRITY MISMATCH (exit 6): corrupted GENERATED views -> regenerate and retry: `aegis sync`
+- If INTEGRITY MISMATCH (exit 6): corrupted HUMAN-AUTHORED files -> HUMAN ESCALATION with exact drift list, never auto-repair: `aegis resume`
+- Code changed since checkpoint without a new checkpoint -> commit first, then resume: `aegis checkpoint`
 
-## Execution Steps
-1. `aegis resume` - hash verification runs automatically.
-2. If VERIFIED: read the reconstruction pack (skill, git SHA, integrity).
-3. Present resume plan to human: what was in flight, what is next.
-4. `aegis transition` back into the checkpointed skill, or revert to a
-   known-good state if the human prefers.
-5. If INTEGRITY MISMATCH (exit 6):
-   a. Corrupted GENERATED views (module-map.md, module-graph.json) ->
-      regenerate: `aegis ast build`, `aegis sync` -> resume again. These are
-      deterministic (A1.2); regeneration heals them.
-   b. Corrupted HUMAN-AUTHORED files -> HUMAN ESCALATION with the exact
-      drift list (DELETED/MODIFIED per file). Never auto-repair human work.
-   c. Code changed since checkpoint without a new checkpoint -> commit first
-      (post-commit hook auto-checkpoints), then resume.
+## Verification
+- Integrity claims cite checkpoint ID and hash count from CLI output.
+- Reconstruction accuracy self-check: git drift examined, not just file hashes.
+- Resume decision recorded in history.
 
-## Self-Critique Protocol (Standard)
-"Is the reconstructed state accurate? Am I about to silently trust a file the
-hasher just flagged? Did I check git drift, not just file hashes?"
+## Red Flags
+- Exit 6 persists after view regeneration -> HUMAN ESCALATION (Critical).
+- Auto-repairing human-authored work is forbidden.
 
-## Error Escalation Protocol
-- Exit 6 after regeneration of views -> HUMAN ESCALATION (class: Critical).
-- No checkpoints -> restart from 00a; say data loss window is unknown.
-
-## Output Schema
-- Reconstruction pack (stdout) + resume decision recorded in history.
-
-## Measurement Citations
-Integrity claims cite the checkpoint ID and hash count from CLI output.
-
-## CLI Contract
-- Runtime: `aegis resume`, `aegis checkpoint`, `aegis ast build`, `aegis sync`
-- Manual: human runs `aegis resume`; pastes reconstruction pack.
-
-## Brain Files
-Read: checkpoints, context-window | Write: context/resume-report.md
-
-## Next Skill
-Whatever the checkpoint specifies.
-
-## Human Touchpoints
-Any integrity failure on human-authored files. Resume plan confirmation.
+## Interactions
+- CLI: `aegis resume`, `aegis checkpoint`, `aegis ast build`, `aegis sync`
+- Brain: read checkpoints, context-window; write `context/resume-report.md`.
+- Next: whatever the checkpoint specifies. Touchpoints: integrity failures, resume-plan confirmation.

@@ -20,7 +20,16 @@ function setupTsProject(t) {
   const nm = path.join(dir, 'node_modules');
   fs.mkdirSync(path.join(nm, '.bin'), { recursive: true });
   fs.symlinkSync(TYPESCRIPT, path.join(nm, 'typescript'), 'junction');
-  fs.symlinkSync(path.join('..', 'typescript', 'bin', 'tsc'), path.join(nm, '.bin', 'tsc'), 'junction');
+  if (process.platform === 'win32') {
+    // File junctions/symlinks need privileges Windows CI rarely grants, and
+    // the extensionless POSIX bin is not executable by cmd.exe: shim the
+    // junctioned package instead (bin/tsc resolves ../lib relative to the
+    // junction target, so no copy is needed). Offline, deterministic.
+    fs.writeFileSync(path.join(nm, '.bin', 'tsc.cmd'),
+      `@${JSON.stringify(process.execPath)} ${JSON.stringify(path.join(nm, 'typescript', 'bin', 'tsc'))} %*\r\n`);
+  } else {
+    fs.symlinkSync(path.join('..', 'typescript', 'bin', 'tsc'), path.join(nm, '.bin', 'tsc'), 'junction');
+  }
   const dep = path.join(nm, 'is-number');
   fs.mkdirSync(dep);
   fs.writeFileSync(path.join(dep, 'package.json'), JSON.stringify({

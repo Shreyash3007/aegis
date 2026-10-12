@@ -1,3 +1,14 @@
+---
+name: 02-architect
+version: 0.6.0
+triggers: [architect phase, arch freeze gate, database and security design]
+not-triggers: [prd writing, code, shipping]
+inputs: [frozen scope, design system]
+outputs: [system design, schema, threat model, ADRs]
+chains-to: 03-plan
+autonomy: L1
+tokens-budget: 1500
+---
 # SKILL-02: ARCHITECT (Master Skill)
 
 ## Purpose

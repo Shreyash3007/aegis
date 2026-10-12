@@ -67,7 +67,7 @@ test('checkpoint covers app states: tamper detected by resume (exit 6)', (t) => 
   fs.writeFileSync(p, JSON.stringify(s, null, 2) + '\n');
   const r = aegis(dir, ['resume']);
   assert.equal(r.status, 6);
-  assert.match(r.stderr, /MODIFIED: .aegis\/apps\/web\/state.json/);
+  assert.match(r.stderr, /MODIFIED: \.aegis[\\/]apps[\\/]web[\\/]state\.json/);
 });
 
 test('multi-app checkpoint/resume reports per-app positions', (t) => {

@@ -1,64 +1,41 @@
+---
+name: 06c-session-resilience
+version: 0.6.0
+triggers: [skill boundary checkpoint, verified resume, retention gc]
+not-triggers: [duplicated files, unsafe state]
+inputs: [checkpoints, current brain state]
+outputs: [checkpoint records, resume reports]
+chains-to: checkpoint-target
+autonomy: L1
+tokens-budget: 600
+---
 # SKILL-06c: SESSION RESILIENCE
 
-## Expert Persona
-SRE (ex-Netflix, ex-Chaos Monkey). "Everything fails. The question is:
-can you recover without losing data - and can you prove it?"
+## Overview
+Guarantee resumability: checkpoints before/after skills, verified resume, idempotent operations.
+Everything fails; recovery without data loss — provably — is the job.
 
-## Purpose
-Guarantee resumability: checkpoints before/after skills, verified resume,
-idempotent operations.
+## When
+- Before every skill, after every skill, on `aegis resume`; brain + `.aegis` exist.
 
-## Trigger
-Before every skill, after every skill, on `aegis resume`.
+## When-NOT
+- Never duplicate files; LLM steps overwrite-identical or skip.
+- Checkpoint write fails -> halt the skill, alert human; state is not safe.
 
-## Entry Criteria
-- Brain + .aegis exist
+## Process
+- Before each skill record skill + git SHA + hashes: `aegis checkpoint`
+- After code changes commit (post-commit hook auto-checkpoints): `aegis checkpoint`
+- On resume run verification, then follow the 00c three-way protocol (regenerate views / escalate human files / commit-first on drift): `aegis resume`
+- Periodic retention (20 sessions / 30 days); GC conflict with active checkpoint -> keep newest, defer: `aegis gc`
 
-## Environment Requirements
-Any. Manual mode: human runs checkpoint/resume commands.
+## Verification
+- Integrity claims cite checkpoint ID + hash count from CLI output.
+- Self-check: resumable after a 2-hour outage? complete enough for a COLD agent?
 
-## Execution Steps
-1. Before each skill: `aegis checkpoint` (records skill, git SHA, hashes).
-2. After code changes: commit -> post-commit hook auto-checkpoints.
-3. On resume: `aegis resume` -> follow 00c's three-way corruption protocol:
-   - generated views corrupted -> regenerate (deterministic, A1.2)
-   - human files corrupted -> escalate with drift list
-   - code changed since checkpoint -> commit first, then resume
-4. `aegis gc` periodically (retention: 20 sessions / 30 days, O8).
+## Red Flags
+- Integrity mismatch -> 00c three-way protocol, never silent trust.
 
-## Idempotency Rules
-- CLI operations (transitions, gates, checkpoints) are idempotent records.
-- LLM steps: overwrite-identical or skip. Never duplicate files.
-
-## Input Schema
-- .aegis/checkpoints/*.json
-- Current brain state
-
-## Error Escalation Protocol
-- Checkpoint write fails -> halt the skill, alert human (state not safe).
-- Integrity mismatch -> 00c three-way protocol.
-- GC conflict with active checkpoint -> keep newest, defer GC.
-
-## Measurement Citations
-Integrity claims cite checkpoint ID + hash count from CLI output.
-
-## Brain Files
-Read: checkpoints | Write: checkpoint files, context/resume-report.md
-
-## Self-Critique Protocol (Standard)
-"Could I resume after a 2-hour internet outage? Is this checkpoint complete
-enough that a COLD agent could continue from it?"
-
-## Output Schema
-- Checkpoints in .aegis/checkpoints/
-- brain/context/resume-report.md after each resume
-
-## CLI Contract
-- Runtime: `aegis checkpoint`, `aegis resume`, `aegis gc`
-- Manual: human runs.
-
-## Next Skill
-Whatever the checkpoint specifies.
-
-## Human Touchpoints
-Integrity failure on human-authored files.
+## Interactions
+- CLI: `aegis checkpoint`, `aegis resume`, `aegis gc`.
+- Brain: read checkpoints; write checkpoint files, `context/resume-report.md`.
+- Next: whatever the checkpoint specifies. Touchpoint: integrity failure on human files.

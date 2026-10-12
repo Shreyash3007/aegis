@@ -1,3 +1,14 @@
+---
+name: 06-orchestrate
+version: 0.6.0
+triggers: [conductor routing, code review gate, session checkpoint, error escalation]
+not-triggers: [feature work, shipping]
+inputs: [runtime state, review targets, error reports]
+outputs: [next action, review verdicts, checkpoints, recovery plans]
+chains-to: 07-maintain
+autonomy: L1
+tokens-budget: 1200
+---
 # SKILL-06: ORCHESTRATE (Master Skill)
 
 ## Purpose

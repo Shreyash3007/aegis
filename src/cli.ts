@@ -54,6 +54,8 @@ Phase 0 (this build):
   wave                         emit the executor prompt block (brain/wave-prompt.md)
   monitor --once               one post-ship check pass for cron/CI (Phase 9)
   eval <file|--all>            skill-file eval harness (Phase 10)
+  lint-skills [--all|<file>]    Margin Format gate: frontmatter, budgets,
+                               body order, links, trigger collisions
   migrate                      schema migration across versions (Phase 12)
 
 All Phase 0-12 commands implemented.

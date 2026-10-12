@@ -12,7 +12,7 @@ test('tampered state.json detected (exit 6); fresh checkpoint verifies (exit 0)'
   const bad = aegis(dir, ['resume']);
   assert.equal(bad.status, 6);
   assert.match(bad.stderr, /INTEGRITY MISMATCH/);
-  assert.match(bad.stderr, /MODIFIED: \.aegis\/state\.json/);
+  assert.match(bad.stderr, /MODIFIED: \.aegis[\\/]state\.json/);
   assert.equal(aegis(dir, ['checkpoint']).status, 0);
   const good = aegis(dir, ['resume']);
   assert.equal(good.status, 0, good.stderr);

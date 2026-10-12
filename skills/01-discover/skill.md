@@ -1,3 +1,14 @@
+---
+name: 01-discover
+version: 0.6.0
+triggers: [prd freeze, scope freeze, design system freeze]
+not-triggers: [architecture, code, shipping]
+inputs: [vague idea, locked manifest]
+outputs: [frozen PRD, scope cut, design system]
+chains-to: 02-architect
+autonomy: L1
+tokens-budget: 1500
+---
 # SKILL-01: DISCOVER (Master Skill)
 
 ## Purpose
