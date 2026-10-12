@@ -166,7 +166,8 @@ test('jev mock: deterministic keyless judgments, zero network', async (t) => {
   const b = aegis(dir, ['jev', 'judge', '--file', f], { env });
   assert.equal(a.status, 0, a.stderr);
   assert.match(a.stdout, /backend: mock/);
-  assert.equal(a.stdout, b.stdout, 'mock is deterministic across runs');
+  const norm = (s) => s.replace(/latency: \d+ms/, 'latency: Nms');
+  assert.equal(norm(a.stdout), norm(b.stdout), 'mock is deterministic across runs');
 });
 
 test('jev oversized: no request spent, zero network', async (t) => {

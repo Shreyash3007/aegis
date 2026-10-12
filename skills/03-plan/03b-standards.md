@@ -45,6 +45,6 @@ If it can't be found in 30 seconds, the structure is wrong.
 - No test runner -> coverage UNMEASURED at G3; 80% intent kept; gap task to 07a.
 
 ## Interactions
-- CLI: `aegis transition 04a` (N1-blocked until `aegis contracts` verifies).
+- CLI: `aegis transition 04a` (N1 + DEMO-blocked until `aegis contracts` verifies and the demo is recorded + approved).
 - Brain: read execution-matrix + manifest; write `architecture/standards.md`.
 - Next: `04a-parallel-build`. Touchpoint: team convention conflicts.

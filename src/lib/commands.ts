@@ -18,6 +18,7 @@ import { typecheck } from '../commands/typecheck.js';
 import { hooks } from '../commands/hooks.js';
 import { wave } from '../commands/wave.js';
 import { clean, quarantine } from '../commands/clean.js';
+import { demo } from '../commands/demo.js';
 import { jev } from '../commands/jev.js';
 import { memory } from '../commands/memory.js';
 import { lintSkills } from '../commands/lint-skills.js';
@@ -29,7 +30,7 @@ const DISPATCH: Record<string, (args: string[]) => void | Promise<void>> = {
   checkpoint, resume, ast, sync, gc, config, merge, slice, validate, monitor,
   eval: evalCmd, migrate, fix, chore, import: importCmd, update, exec, typecheck, hooks,
   wave, 'lint-skills': (args) => lintSkills(args, Object.keys(DISPATCH)),
-  clean, quarantine, memory, jev,
+  clean, quarantine, memory, jev, demo,
 };
 
 export const COMMANDS: string[] = Object.keys(DISPATCH);

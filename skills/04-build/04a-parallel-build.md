@@ -16,8 +16,9 @@ Spawn agent teams to build independent slices in isolated git worktrees.
 Two slices build simultaneously only if neither writes a module the other imports.
 
 ## When
-- After 03b, contracts merged (N1 verified); matrix + standards exist.
+- After 03b, contracts merged (N1 verified) and DEMO approved with artifact recorded; matrix + standards exist.
 - L1+ for real worktrees; at L0 sequential plan only, labeled SEQUENTIAL-ONLY, parallel claims forbidden.
+- No lane opens pre-approval: `aegis demo status` shows the artifact AND the DEMO approval before the first slice.
 
 ## When-NOT
 - Never bypass the lane cap; never merge out of DAG order; never edit contracts inside a slice.

@@ -53,6 +53,9 @@ Phase 0 (this build):
                                judgment ring: batched Noul/Choice/Score over
                                direct TypeSafe HTTPS (needs TYPESAFE_API_KEY;
                                no key = degraded mode, announced verbatim)
+  demo <record|status>         prototype track: pin the demo artifact (UI html
+                               or contracts+sequence+trace); DEMO gate approval
+                               unlocks production lanes (transition 04a)
   slice <create|list|remove>   worktree-per-slice + lane management (Phase 6)
   validate <suite>             contracts|tests|deps|perf|e2e + owner-declared
                                custom suites (config set validate_suite.<name> "<cmd>")

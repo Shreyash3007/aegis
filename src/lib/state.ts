@@ -28,6 +28,9 @@ export interface State {
   // of forcing the full pipeline. The sizing IS the record - abuse is visible
   // in history, which is the enforcement. Optional: pre-0.3 states lack it.
   fix?: { active: FixRecord | null; log: FixRecord[] };
+  // Demo-approval gate (v0.6): the recorded prototype-track artifact
+  // (ui html | contract files). Optional: pre-0.6 states lack it.
+  demo?: { kind: 'ui' | 'contract'; files: string[]; at: string } | null;
   // Loop-until-clean gate (v0.6): per-branch VERIFY->CLASSIFY->FIX->RE-VERIFY
   // cycles (3 = escalate) + quarantined lanes the oracle refuses. Optional:
   // pre-0.6 states lack them; commands initialize with ??=.

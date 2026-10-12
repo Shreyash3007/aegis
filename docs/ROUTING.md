@@ -25,7 +25,7 @@ Aegis does not import skills. It **routes** them as *blades*:
 | 02-architect | archify, gitnexus-exploring |
 | 04-build | terminal-ops (+ aegis-native) |
 | 05-validate | systematic-debugging, test-driven-development, verification-loop, lint-and-validate, browser-qa, chrome-use, open-computer-use, brooks-lint, unslop, humanizer, tastegate |
-| prototype track | scroll-craft, image-use (demo gate approval before any production lane) |
+| prototype track | scroll-craft, image-use (`aegis demo record` pins the artifact; DEMO gate approval before any production lane) |
 | judgment-ring (all phases) | `aegis jev judge\|triage\|score\|classify\|cite`: typed Choice/Noul/Score over direct TypeSafe HTTPS behind `TYPESAFE_API_KEY` (model jev-1.13.0 verified live); no key = degraded mode that announces itself verbally. The jev-use MCP server is never required. |
 
 ## Missing blades (fallback, never block)

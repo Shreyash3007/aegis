@@ -40,7 +40,7 @@ Correctness (contracts hold, no phantom CLI refs) · Robustness (error paths exp
 
 ## 6. UI fidelity
 
-UI work locks full visual direction in an HTML demo before production lanes open. Pixel intent is never re-interpreted downstream. Non-UI work ships contracts + sequence + sample trace as its demo.
+UI work locks full visual direction in an HTML demo before production lanes open. Pixel intent is never re-interpreted downstream. Fidelity scales with UI surface: no surface → contracts + sequence + sample trace recorded (`demo record --kind contract`); single flow → one HTML flow; full surface → full HTML prototype (palette, type, components, ALL states). The scale is human judgment at the DEMO gate; the mechanical part is artifact-recorded + gate-approved, enforced by `transition 04a` refusal. Non-UI work ships contracts + sequence + sample trace as its demo.
 
 ## 7. Simulation tiers (artifacts or UNMEASURED = fail)
 
