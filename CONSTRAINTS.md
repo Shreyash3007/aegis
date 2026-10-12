@@ -25,7 +25,7 @@ Per-phase defaults: 00/01/02/03 = L1; 04 = L2; 05 = L1; 06 = L1; 07 = L2 (chores
 
 ## 3. Evidence law
 
-Zero gate passes without evidence. Every file maps slice → contract → evidence → blueprint; orphans fail the merge gate. Only the demo-iterate loop is unbounded; every machine loop carries a stop condition (3 cycles → escalate, exit 5 with evidence pack).
+Zero gate passes without evidence. Every file maps slice → contract → evidence → blueprint; orphans fail the merge gate. Only the demo-iterate loop is unbounded; every machine loop carries a stop condition (3 cycles → escalate, exit 5 with evidence pack — enforced by `aegis clean`, failing lanes parked with `aegis quarantine`).
 
 ## 4. Judge thresholds (tunable without re-inference)
 

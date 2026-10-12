@@ -25,7 +25,7 @@ The compiler is the oracle; this skill sequences merges, never adjudicates them.
 
 ## Process
 - Read topological merge order from the execution matrix: `aegis status`
-- Per branch run the oracle: `aegis merge check`
+- Per branch run the loop-until-clean gate (verify + classify + cycle accounting, 3 cycles = escalate): `aegis clean`
 - PASS (exit 0) -> lands; record in merge-log: `aegis merge check`
 - NOTHING TO MERGE (exit 13) -> investigate the empty slice, never mark done: `aegis merge check`
 - REFUSED (exit 9) -> read oracle output: contract drift (revert edit, adapter in feature code), tsc failure (resolve with compiler context), text conflict (resolve against contract, re-check): `aegis merge check`
@@ -41,8 +41,10 @@ The compiler is the oracle; this skill sequences merges, never adjudicates them.
 ## Red Flags
 - Unresolvable conflict -> human with both options + compiler context.
 - Repeated failure on one slice -> rebuild it in 04a with tighter spec.
+- Failing lane blocks siblings -> park it, never let it rot in the queue: `aegis quarantine freeze`
+- QUARANTINED refusal -> human clears after review, cycles resume intact: `aegis quarantine clear`
 
 ## Interactions
-- CLI: `aegis merge check`, `aegis ast diff`, `aegis ast build`, `aegis slice remove`.
+- CLI: `aegis clean`, `aegis merge check`, `aegis quarantine freeze`, `aegis quarantine clear`, `aegis ast diff`, `aegis ast build`, `aegis slice remove`.
 - Brain: read execution-matrix + module graph; write `merge-log.md`, AST snapshot via CLI.
 - Next: `04c-integration`. Touchpoint: unresolvable semantic conflict.

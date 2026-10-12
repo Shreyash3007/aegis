@@ -39,6 +39,12 @@ Phase 0 (this build):
   gc                           checkpoint retention + brain hygiene (Phase 2)
   config [set <key> <value>]   view/update setup interview answers
   merge check <branch>         merge oracle: real merge + tsc + contracts (Phase 6)
+  clean <branch>               loop-until-clean gate: oracle verify + classify +
+                               cycle accounting (3 cycles = escalate exit 5;
+                               unchanged-SHA re-run = doubt theater exit 5)
+  quarantine <freeze|clear|list> <target> --reason t
+                               park a failing lane: oracle refuses it until a
+                               human clears (siblings continue on last-good)
   slice <create|list|remove>   worktree-per-slice + lane management (Phase 6)
   validate <suite>             contracts|tests|deps|perf|e2e + owner-declared
                                custom suites (config set validate_suite.<name> "<cmd>")

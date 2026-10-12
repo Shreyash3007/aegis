@@ -237,9 +237,11 @@ export function loops(args: string[]): void {
   if (!reason) die(4, 'loops reset requires --reason (recorded in the audit trail)');
   const ctx = resolveState(args, true);
   const s = ctx.s;
-  const cleared = [...Object.keys(s.loop_counters), ...Object.keys(s.state_visits)];
+  const cleared = [...Object.keys(s.loop_counters), ...Object.keys(s.state_visits),
+    ...Object.keys(s.clean ?? {}).map((k) => `clean:${k}`)];
   s.loop_counters = {};
   s.state_visits = {};
+  s.clean = {};
   s.history.push({
     skill: s.current_skill, at: new Date().toISOString(),
     event: 'loops-reset', reason, cleared,

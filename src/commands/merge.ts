@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { REPO, die, git, gitRaw, ok } from '../lib/util.js';
-import { contractsPath } from '../lib/state.js';
+import { contractsPath, stateP } from '../lib/state.js';
 import { detectStack, typecheckCommand } from '../lib/oracles.js';
 
 /** aegis merge check <branch> - the merge oracle (N3, simulation-proven).
@@ -18,6 +18,16 @@ export function merge(args: string[]): void {
   try { branchSha = git(['rev-parse', branch]); }
   catch { die(2, `unknown branch: ${branch}`); }
   const baseSha = git(['rev-parse', 'HEAD']);
+  // Quarantined lanes (SPEC §8): the oracle refuses quarantined paths until
+  // a human clears them. Manual JSON read (not loadState): a corrupt or
+  // missing state must not change merge behavior - no quarantine, no refusal.
+  try {
+    const st = JSON.parse(fs.readFileSync(stateP, 'utf8'));
+    const hit = ((st.quarantine ?? []) as any[]).find((r) =>
+      r.branch === branch || r.target === branch ||
+      branch === `aegis/slice-${r.target}` || r.branch === `aegis/slice-${branch}`);
+    if (hit) die(9, `QUARANTINED ${branch} (frozen: ${hit.reason}) - oracle refuses until a human clears: aegis quarantine clear ${hit.target} --reason "<why>"`);
+  } catch { /* no readable state - nothing quarantined */ }
   if (branchSha === baseSha) {
     console.log('NOTHING TO MERGE: branch tip == base tip. This is NOT a pass (A1.6).');
     process.exit(13);

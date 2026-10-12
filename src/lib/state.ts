@@ -9,6 +9,8 @@ export interface FixRecord {
   kind: 'fix' | 'chore'; desc: string; opened_at: string;
   closed_at?: string; validation?: string; abandoned_reason?: string;
 }
+export interface CleanRecord { cycles: number; last_sha: string; last_class: string }
+export interface QuarantineRecord { target: string; branch: string; reason: string; at: string }
 export interface HistoryEntry {
   skill: string; at: string;
   event?: string; reason?: string; cleared?: string[]; // loops-reset audit fields
@@ -26,6 +28,11 @@ export interface State {
   // of forcing the full pipeline. The sizing IS the record - abuse is visible
   // in history, which is the enforcement. Optional: pre-0.3 states lack it.
   fix?: { active: FixRecord | null; log: FixRecord[] };
+  // Loop-until-clean gate (v0.6): per-branch VERIFY->CLASSIFY->FIX->RE-VERIFY
+  // cycles (3 = escalate) + quarantined lanes the oracle refuses. Optional:
+  // pre-0.6 states lack them; commands initialize with ??=.
+  clean?: Record<string, CleanRecord>;
+  quarantine?: QuarantineRecord[];
 }
 export interface Edge {
   from: string; to: string;
