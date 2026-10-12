@@ -14,14 +14,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { scratch, aegis } from './helpers.js';
 
-const SECTIONS = [
-  '## Expert Persona', '## Purpose', '## Trigger', '## Entry Criteria',
-  '## Environment Requirements', '## Input Schema', '## Execution Steps',
-  '## Self-Critique Protocol', '## Error Escalation Protocol', '## Output Schema',
-  '## Measurement Citations', '## CLI Contract', '## Brain Files',
-  '## Next Skill', '## Human Touchpoints',
-];
-
 /** A lint-clean Margin Format skill file so only the judge verdict decides the outcome. */
 function writeSkill(dir) {
   const file = path.join(dir, 'judged.md');

@@ -4,7 +4,7 @@ Weakening any threshold below is a contract change: it needs a reason recorded i
 
 ## 1. Autonomy ladder (mechanical classification)
 
-Patterns match in the CLI first; Jev Choice is second opinion only, logged. No match or low confidence floors at L1.
+Patterns match in the CLI first; Jev Choice is second opinion only, logged (wired as `aegis jev classify`). No match or low confidence floors at L1.
 
 - **L0 human-only:** `prod|auth|payment|credential|ship|migration|external-send|legal|PII-export`. Sacred gates, TTY retype-to-confirm. No flag skips.
 - **L1 supervised (default):** crosses a module boundary, unverifiable by compiler, or irreversible blast radius. Agent acts; doubt cycle + fresh review required; human approves the gate.

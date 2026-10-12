@@ -38,13 +38,13 @@ export function defaultTransitions(): Transitions {
       E('03a', '02b', { backward: true }), // planning found contract gap
       E('04a', '03a', { backward: true }), // contract gap - re-plan
       E('04a', '02b', { backward: true }), // contract gap - redesign contracts
-      E('04b', '04a', { backward: true }),
+      E('04b', '04a', { backward: true, gate: 'DEMO' }),
       E('04c', '04b', { backward: true }),
-      E('05a', '04a', { backward: true }),
-      E('05d', '04a', { backward: true }),
-      E('05e', '04a', { backward: true }),
+      E('05a', '04a', { backward: true, gate: 'DEMO' }),
+      E('05d', '04a', { backward: true, gate: 'DEMO' }),
+      E('05e', '04a', { backward: true, gate: 'DEMO' }),
       E('06b', '02a', { backward: true }),
-      E('08a', '04a', { backward: true }),
+      E('08a', '04a', { backward: true, gate: 'DEMO' }),
       E('08a', '03a', { backward: true }), // perf budget unrealistic -> re-plan
       E('08a', '02c', { backward: true }),
       E('08a', '05c', { backward: true }),

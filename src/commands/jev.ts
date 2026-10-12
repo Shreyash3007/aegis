@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { die, ok } from '../lib/util.js';
-import { judge, resolveBackend, type JevQuestion, type JevResult } from '../lib/jev.js';
+import { judge, type JevQuestion, type JevResult } from '../lib/jev.js';
 
 /** aegis jev <judge|triage|score|classify|cite> --file <json> [--threshold f]
  *
@@ -179,9 +179,6 @@ export async function jev(args: string[]): Promise<void> {
   const threshold = ti >= 0 ? Number(args[ti + 1]) : undefined;
   if (threshold !== undefined && (!Number.isFinite(threshold) || threshold < 0 || threshold > 1))
     die(4, '--threshold must be 0..1');
-  // Backend resolved here so degraded mode is announced even for shape
-  // errors below (the announcement is the contract, not the verdicts).
-  void resolveBackend();
   if (op === 'judge') return cmdJudge(file as string, threshold);
   if (op === 'triage') return cmdTriage(file as string, threshold ?? GATE_THRESHOLD);
   if (op === 'score') return cmdScore(file as string, threshold);

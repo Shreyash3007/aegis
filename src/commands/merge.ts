@@ -4,6 +4,7 @@ import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { REPO, die, git, gitRaw, ok } from '../lib/util.js';
 import { contractsPath, stateP } from '../lib/state.js';
+import { quarantineMatch } from './clean.js';
 import { detectStack, typecheckCommand } from '../lib/oracles.js';
 
 /** aegis merge check <branch> - the merge oracle (N3, simulation-proven).
@@ -23,9 +24,7 @@ export function merge(args: string[]): void {
   // missing state must not change merge behavior - no quarantine, no refusal.
   try {
     const st = JSON.parse(fs.readFileSync(stateP, 'utf8'));
-    const hit = ((st.quarantine ?? []) as any[]).find((r) =>
-      r.branch === branch || r.target === branch ||
-      branch === `aegis/slice-${r.target}` || r.branch === `aegis/slice-${branch}`);
+    const hit = ((st.quarantine ?? []) as any[]).find((r) => quarantineMatch(r, branch));
     if (hit) die(9, `QUARANTINED ${branch} (frozen: ${hit.reason}) - oracle refuses until a human clears: aegis quarantine clear ${hit.target} --reason "<why>"`);
   } catch { /* no readable state - nothing quarantined */ }
   if (branchSha === baseSha) {

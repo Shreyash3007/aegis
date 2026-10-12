@@ -26,12 +26,27 @@ function branchSha(branch: string): string {
   return sha;
 }
 
-/** Quarantine match: exact branch, the freeze target as given, or the
- *  slice-name <-> aegis/slice-<name> pair in either direction. */
+/** Freeze target -> stored branch: prefer the real ref when the name is
+ *  ambiguous (bare `feature` over a guessed `aegis/slice-feature`), so
+ *  `quarantine list` shows what the oracle actually refuses. */
+function resolveFreezeBranch(target: string): string {
+  const cand = target.startsWith('aegis/') ? target : `aegis/slice-${target}`;
+  if (gitTry(['rev-parse', '--verify', cand])) return cand;
+  if (gitTry(['rev-parse', '--verify', target])) return target;
+  return cand;
+}
+
+/** Quarantine record matcher: exact branch, the freeze target as given, or the
+ *  slice-name <-> aegis/slice-<name> pair in either direction. Single source
+ *  of truth for clean(), quarantine clear, and the merge-oracle refusal. */
+export function quarantineMatch(r: { branch: string; target: string }, branch: string): boolean {
+  return r.branch === branch || r.target === branch ||
+    branch === `aegis/slice-${r.target}` || r.branch === `aegis/slice-${branch}`;
+}
+
 export function quarantineHit(s: any, branch: string): any {
   const q: any[] = s.quarantine ?? [];
-  return q.find((r) => r.branch === branch || r.target === branch ||
-    branch === `aegis/slice-${r.target}` || r.branch === `aegis/slice-${branch}`);
+  return q.find((r) => quarantineMatch(r, branch));
 }
 
 function runOracle(branch: string): { code: number; out: string } {
@@ -126,7 +141,7 @@ export function quarantine(args: string[]): void {
   const ri = args.indexOf('--reason');
   const reason = ri >= 0 ? args[ri + 1] : undefined;
   if (!reason) die(4, `quarantine ${op} requires --reason <text> (audited, human-reviewed)`);
-  const branch = target.startsWith('aegis/') ? target : `aegis/slice-${target}`;
+  const branch = resolveFreezeBranch(target);
   const s = acquireState(stateP) as any;
   s.quarantine ??= [];
   const at = new Date().toISOString();
@@ -139,8 +154,7 @@ export function quarantine(args: string[]): void {
     ok(`quarantine frozen: ${target} (-> ${branch}) - oracle refuses until: aegis quarantine clear ${target} --reason "<why>"`);
     return;
   }
-  const i = s.quarantine.findIndex((r: any) => r.branch === branch || r.target === target ||
-    r.branch === target || r.target === branch);
+  const i = s.quarantine.findIndex((r: any) => quarantineMatch(r, branch) || quarantineMatch(r, target));
   if (i === -1) die(2, `not quarantined: ${target} (see: aegis quarantine list)`);
   const [cleared] = s.quarantine.splice(i, 1);
   const retained = (s.clean ?? {})[cleared.branch]?.cycles ?? (s.clean ?? {})[cleared.target]?.cycles ?? 0;

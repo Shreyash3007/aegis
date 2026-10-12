@@ -35,7 +35,7 @@ Phase 0 (this build):
   checkpoint [--quiet]         snapshot state + hashes
   resume                       verify integrity, print reconstruction pack
   ast build|diff               ts-morph module graph / impact analysis (Phase 1)
-  sync                         regenerate AGENTS.md + CLAUDE.md (Phase 2)
+  sync                         regenerate AGENTS.md + CLAUDE.md (Phase 2); merge the CLI's transitions invariant forward
   gc                           checkpoint retention + brain hygiene (Phase 2)
   config [set <key> <value>]   view/update setup interview answers
   merge check <branch>         merge oracle: real merge + tsc + contracts (Phase 6)

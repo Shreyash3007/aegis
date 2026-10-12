@@ -8,24 +8,19 @@ import { lintSkillFile } from '../lib/skill-lint.js';
  *  only when AEGIS_JUDGE_API_KEY is set (any OpenAI-compatible endpoint via
  *  AEGIS_JUDGE_URL / AEGIS_JUDGE_MODEL). Judge failures are failure-strict
  *  (exit 11); judge errors degrade honestly and never affect the exit code.
- *  Without the key the behavior is byte-identical to lint-only mode. */
-
-const MASTER_SECTIONS = ['## Purpose', '## Sub-Skills', '## Routing'];
-// Legacy section lists kept for reference: Margin Format is now enforced
-// through the shared checker (lib/skill-lint.js), single source of truth
-// with `lint-skills`. VAGUE-word and CLI-ref rules live there too.
-// The valid command set is INJECTED by the dispatcher (lib/commands.ts calls
-// setKnownCommands once at module load). No import of commands.ts here -
-// that import created the commands.ts <-> eval.ts cycle flagged by our own
-// `aegis ast build` DAG rule (02a).
+ *  Without the key the behavior is byte-identical to lint-only mode.
+ *
+ *  Margin Format itself is enforced through the shared checker
+ *  (lib/skill-lint.js), single source of truth with `lint-skills` - no
+ *  per-doctype section lists live here anymore (retired in v0.6.0).
+ *  The valid command set is INJECTED by the dispatcher (lib/commands.ts calls
+ *  setKnownCommands once at module load). No import of commands.ts here -
+ *  that import created the commands.ts <-> eval.ts cycle flagged by our own
+ *  `aegis ast build` DAG rule (02a). */
 let KNOWN: string[] = ['help'];
 export function setKnownCommands(cmds: string[]): void { KNOWN = [...cmds, 'help']; }
 
 interface CheckResult { file: string; checks: { name: string; pass: boolean; detail?: string }[]; pass: boolean }
-
-// Legacy per-doctype section lists retired in v0.6.0: Margin Format is
-// enforced through the shared checker (lib/skill-lint.js), single source
-// of truth with `lint-skills`.
 
 function evalFile(file: string): CheckResult {
   // Deterministic half delegates to the shared Margin Format checker:

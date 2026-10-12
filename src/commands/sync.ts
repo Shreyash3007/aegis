@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { AEGIS_DIR, REPO, ok, readJ } from '../lib/util.js';
-import { loadState, loadConfig, loadTransitions, Transitions } from '../lib/state.js';
+import { AEGIS_DIR, REPO, ok, readJ, writeJ } from '../lib/util.js';
+import { loadState, loadConfig, loadTransitions, Transitions, transP } from '../lib/state.js';
+import { defaultTransitions } from '../templates/transitions.js';
 
 /** Primary forward chain from 00a, rendered FROM transitions.json (the "docs
  *  render from the machine" rule - diagram and enforcement cannot disagree). */
@@ -45,6 +46,32 @@ function mergeBlock(existing: string | null, block: string): string {
     : existing + '\n\n' + block + '\n';
 }
 
+/** Template-owned machine files refresh with the CLI: transitions.json
+ *  carries no approvals (those live in state.json) and no hand edits worth
+ *  preserving across versions, so sync merges the CLI's invariant forward:
+ *  every edge INTO 04a (production lanes) carries gate DEMO, and the DEMO
+ *  gate exists. Custom edges and flags are preserved byte-for-byte -
+ *  existing flags win over the merge (??=), so this only ever ADDS the
+ *  invariant to older installs, never rewrites their graph. */
+function refreshTransitions(): string {
+  const want = defaultTransitions();
+  let cur: any;
+  try { cur = readJ<any>(transP); }
+  catch { cur = null; }
+  if (!cur || typeof cur !== 'object') {
+    writeJ(transP, want);
+    return 'transitions.json installed from CLI template';
+  }
+  cur.gates ??= {};
+  let touched = false;
+  if (!cur.gates.DEMO) { cur.gates.DEMO = want.gates.DEMO; touched = true; }
+  for (const e of cur.edges ?? []) {
+    if (e.to === '04a' && !e.gate) { e.gate = 'DEMO'; touched = true; }
+  }
+  if (touched) writeJ(transP, cur);
+  return touched ? 'transitions.json merged forward (DEMO gate on 04a entries)' : 'transitions.json already current';
+}
+
 export function sync(): void {
   const ctxP = path.join(REPO, 'brain', 'context-window.md');
   const ctx = fs.existsSync(ctxP) ? fs.readFileSync(ctxP, 'utf8') : '# Context Window\n';
@@ -67,7 +94,7 @@ export function sync(): void {
     const existing = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null;
     fs.writeFileSync(p, mergeBlock(existing, block));
   }
-  ok('AGENTS.md + CLAUDE.md synced (AEGIS block only - hand-written content preserved)');
+  ok(`AGENTS.md + CLAUDE.md synced (AEGIS block only - hand-written content preserved) | ${refreshTransitions()}`);
 }
 
 /** Phase 2: aegis gc - checkpoint retention (O8: 20 sessions or 30 days) +
