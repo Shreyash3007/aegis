@@ -45,6 +45,10 @@ Phase 0 (this build):
   quarantine <freeze|clear|list> <target> --reason t
                                park a failing lane: oracle refuses it until a
                                human clears (siblings continue on last-good)
+  memory <add|list|get|verify|retire|reconcile|promote|sync>
+                               record memory: typed decision/contract/finding/
+                               assumption records with confidence, citations,
+                               expiry; contradictions open reconcile tasks
   slice <create|list|remove>   worktree-per-slice + lane management (Phase 6)
   validate <suite>             contracts|tests|deps|perf|e2e + owner-declared
                                custom suites (config set validate_suite.<name> "<cmd>")

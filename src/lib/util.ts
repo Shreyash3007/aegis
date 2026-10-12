@@ -39,7 +39,16 @@ export const readJ = <T>(p: string): T => JSON.parse(fs.readFileSync(p, 'utf8'))
 export const writeJ = (p: string, o: unknown): void => {
   const tmp = `${p}.tmp-${process.pid}`;
   fs.writeFileSync(tmp, JSON.stringify(o, null, 2) + '\n');
-  fs.renameSync(tmp, p);
+  // Windows denies rename-over-open (a concurrent lock-free read holds the
+  // target): retry transient lock errors, then let the last one surface.
+  for (let i = 0; ; i++) {
+    try { fs.renameSync(tmp, p); return; }
+    catch (e: any) {
+      const transient = ['EPERM', 'EBUSY', 'EACCES'].includes(e?.code);
+      if (!transient || i >= 5) { try { fs.rmSync(tmp, { force: true }); } catch { /* already moved */ } throw e; }
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25 * (i + 1));
+    }
+  }
 };
 
 /** git helper - argv array, NO shell: branch/slice names are user input and

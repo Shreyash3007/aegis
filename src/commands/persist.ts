@@ -3,6 +3,7 @@ import path from 'node:path';
 import { AEGIS_DIR, die, git, ok, readJ, writeJ } from '../lib/util.js';
 import { loadState, loadStateFrom, declaredApps, appStatePath } from '../lib/state.js';
 import { brainHashes } from '../lib/hashes.js';
+import { memorySummary } from './memory.js';
 
 interface Checkpoint {
   id: string; at: string; skill: string;
@@ -51,11 +52,13 @@ export function resume(): void {
     const d = git(['status', '--porcelain']);
     if (d) gitDrift = `\n  uncommitted changes: ${d.split('\n').length} files`;
   } catch { /* ignore */ }
+  const mem = memorySummary();
   console.log([
     'RECONSTRUCTION PACK',
     `  checkpoint: ${cp.id}`,
     `  resume at skill: ${cp.skill}`,
     ...(cp.apps ? Object.entries(cp.apps).map(([a, sk]) => `  app ${a}: ${sk}`) : []),
+    ...(mem ? [`  ${mem}`] : []),
     `  git HEAD at checkpoint: ${cp.gitSha.slice(0, 8)}`,
     `  integrity: VERIFIED (${Object.keys(cp.hashes).length} files match)${gitDrift}`,
   ].join('\n'));

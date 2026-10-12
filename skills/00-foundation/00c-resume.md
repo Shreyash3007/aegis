@@ -25,7 +25,7 @@ Everything fails; the question is whether you notice.
 
 ## Process
 - Run hash verification automatically: `aegis resume`
-- If VERIFIED: read the reconstruction pack (skill, git SHA, integrity): `aegis resume`
+- If VERIFIED: read the reconstruction pack (skill, git SHA, integrity, memory summary): `aegis resume`
 - Present resume plan (what was in flight, what is next); confirm with human: `aegis status`
 - Transition back into the checkpointed skill, or revert to known-good on human preference: `aegis transition`
 - If INTEGRITY MISMATCH (exit 6): corrupted GENERATED views -> regenerate and retry: `aegis ast build`
