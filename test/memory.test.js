@@ -8,9 +8,13 @@ import path from 'node:path';
 import { scratch, aegis } from './helpers.js';
 
 const mem = (dir, args) => aegis(dir, ['memory', ...args]);
-const addFinding = (dir, extra = []) => mem(dir, ['add', '--type', 'finding',
-  '--title', 'oracle refuses quarantined paths', '--body', 'merge check exits 9 on frozen lanes',
-  '--cites', 'src/commands/merge.ts:44', ...extra]);
+// Fixture cites a real file: cites must resolve (exit 4 otherwise).
+const addFinding = (dir, extra = []) => {
+  fs.writeFileSync(path.join(dir, 'oracle.ts'), 'export const oracle = true\n');
+  return mem(dir, ['add', '--type', 'finding',
+    '--title', 'oracle refuses quarantined paths', '--body', 'merge check exits 9 on frozen lanes',
+    '--cites', 'oracle.ts:1', ...extra]);
+};
 
 test('memory add/list/get: typed record with citations', (t) => {
   const dir = scratch(t);
@@ -30,6 +34,19 @@ test('memory add: rejects bad type, bad confidence, missing link targets', (t) =
   assert.equal(addFinding(dir, ['--confidence', '2']).status, 4);
   assert.equal(addFinding(dir, ['--supersedes', 'mem-9999']).status, 4);
   assert.equal(addFinding(dir, ['--contradicts', 'mem-9999']).status, 4);
+});
+
+test('memory add: cites must resolve (phantom citations refused)', (t) => {
+  const dir = scratch(t);
+  const phantom = mem(dir, ['add', '--type', 'finding', '--title', 'x', '--body', 'y', '--cites', 'src/nope.ts:1']);
+  assert.equal(phantom.status, 4, phantom.stderr);
+  assert.match(phantom.stderr, /cite target not found/);
+  const dangling = mem(dir, ['add', '--type', 'finding', '--title', 'x', '--body', 'y', '--cites', 'mem-0099']);
+  assert.equal(dangling.status, 4, dangling.stderr);
+  assert.match(dangling.stderr, /dangling record ref/);
+  fs.writeFileSync(path.join(dir, 'real.ts'), 'export const r = 1\n');
+  assert.equal(mem(dir, ['add', '--type', 'finding', '--title', 'x', '--body', 'y',
+    '--cites', 'real.ts:1,https://example.com/spec']).status, 0);
 });
 
 test('memory supersede: old record marked, link recorded', (t) => {

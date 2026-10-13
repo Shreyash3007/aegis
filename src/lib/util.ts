@@ -26,6 +26,28 @@ if (!repoRoot) die(1, `not a git repo (no .git found at or above ${process.cwd()
 export const REPO = repoRoot;
 export const AEGIS_DIR = path.join(REPO, '.aegis');
 
+/** Main checkout of this repo, or null on any failure. In a linked slice
+ *  worktree, .git is a file pointing at the real gitdir, so state-guidance
+ *  errors can point the operator back instead of suggesting a forked init. */
+export function worktreeMain(): string | null {
+  try {
+    const out = execFileSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'],
+      { cwd: REPO, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    const main = path.dirname(out);
+    return main === REPO ? null : main;
+  } catch { return null; }
+}
+
+/** Missing-state guidance, single source of truth: in a slice worktree point
+ *  back at the main checkout (suggesting init there would fork pipeline
+ *  truth); elsewhere suggest init. `lead` names what's missing, `tail`
+ *  preserves each call site's exact historical suffix. */
+export function noStateMsg(lead: string, tail = ''): string {
+  const main = worktreeMain();
+  if (main) return `${lead} - this is a slice worktree; aegis state lives in the main checkout (${main}) - run the command there, never init here (a second .aegis would fork pipeline truth)`;
+  return `${lead} - run aegis init${tail}`;
+}
+
 export const ok = (msg: string): void => console.log(`OK ${msg}`);
 
 export const sha = (s: string | Buffer): string =>

@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { die, ok, readJ, writeJ } from '../lib/util.js';
+import { die, ok, readJ, writeJ, noStateMsg } from '../lib/util.js';
 import { SCHEMA_VERSION, stateP, configP } from '../lib/state.js';
 
 /** aegis migrate - schema migrations for .aegis state across CLI versions (O7). */
@@ -8,7 +8,7 @@ const MIGRATIONS: Record<number, (s: any) => any> = {
 };
 
 export function migrate(): void {
-  if (!fs.existsSync(stateP)) die(2, 'no state - run aegis init first');
+  if (!fs.existsSync(stateP)) die(2, noStateMsg('no state', ' first'));
   const s = readJ<any>(stateP);
   const from = s.schema_version ?? 0;
   if (from === SCHEMA_VERSION) { ok(`schema already at v${SCHEMA_VERSION} - nothing to migrate`); return; }

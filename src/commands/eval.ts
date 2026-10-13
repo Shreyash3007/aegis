@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { AEGIS_DIR, die, ok } from '../lib/util.js';
+import { AEGIS_DIR, die, ok, noStateMsg } from '../lib/util.js';
 import { lintSkillFile, parseFrontmatter, splitList } from '../lib/skill-lint.js';
 import { judge, resolveBackend } from '../lib/jev.js';
 import { postJson } from '../lib/http.js';
@@ -98,7 +98,7 @@ export async function evalCmd(args: string[]): Promise<void> {
       }
     };
     walk(skillsDir);
-    if (!files.length) die(2, 'no skills found - run aegis init first');
+    if (!files.length) die(2, noStateMsg('no skills found', ' first'));
   } else if (args[0] && fs.existsSync(args[0])) {
     files = [args[0]];
   } else die(2, 'usage: aegis eval <file.md|--all>');
@@ -203,7 +203,7 @@ async function evalTrigger(args: string[]): Promise<void> {
   if (backend.name === 'degraded')
     die(2, 'trigger eval needs a judgment backend (precision is unmeasurable without a judge): set TYPESAFE_API_KEY or JEV_BACKEND=mock');
   const scope = triggerScope();
-  if (!scope.length) die(2, 'no trigger-bearing skills found - run aegis init first');
+  if (!scope.length) die(2, noStateMsg('no trigger-bearing skills found', ' first'));
   const cases = file ? readCases(file, scope) : builtinCases(scope);
   const options: Record<string, string> = Object.fromEntries(
     scope.map((s) => [s.name, s.triggers.join('; ')]));

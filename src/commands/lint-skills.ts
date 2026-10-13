@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { AEGIS_DIR, die, ok } from '../lib/util.js';
+import { AEGIS_DIR, die, ok, noStateMsg } from '../lib/util.js';
 import { lintSkillFile, buildTriggerMap } from '../lib/skill-lint.js';
 
 /** aegis lint-skills [--all|<file>] - Margin Format gate (CONSTRAINTS.md §2).
@@ -20,7 +20,7 @@ export async function lintSkills(args: string[], knownCommands: string[]): Promi
       }
     };
     walk(skillsDir);
-    if (!files.length) die(2, 'no skills found - run aegis init first');
+    if (!files.length) die(2, noStateMsg('no skills found', ' first'));
   } else if (fs.existsSync(args[0])) {
     files = [args[0]];
   } else die(2, 'usage: aegis lint-skills [--all|<file.md>]');

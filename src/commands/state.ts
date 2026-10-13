@@ -2,6 +2,23 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { AEGIS_DIR, REPO, die, git, gitTry, ok, readJ, writeJ } from '../lib/util.js';
 import { loadState, loadStateFrom, loadTransitions, loadConfig, contractsPath, declaredApps, appStatePath, resolveState, commitState, acquireState, stateP, State, Transitions, Edge } from '../lib/state.js';
+import { memorySummary } from './memory.js';
+
+/** v0.6.0 machinery at a glance (conductor visibility): quarantine, clean
+ *  cycles, demo record. Conditional lines only - empty machinery prints
+ *  nothing, so stock repos see byte-identical status output. */
+function machineryLines(s: State): string[] {
+  const L: string[] = [];
+  for (const r of s.quarantine ?? [])
+    L.push(`quarantine FROZEN: ${r.target} (-> ${r.branch}): ${r.reason}`);
+  for (const [b, rec] of Object.entries(s.clean ?? {}))
+    L.push(`clean FAILING: ${b} (cycle ${rec.cycles}/3: ${rec.last_class})`);
+  if (s.demo)
+    L.push(`demo: ${s.demo.kind} [${s.demo.files.join(', ')}]`);
+  const mem = memorySummary();
+  if (mem) L.push(mem);
+  return L;
+}
 
 function blockers(s: State, t: Transitions, e: Edge): string[] {
   const b: string[] = [];
@@ -48,6 +65,11 @@ function writeHandoff(): void {
     (root.lanes.active.length ? ` [${root.lanes.active.join(', ')}]` : ''));
   L.push(`- open fix: ${root.fix?.active ? `"${root.fix.active.desc}"` : 'none'}`);
   L.push('');
+  L.push('## Machinery');
+  const mach = machineryLines(root);
+  if (mach.length) for (const m of mach) L.push(`- ${m}`);
+  else L.push('- clean (no quarantine, no failing clean cycles, no demo record, no memory)');
+  L.push('');
   L.push('## Legal forward transitions');
   const fwd = t.edges.filter((e) => e.from === root.current_skill && !e.backward);
   if (fwd.length) {
@@ -88,6 +110,7 @@ export function status(args: string[] = []): void {
   if (apps.length && !args.includes('--app')) {
     const root = loadState();
     console.log(`multi-app repo (apps: ${apps.join(', ')}) | lanes: ${root.lanes.active.length}/${root.lanes.max} [${root.lanes.active.join(', ')}]`);
+    for (const l of machineryLines(root)) console.log(l);
     for (const a of apps) {
       const s = loadStateFrom(appStatePath(a));
       console.log(`  ${a}: ${s.current_skill}${s.fix?.active ? ` | fix OPEN "${s.fix.active.desc}"` : ''}`);
@@ -100,6 +123,7 @@ export function status(args: string[] = []): void {
   const t = loadTransitions();
   console.log(`${app ? `app: ${app} | ` : ''}state: ${s.current_skill} | lanes: ${s.lanes.active.length}/${s.lanes.max} [${s.lanes.active.join(', ')}]`);
   if (s.fix?.active) console.log(`fix OPEN: "${s.fix.active.desc}" (since ${s.fix.active.opened_at}) - close: aegis fix done`);
+  for (const l of machineryLines(s)) console.log(l);
   const tb = loadConfig().token_budget;
   if (tb) console.log(`token budget: ${tb} (advisory)`);
   for (const e of t.edges.filter((e) => e.from === s.current_skill)) {

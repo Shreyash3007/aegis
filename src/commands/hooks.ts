@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { die, ok, readJ, writeJ } from '../lib/util.js';
+import { die, ok, readJ, writeJ, noStateMsg } from '../lib/util.js';
 import { configP, Config } from '../lib/state.js';
 import { installHooks, managedHookNames, HookProfile } from '../lib/hooks.js';
 
@@ -11,7 +11,7 @@ const PROFILES: HookProfile[] = ['minimal', 'standard', 'strict'];
  *  Reports which hooks were installed and which were removed. Foreign hooks
  *  and `.aegis-orig` backups are always preserved (handled in installHooks). */
 export function hooks(args: string[]): void {
-  if (!fs.existsSync(configP)) die(2, 'no config - run aegis init first');
+  if (!fs.existsSync(configP)) die(2, noStateMsg('no config', ' first'));
   const cfg = readJ<Config>(configP);
   const pi = args.indexOf('--profile');
   let profile: HookProfile;
