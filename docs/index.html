@@ -41,6 +41,12 @@
                 margin: 24px auto 0; }
   .hero .cta { margin-top: 36px; display: flex; gap: 12px; justify-content: center; }
   .hero .cta .btn { font-size: 15px; padding: 12px 26px; border-radius: 10px; }
+  .badge { display: inline-block; font-family: var(--mono); font-size: 12px; color: var(--accent-ink);
+           border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 5px 16px;
+           margin-bottom: 26px; text-decoration: none; }
+  .badge:hover { border-color: var(--accent); }
+  .badge .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+                background: #1a7f37; margin-right: 8px; vertical-align: 1px; }
   .install { margin: 40px auto 0; max-width: 640px; background: var(--bg-soft); border: 1px solid var(--line);
              border-radius: 10px; padding: 14px 18px; font-family: var(--mono); font-size: 12px;
              color: var(--ink); text-align: left; white-space: normal; word-break: break-all; }
@@ -80,6 +86,24 @@
   .callout .sentence { font-family: var(--mono); font-size: clamp(16px, 3vw, 24px); background: var(--ink);
                        color: #fff; display: inline-block; padding: 18px 32px; border-radius: 12px; margin-top: 28px; }
 
+  /* pipeline rail + terminal evidence */
+  .rail { margin-top: 44px; width: 100%; height: auto; }
+  .rail .node { fill: #fff; stroke: var(--line); }
+  .rail .nd { font-family: var(--mono); font-size: 14px; font-weight: 700; fill: var(--ink); }
+  .rail .nm { font-size: 9.5px; fill: var(--muted); }
+  .rail .edge { stroke: var(--faint); stroke-width: 1.5; }
+  .rail .gate { fill: #fff; stroke: #cf222e; stroke-width: 1.5; }
+  .rail .gl { font-family: var(--mono); font-size: 9.5px; font-weight: 700; fill: #cf222e; }
+  .caption { font-size: 12.5px; color: var(--faint); margin-top: 10px; }
+  .term { margin-top: 44px; background: #0d1117; border-radius: 12px; padding: 22px 24px;
+          font-family: var(--mono); font-size: 12.5px; line-height: 1.75; text-align: left;
+          overflow-x: auto; white-space: pre; }
+  .term .p { color: #7ee787; user-select: none; }
+  .term .c { color: #e6edf3; }
+  .term .ok { color: #7ee787; }
+  .term .fail { color: #ffa198; }
+  .term .dim { color: #8b949e; }
+
   /* numbers */
   .numbers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 44px; text-align: center; }
   @media (max-width: 760px) { .numbers { grid-template-columns: repeat(2, 1fr); } }
@@ -100,6 +124,7 @@
     <div class="links">
       <a href="#how">How it works</a>
       <a href="#features">Features</a>
+      <a href="#refusals">Refusals</a>
       <a href="#proof">Proof</a>
       <a class="btn btn-primary" href="https://github.com/Shreyash3007/aegis">GitHub</a>
     </div>
@@ -108,6 +133,7 @@
 
 <header class="hero">
   <div class="wrap">
+    <a class="badge" href="https://github.com/Shreyash3007/aegis/releases/tag/v0.7.0"><span class="dot"></span>v0.7.0 · latest</a>
     <h1>Your AI agent is fast.<br>We make it <em>trustworthy</em>.</h1>
     <p class="sub">Agents sometimes claim work they never verified. Aegis puts the rules in code —
       gates, proofs, and a memory your repo keeps — so you can trust the speed without losing the truth.</p>
@@ -143,7 +169,7 @@
       enforces mechanically, 68 skill files guide the agent's thinking — and every claim is cited or honestly labeled.</p>
     <div class="steps">
       <div class="step"><div class="n">01</div><h3>Enforcement, in code</h3>
-        <p>A state machine for the work itself. Illegal jumps refused. Five sacred gates pause for a human.
+        <p>A state machine for the work itself. Illegal jumps refused. Six human gates pause for a human.
            Hand-edit the record and resume refuses.</p></div>
       <div class="step"><div class="n">02</div><h3>Judgment, in skills</h3>
         <p>68 eval-tested skill files: adversarial PRD review, contract-first design, security checklists,
@@ -152,6 +178,34 @@
         <p>brain/ is committed — the permanent second brain. Monday's agent wakes up knowing what Friday's knew.
            Not because the model remembered — because the repo did.</p></div>
     </div>
+    <svg class="rail" viewBox="0 0 940 118" role="img" aria-label="Aegis pipeline: nine phases, six human gates">
+      <g class="edge">
+        <line x1="94" y1="31" x2="111" y2="31"/><line x1="199" y1="31" x2="216" y2="31"/>
+        <line x1="304" y1="31" x2="321" y2="31"/><line x1="409" y1="31" x2="426" y2="31"/>
+        <line x1="514" y1="31" x2="531" y2="31"/><line x1="619" y1="31" x2="636" y2="31"/>
+        <line x1="724" y1="31" x2="741" y2="31"/><line x1="829" y1="31" x2="846" y2="31"/>
+      </g>
+      <g text-anchor="middle">
+        <rect class="node" x="6" y="8" width="88" height="46" rx="8"/><text class="nd" x="50" y="29">00</text><text class="nm" x="50" y="43">Foundation</text>
+        <rect class="node" x="111" y="8" width="88" height="46" rx="8"/><text class="nd" x="155" y="29">01</text><text class="nm" x="155" y="43">Discover</text>
+        <rect class="node" x="216" y="8" width="88" height="46" rx="8"/><text class="nd" x="260" y="29">02</text><text class="nm" x="260" y="43">Architect</text>
+        <rect class="node" x="321" y="8" width="88" height="46" rx="8"/><text class="nd" x="365" y="29">03</text><text class="nm" x="365" y="43">Plan</text>
+        <rect class="node" x="426" y="8" width="88" height="46" rx="8"/><text class="nd" x="470" y="29">04</text><text class="nm" x="470" y="43">Build</text>
+        <rect class="node" x="531" y="8" width="88" height="46" rx="8"/><text class="nd" x="575" y="29">05</text><text class="nm" x="575" y="43">Validate</text>
+        <rect class="node" x="636" y="8" width="88" height="46" rx="8"/><text class="nd" x="680" y="29">06</text><text class="nm" x="680" y="43">Orchestrate</text>
+        <rect class="node" x="741" y="8" width="88" height="46" rx="8"/><text class="nd" x="785" y="29">07</text><text class="nm" x="785" y="43">Maintain</text>
+        <rect class="node" x="846" y="8" width="88" height="46" rx="8"/><text class="nd" x="890" y="29">08</text><text class="nm" x="890" y="43">Ship</text>
+      </g>
+      <g text-anchor="middle">
+        <polygon class="gate" points="155,77 164,86 155,95 146,86"/><text class="gl" x="155" y="109">PRD</text>
+        <polygon class="gate" points="242,77 251,86 242,95 233,86"/><text class="gl" x="242" y="109">G1</text>
+        <polygon class="gate" points="278,77 287,86 278,95 269,86"/><text class="gl" x="278" y="109">G2</text>
+        <polygon class="gate" points="470,77 479,86 470,95 461,86"/><text class="gl" x="470" y="109">DEMO</text>
+        <polygon class="gate" points="575,77 584,86 575,95 566,86"/><text class="gl" x="575" y="109">G3</text>
+        <polygon class="gate" points="890,77 899,86 890,95 881,86"/><text class="gl" x="890" y="109">G4</text>
+      </g>
+    </svg>
+    <p class="caption">The pipeline, simplified — nine phases, six human gates (red). Full graph: 56 edges in <span style="font-family:var(--mono)">transitions.json</span>.</p>
   </div>
 </section>
 
@@ -237,6 +291,19 @@
       <div class="num"><div class="v">6</div><div class="k">human gates<br>(PRD·G1·G2·G3·G4·DEMO)</div></div>
       <div class="num"><div class="v">35</div><div class="k">CLI commands,<br>one surface</div></div>
     </div>
+    <div class="term"><span class="dim"># real session transcript — the v0.7.0 self-cycle, abridged</span>
+<span class="p">$</span> <span class="c">aegis transition 04a</span>
+<span class="fail">FAIL ILLEGAL: gate DEMO (demo-approval) OPEN - CLI refuses</span>
+<span class="p">$</span> <span class="c">aegis demo record --kind ui --file docs/index.html</span>
+<span class="ok">OK demo recorded: ui [docs/index.html]</span>
+<span class="p">$</span> <span class="c">aegis gate DEMO --approve</span>
+<span class="ok">OK gate DEMO approved and recorded</span>
+<span class="p">$</span> <span class="c">aegis transition 04a</span>
+<span class="ok">OK transition 03b -&gt; 04a recorded</span>
+<span class="p">$</span> <span class="c">aegis clean aegis/slice-poison</span>
+<span class="fail">FAIL clean FAIL aegis/slice-poison: CONTRACT-DRIFT @ 380beb84 (cycle 1/3)</span>
+<span class="p">$</span> <span class="c">aegis quarantine freeze aegis/slice-poison --reason "contract ownership dispute"</span>
+<span class="ok">OK quarantine frozen: aegis/slice-poison (-&gt; aegis/slice-poison) - oracle refuses until: …</span></div>
     <p class="lead" style="margin-top:36px">Every release survives independent adversarial re-testing on real repos —
       and Aegis runs on its own repo, hooks and all. v0.6.0: judgment ring live-verified
       against TypeSafe, trigger precision measured at 43/43, and a 71-step self-dogfood
@@ -253,7 +320,7 @@
 
 <footer>
   <div class="wrap">
-    <div>AEGIS · MIT License · v0.7.0</div>
+    <div>AEGIS · MIT License · <a href="https://github.com/Shreyash3007/aegis/releases/tag/v0.7.0" style="color:var(--muted)">v0.7.0</a></div>
     <div>
       <a href="https://github.com/Shreyash3007/aegis">GitHub</a> ·
       <a href="https://github.com/Shreyash3007/aegis/releases">Releases</a> ·
