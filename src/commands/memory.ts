@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { AEGIS_DIR, REPO, die, ok } from '../lib/util.js';
+import { AEGIS_DIR, REPO, die, ok, noStateMsg } from '../lib/util.js';
 
 /** Record memory beside brain/ (SPEC §8): typed decision/contract/finding/
  *  assumption records with status, confidence, citations, expiry and
@@ -35,7 +35,7 @@ export interface MemRecord {
 }
 
 function needInit(): void {
-  if (!fs.existsSync(AEGIS_DIR)) die(2, 'missing .aegis - run aegis init');
+  if (!fs.existsSync(AEGIS_DIR)) die(2, noStateMsg('missing .aegis'));
   fs.mkdirSync(path.join(MEM(), 'lanes'), { recursive: true });
 }
 
@@ -230,6 +230,18 @@ function cmdAdd(opt: Record<string, string>): void {
   const confidence = parseConfidence(opt.confidence, 0.5);
   const expiry = parseExpiry(opt.expiry);
   const cites = (opt.cites ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  // Cite-or-stamp, enforced: local-path cites must resolve to repo files
+  // (`file` or `file:line`), record refs must name live records, URLs are
+  // exempt. A cite that points nowhere is a fabricated citation.
+  for (const c of cites) {
+    if (/^[a-z]+:\/\//i.test(c)) continue;
+    if (/^mem-\d+$/.test(c)) {
+      if (!find(c)) die(4, `cite target not found: ${c} (dangling record ref)`);
+      continue;
+    }
+    if (!fs.existsSync(path.resolve(REPO, c.replace(/:\d+.*$/, ''))))
+      die(4, `cite target not found: ${c} (cites must resolve to repo files; URLs exempt)`);
+  }
   const lane = opt.lane || null;
   if (lane && !/^[a-z0-9-]+$/.test(lane)) die(4, `lane must match [a-z0-9-], got '${lane}'`);
   const at = new Date().toISOString();

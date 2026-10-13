@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { AEGIS_DIR, die, readJ, writeJ } from './util.js';
+import { AEGIS_DIR, die, readJ, writeJ, noStateMsg } from './util.js';
 
 export const SCHEMA_VERSION = 1;
 
@@ -88,7 +88,7 @@ export const transP = path.join(AEGIS_DIR, 'transitions.json');
 export const configP = path.join(AEGIS_DIR, 'config.json');
 
 function loadJsonOr<T>(p: string, what: string): T {
-  if (!fs.existsSync(p)) die(2, `missing ${what} - run aegis init`);
+  if (!fs.existsSync(p)) die(2, noStateMsg(`missing ${what}`));
   try { return readJ<T>(p); }
   catch { die(2, `corrupt ${what} - fix it, restore from a checkpoint, or re-run aegis init`); }
 }
