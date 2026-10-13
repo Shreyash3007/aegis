@@ -90,3 +90,18 @@ test('merge oracle: no changes vs base is exit 13, never a pass (A1.6)', (t) => 
   assert.match(r.stdout, /NOTHING TO MERGE/);
   assert.match(r.stdout, /NOT a pass/);
 });
+
+test('merge oracle: works with NO global/system git identity (CI-runner parity)', (t) => {
+  // GitHub runners ship no global git identity; some git versions demand a
+  // committer even for --no-commit merges. The oracle must be self-sufficient
+  // (v0.6-0.8 shipped red on CI because of exactly this).
+  const dir = setupTsProject(t);
+  branchWith(t, dir, 'good-noid', 'util2.ts',
+    "import isNumber from 'is-number';\nexport const pick2 = (n: unknown): number => (isNumber(n) ? n : 1);\n");
+  const emptyCfg = path.join(dir, 'empty-gitconfig');
+  fs.writeFileSync(emptyCfg, '');
+  const r = aegis(dir, ['merge', 'check', 'good-noid'],
+    { env: { GIT_CONFIG_GLOBAL: emptyCfg, GIT_CONFIG_SYSTEM: emptyCfg } });
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.match(r.stdout, /merge oracle PASSED good-noid/);
+});

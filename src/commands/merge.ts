@@ -11,6 +11,12 @@ import { detectStack, typecheckCommand } from '../lib/oracles.js';
  *  Real git merge in an OS-temp worktree (A1.5), tsc, contract immutability
  *  via git-native diff (A1.1). Exit 9 = refused. Exit 13 = nothing to merge
  *  (never reported as PASS, A1.6). */
+/** Some git versions demand a committer identity even for --no-commit
+ *  merges, and clean CI runners ship no global identity (GitHub runners) -
+ *  the v0.6-0.8 releases shipped with this broken unnoticed. Synthetic
+ *  per-invocation identity: --no-commit creates nothing, repo config is
+ *  never touched, and real conflicts behave identically. */
+const ORACLE_ID = ['-c', 'user.email=aegis-oracle@invalid', '-c', 'user.name=aegis-merge-oracle'];
 export function merge(args: string[]): void {
   if (args[0] !== 'check' || !args[1]) die(2, 'usage: aegis merge check <branch>');
   const branch = args[1];
@@ -48,7 +54,7 @@ export function merge(args: string[]): void {
   try { git(['worktree', 'prune']); git(['worktree', 'add', tmp, 'HEAD']); }
   catch { cleanup(); die(9, `failed to create merge-test worktree`); }
 
-  try { git(['merge', '--no-commit', '--no-ff', branch], tmp); }
+  try { git([...ORACLE_ID, 'merge', '--no-commit', '--no-ff', branch], tmp); }
   catch { cleanup(); die(9, `MERGE CONFLICT in ${branch} - text conflicts need LLM resolution with compiler context`); }
 
   const failed: string[] = [];
