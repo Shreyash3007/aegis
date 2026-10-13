@@ -98,8 +98,8 @@ test('contracts_path: N1 verification honors the configured location', (t) => {
 
 test('contracts_path rejects absolute paths and .. traversal', (t) => {
   const dir = scratch(t);
-  assert.equal(aegis(dir, ['config', 'set', 'contracts_path', '/etc']).status, 4);
-  assert.equal(aegis(dir, ['config', 'set', 'contracts_path', '../x']).status, 4);
+  assert.equal(aegis(dir, ['config', 'set', 'contracts_path', '/etc']).status, 2);
+  assert.equal(aegis(dir, ['config', 'set', 'contracts_path', '../x']).status, 2);
 });
 
 // ---------- exec ----------
@@ -153,7 +153,7 @@ test('contracts_path.<app> override: contracts --app honors it, others unaffecte
   const dir = scratch(t, { init: false });
   aegis(dir, ['init', '--yes', '--apps', 'web,api']);
   // refuse override for undeclared app
-  assert.equal(aegis(dir, ['config', 'set', 'contracts_path.nope', 'x/plan']).status, 4);
+  assert.equal(aegis(dir, ['config', 'set', 'contracts_path.nope', 'x/plan']).status, 2);
   assert.equal(aegis(dir, ['config', 'set', 'contracts_path.api', 'api/plan']).status, 0);
   // api's contracts live in api/plan; web has none -> api verifies, web fails honestly
   fs.mkdirSync(path.join(dir, 'api', 'plan'), { recursive: true });

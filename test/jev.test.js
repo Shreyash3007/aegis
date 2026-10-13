@@ -184,14 +184,14 @@ test('jev shape errors are exit 4, never judgments', async (t) => {
   const dir = scratch(t);
   const env = { TYPESAFE_API_KEY: '', JEV_BACKEND: 'mock' };
   const missing = aegis(dir, ['jev', 'judge', '--file', path.join(dir, 'missing.json')], { env });
-  assert.equal(missing.status, 4, missing.stderr);
+  assert.equal(missing.status, 2, missing.stderr);
   assert.match(missing.stderr, /unparseable/);
   const bad = writeReq(dir, 'bad.json', { state: 's', questions: [{ id: 'q', type: 'vibe', question: '?' }] });
   const r = aegis(dir, ['jev', 'judge', '--file', bad], { env });
-  assert.equal(r.status, 4, r.stderr);
+  assert.equal(r.status, 2, r.stderr);
   assert.match(r.stderr, /noul\|choice\|score/);
   const tri = writeReq(dir, 'tri.json', { state: 's', findings: [] });
-  assert.equal(aegis(dir, ['jev', 'triage', '--file', tri], { env }).status, 4);
+  assert.equal(aegis(dir, ['jev', 'triage', '--file', tri], { env }).status, 2);
 });
 
 test('jev unreachable: 500s degrade to escalations, exit stays 0', async (t) => {

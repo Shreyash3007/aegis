@@ -13,7 +13,7 @@ export function slice(args: string[]): void {
   s.slices = s.slices ?? {};
 
   if (op === 'create') {
-    if (!name) die(4, 'usage: aegis slice create <name>');
+    if (!name) die(2, 'usage: aegis slice create <name>');
     if (s.lanes.active.length >= s.lanes.max)
       die(4, `LANE CAP: ${s.lanes.active.length}/${s.lanes.max} - refuses to spawn (N5)`);
     const dir = path.join(wtRoot(), name);
@@ -40,5 +40,5 @@ export function slice(args: string[]): void {
     s.lanes.active = s.lanes.active.filter((x: string) => x !== name);
     writeJ(stateP, s);
     ok(`slice ${name} removed, lane closed`);
-  } else die(4, 'usage: aegis slice <create|list|remove> <name>');
+  } else die(2, 'usage: aegis slice <create|list|remove> <name>');
 }

@@ -33,8 +33,12 @@ export function worktreeMain(): string | null {
   try {
     const out = execFileSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'],
       { cwd: REPO, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
-    const main = path.dirname(out);
-    return main === REPO ? null : main;
+    // Windows: git returns forward-slashes (D:/x/.git), REPO uses backslashes
+    // (D:\x). Resolve both before compare or every main checkout looks like
+    // a slice worktree.
+    const main = path.resolve(path.dirname(out));
+    const repo = path.resolve(REPO);
+    return main === repo ? null : main;
   } catch { return null; }
 }
 

@@ -9,11 +9,11 @@ type Cfg = Record<string, unknown>;
 const SETTABLE: Record<string, (cfg: Cfg, v: string) => void> = {
   platform: (c, v) => { c.platform = v; },
   mode: (c, v) => { c.mode = v === 'manual' ? 'manual' : 'runtime'; },
-  autonomy: (c, v) => { if (!['assisted','semi','full'].includes(v)) die(4, 'autonomy: assisted|semi|full'); c.autonomy = v; },
-  environment_level: (c, v) => { if (!['L0','L1','L2'].includes(v)) die(4, 'level: L0|L1|L2'); c.environment_level = v; },
+  autonomy: (c, v) => { if (!['assisted','semi','full'].includes(v)) die(2, 'autonomy: assisted|semi|full'); c.autonomy = v; },
+  environment_level: (c, v) => { if (!['L0','L1','L2'].includes(v)) die(2, 'level: L0|L1|L2'); c.environment_level = v; },
   project_type: (c, v) => { c.project_type = v === 'brownfield' ? 'brownfield' : 'greenfield'; },
   stack: (c, v) => { c.stack = v; },
-  team: (c, v) => { if (!['solo','small-team'].includes(v)) die(4, 'team: solo|small-team'); c.team = v; },
+  team: (c, v) => { if (!['solo','small-team'].includes(v)) die(2, 'team: solo|small-team'); c.team = v; },
   model_strong: (c, v) => {
     const mt = (c.model_tiers ?? { strong: 'default', standard: 'default', light: 'default' }) as Config['model_tiers'];
     mt.strong = v; c.model_tiers = mt;
@@ -22,17 +22,17 @@ const SETTABLE: Record<string, (cfg: Cfg, v: string) => void> = {
   ship_profile: (c, v) => { c.ship_profile = v === 'prototype' ? 'prototype' : 'production'; },
   pii_logs: (c, v) => { c.pii_logs = v === 'true'; },
   token_budget: (c, v) => { const n = parseInt(v, 10);
-    if (!Number.isFinite(n) || n <= 0) die(4, 'token_budget: positive integer (advisory, not enforced)');
+    if (!Number.isFinite(n) || n <= 0) die(2, 'token_budget: positive integer (advisory, not enforced)');
     c.token_budget = n; },
   contracts_path: (c, v) => {
-    if (!v || v.startsWith('/') || v.includes('..')) die(4, 'contracts_path: repo-relative path, no .. (e.g. pw-ai/plan/contracts)');
+    if (!v || v.startsWith('/') || v.includes('..')) die(2, 'contracts_path: repo-relative path, no .. (e.g. pw-ai/plan/contracts)');
     c.contracts_path = v.replace(/\/$/, '');
   },
   apps: (c, v) => {
     const names = v.split(',').map((x) => x.trim()).filter(Boolean);
-    if (!names.length) die(4, 'apps: comma-separated names (e.g. web,api)');
+    if (!names.length) die(2, 'apps: comma-separated names (e.g. web,api)');
     for (const n of names)
-      if (!/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(n)) die(4, `app name '${n}': letters/digits/dash/underscore, starting with a letter`);
+      if (!/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(n)) die(2, `app name '${n}': letters/digits/dash/underscore, starting with a letter`);
     c.apps = names;
     // Missing app states are created at 00a; states for apps removed from the
     // list are KEPT on disk (deleting recorded history is never our call).
@@ -56,14 +56,14 @@ export function config(args: string[]): void {
   if (args[0] === 'set') {
     const [key, value] = [args[1], args[2]];
     if (!key || value === undefined)
-      die(4, `unknown key '${key}' - valid keys: ${Object.keys(SETTABLE).join(', ')}, validate_suite.<name>`);
+      die(2, `unknown key '${key}' - valid keys: ${Object.keys(SETTABLE).join(', ')}, validate_suite.<name>`);
     if (key.startsWith('contracts_path.')) {
       const app = key.slice('contracts_path.'.length);
       const apps = (cfg.apps ?? []) as string[];
       if (!apps.includes(app))
-        die(4, `contracts_path.${app}: app not declared (apps: ${apps.join(', ') || 'none'} - set apps first)`);
+        die(2, `contracts_path.${app}: app not declared (apps: ${apps.join(', ') || 'none'} - set apps first)`);
       if (!/^[^.]/.test(value) || value.startsWith('/') || value.includes('..'))
-        die(4, 'contracts_path.<app>: repo-relative path, no ..');
+        die(2, 'contracts_path.<app>: repo-relative path, no ..');
       const m = (cfg.contracts_path_apps ?? {}) as Record<string, string>;
       if (value === '-') delete m[app]; else m[app] = value.replace(/\/$/, '');
       cfg.contracts_path_apps = m;
@@ -75,9 +75,9 @@ export function config(args: string[]): void {
     if (key.startsWith('validate_suite.')) {
       const name = key.slice('validate_suite.'.length);
       if (!/^[a-z][a-z0-9_]*$/.test(name))
-        die(4, `validate_suite name '${name}': lowercase letters/digits/underscore, starting with a letter`);
+        die(2, `validate_suite name '${name}': lowercase letters/digits/underscore, starting with a letter`);
       if (['contracts', 'tests', 'deps', 'perf', 'e2e'].includes(name))
-        die(4, `validate_suite.${name} collides with a builtin suite - choose another name`);
+        die(2, `validate_suite.${name} collides with a builtin suite - choose another name`);
       const vs = (cfg.validate_suites ?? {}) as Record<string, string>;
       if (value === '-') delete vs[name]; else vs[name] = value;
       cfg.validate_suites = vs;
@@ -87,7 +87,7 @@ export function config(args: string[]): void {
       return;
     }
     if (!SETTABLE[key])
-      die(4, `unknown key '${key}' - valid keys: ${Object.keys(SETTABLE).join(', ')}, validate_suite.<name>`);
+      die(2, `unknown key '${key}' - valid keys: ${Object.keys(SETTABLE).join(', ')}, validate_suite.<name>`);
     // '-' removes optional scalar keys (storing the literal "-" would make
     // the config lie - BlindFolio trial). App state files are kept on disk.
     if (value === '-' && ['contracts_path', 'token_budget', 'apps'].includes(key)) {

@@ -193,7 +193,7 @@ export function gate(args: string[]): void {
 
 export function transition(args: string[]): void {
   const to = args[0];
-  if (!to) die(4, 'usage: aegis transition <skill> [--reason <text>] [--app <name>]');
+  if (!to) die(2, 'usage: aegis transition <skill> [--reason <text>] [--app <name>]');
   const ctx = resolveState(args, true);
   const s = ctx.s;
   const t = loadTransitions();
@@ -255,7 +255,7 @@ export function contracts(args: string[]): void {
  *  per-edge loop counters and per-state visit counters. Reason is mandatory
  *  and the event (reason + cleared counters) is appended to state history. */
 export function loops(args: string[]): void {
-  if (args[0] !== 'reset') die(4, 'usage: aegis loops reset --reason <text>');
+  if (args[0] !== 'reset') die(2, 'usage: aegis loops reset --reason <text>');
   const ri = args.indexOf('--reason');
   const reason = ri >= 0 ? args[ri + 1] : undefined;
   if (!reason) die(4, 'loops reset requires --reason (recorded in the audit trail)');
@@ -278,7 +278,7 @@ export function lane(args: string[]): void {
   const [op, slice] = args;
   const s = acquireState(stateP); // lanes are global (root state), lock held
   if (op === 'open') {
-    if (!slice) die(4, 'usage: aegis lane open <slice>');
+    if (!slice) die(2, 'usage: aegis lane open <slice>');
     if (s.lanes.active.length >= s.lanes.max)
       die(4, `LANE CAP: ${s.lanes.active.length}/${s.lanes.max} active - refuses to spawn (N5)`);
     s.lanes.active.push(slice);
@@ -286,6 +286,6 @@ export function lane(args: string[]): void {
   } else if (op === 'close') {
     s.lanes.active = s.lanes.active.filter((x) => x !== slice);
     ok(`lane closed: ${slice}`);
-  } else die(4, 'usage: aegis lane <open|close> <slice>');
+  } else die(2, 'usage: aegis lane <open|close> <slice>');
   commitState(stateP, s);
 }

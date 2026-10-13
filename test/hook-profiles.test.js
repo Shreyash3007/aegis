@@ -76,14 +76,14 @@ test('foreign pre-commit survives every profile switch as .aegis-orig', (t) => {
 test('aegis hooks --profile bogus -> exit 4', (t) => {
   const dir = scratch(t);
   const r = aegis(dir, ['hooks', '--profile', 'bogus']);
-  assert.equal(r.status, 4);
+  assert.equal(r.status, 2);
   assert.match(r.stderr, /unknown hooks profile 'bogus'/);
 });
 
 test('aegis hooks --profile (no value) -> exit 4', (t) => {
   const dir = scratch(t);
   const r = aegis(dir, ['hooks', '--profile']);
-  assert.equal(r.status, 4);
+  assert.equal(r.status, 2);
   assert.match(r.stderr, /--profile requires a value/);
 });
 

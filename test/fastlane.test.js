@@ -83,8 +83,8 @@ test('custom validate suite: pass/fail by exit code, cited verbatim', (t) => {
 
 test('validate_suite name rules: builtin collision and bad names refused; "-" removes', (t) => {
   const dir = scratch(t);
-  assert.equal(aegis(dir, ['config', 'set', 'validate_suite.tests', 'echo x']).status, 4);
-  assert.equal(aegis(dir, ['config', 'set', 'validate_suite.Bad-Name', 'echo x']).status, 4);
+  assert.equal(aegis(dir, ['config', 'set', 'validate_suite.tests', 'echo x']).status, 2);
+  assert.equal(aegis(dir, ['config', 'set', 'validate_suite.Bad-Name', 'echo x']).status, 2);
   assert.equal(aegis(dir, ['config', 'set', 'validate_suite.tmp', 'echo x']).status, 0);
   assert.equal(aegis(dir, ['config', 'set', 'validate_suite.tmp', '-']).status, 0);
   assert.equal(aegis(dir, ['validate', 'tmp']).status, 2, 'removed suite is unknown again');

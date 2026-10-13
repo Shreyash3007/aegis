@@ -17,9 +17,9 @@ export function hooks(args: string[]): void {
   let profile: HookProfile;
   if (pi !== -1) {
     const v = args[pi + 1];
-    if (!v) die(4, '--profile requires a value; usage: aegis hooks [--profile minimal|standard|strict]');
+    if (!v) die(2, '--profile requires a value; usage: aegis hooks [--profile minimal|standard|strict]');
     if (!(PROFILES as readonly string[]).includes(v))
-      die(4, `unknown hooks profile '${v}'; usage: aegis hooks [--profile minimal|standard|strict]`);
+      die(2, `unknown hooks profile '${v}'; usage: aegis hooks [--profile minimal|standard|strict]`);
     profile = v as HookProfile;
     cfg.hooks_profile = profile;
     writeJ(configP, cfg);

@@ -16,7 +16,7 @@ export const CONTRACT_COMMANDS: string[] = [
 export const CONTRACT_EXITS: Record<number, string> = {
   0: 'ok',
   1: 'not a git repo',
-  2: 'missing/unexpected state (or unmeasurable eval input)',
+  2: 'malformed call or missing state',
   3: 'blocked (no legal forward transition)',
   4: 'illegal action',
   5: 'loop/cycle escalation (human required)',

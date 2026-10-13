@@ -21,10 +21,10 @@ test('demo record: UI kind requires a real .html prototype', (t) => {
   const dir = scratch(t);
   fs.writeFileSync(path.join(dir, 'notes.txt'), 'not a prototype');
   const noHtml = aegis(dir, ['demo', 'record', '--kind', 'ui', '--file', 'notes.txt']);
-  assert.equal(noHtml.status, 4, noHtml.stderr);
+  assert.equal(noHtml.status, 2, noHtml.stderr);
   assert.match(noHtml.stderr, /\.html prototype/);
   const missing = aegis(dir, ['demo', 'record', '--kind', 'ui', '--file', 'demo.html']);
-  assert.equal(missing.status, 4, missing.stderr);
+  assert.equal(missing.status, 2, missing.stderr);
   assert.match(missing.stderr, /demo artifact missing/);
   fs.writeFileSync(path.join(dir, 'demo.html'), '<!doctype html><title>demo</title>');
   const r = aegis(dir, ['demo', 'record', '--kind', 'ui', '--file', 'demo.html']);

@@ -102,7 +102,7 @@ function flags(args: string[]): { pos: string[]; opt: Record<string, string> } {
 function parseConfidence(v: string | undefined, dflt: number): number {
   if (v === undefined || v === '') return dflt;
   const n = parseFloat(v);
-  if (!Number.isFinite(n) || n < 0 || n > 1) die(4, `confidence must be 0..1, got '${v}'`);
+  if (!Number.isFinite(n) || n < 0 || n > 1) die(2, `confidence must be 0..1, got '${v}'`);
   return n;
 }
 
@@ -110,7 +110,7 @@ function parseExpiry(v: string | undefined): string | null {
   if (!v) return null;
   const m = /^(-?\d+)d$/.exec(v);
   const t = m ? Date.now() + parseInt(m[1], 10) * 86400_000 : Date.parse(v);
-  if (!Number.isFinite(t)) die(4, `expiry must be ISO date or Nd (days), got '${v}'`);
+  if (!Number.isFinite(t)) die(2, `expiry must be ISO date or Nd (days), got '${v}'`);
   return new Date(t).toISOString();
 }
 
@@ -224,9 +224,9 @@ function cmdAdd(opt: Record<string, string>): void {
   const { type, title, body } = opt;
   if (!type || !title || !body) die(2, 'usage: aegis memory add --type <decision|contract|finding|assumption> --title <t> --body <text> [--confidence 0..1] [--status active|pending] [--cites a,b] [--expiry <date|Nd>] [--supersedes <id>] [--contradicts <id>] [--lane <name>]');
   if (!(TYPES as readonly string[]).includes(type) || type === 'reconcile')
-    die(4, `type must be decision|contract|finding|assumption (reconcile tasks open via --contradicts), got '${type}'`);
+    die(2, `type must be decision|contract|finding|assumption (reconcile tasks open via --contradicts), got '${type}'`);
   const status = opt.status || 'active';
-  if (!['active', 'pending'].includes(status)) die(4, `new-record status must be active|pending, got '${status}'`);
+  if (!['active', 'pending'].includes(status)) die(2, `new-record status must be active|pending, got '${status}'`);
   const confidence = parseConfidence(opt.confidence, 0.5);
   const expiry = parseExpiry(opt.expiry);
   const cites = (opt.cites ?? '').split(',').map((s) => s.trim()).filter(Boolean);
@@ -236,14 +236,14 @@ function cmdAdd(opt: Record<string, string>): void {
   for (const c of cites) {
     if (/^[a-z]+:\/\//i.test(c)) continue;
     if (/^mem-\d+$/.test(c)) {
-      if (!find(c)) die(4, `cite target not found: ${c} (dangling record ref)`);
+      if (!find(c)) die(2, `cite target not found: ${c} (dangling record ref)`);
       continue;
     }
     if (!fs.existsSync(path.resolve(REPO, c.replace(/:\d+.*$/, ''))))
-      die(4, `cite target not found: ${c} (cites must resolve to repo files; URLs exempt)`);
+      die(2, `cite target not found: ${c} (cites must resolve to repo files; URLs exempt)`);
   }
   const lane = opt.lane || null;
-  if (lane && !/^[a-z0-9-]+$/.test(lane)) die(4, `lane must match [a-z0-9-], got '${lane}'`);
+  if (lane && !/^[a-z0-9-]+$/.test(lane)) die(2, `lane must match [a-z0-9-], got '${lane}'`);
   const at = new Date().toISOString();
   const file = lane ? LANE(lane) : MAIN();
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -257,7 +257,7 @@ function cmdAdd(opt: Record<string, string>): void {
 
   if (opt.supersedes) {
     const hit = find(opt.supersedes);
-    if (!hit) die(4, `supersedes target not found: ${opt.supersedes}`);
+    if (!hit) die(2, `supersedes target not found: ${opt.supersedes}`);
     if (hit.rec.type === 'reconcile') die(4, 'cannot supersede a reconcile task - resolve it: aegis memory reconcile');
     rec.supersedes = opt.supersedes;
     hit.rec.status = 'superseded';
@@ -270,7 +270,7 @@ function cmdAdd(opt: Record<string, string>): void {
 
   if (opt.contradicts) {
     const hit = find(opt.contradicts);
-    if (!hit) die(4, `contradicts target not found: ${opt.contradicts}`);
+    if (!hit) die(2, `contradicts target not found: ${opt.contradicts}`);
     const tat = new Date().toISOString();
     const task: MemRecord = {
       id: nextId(), type: 'reconcile', title: `Reconcile ${rec.id} vs ${hit.rec.id}`,
@@ -290,7 +290,7 @@ function cmdList(opt: Record<string, string>): void {
   needInit();
   let recs = opt.lane ? allLane(opt.lane) : ('all' in opt) ? allRecords() : allMain();
   if (opt.type) {
-    if (!(TYPES as readonly string[]).includes(opt.type)) die(4, `unknown type: ${opt.type}`);
+    if (!(TYPES as readonly string[]).includes(opt.type)) die(2, `unknown type: ${opt.type}`);
     recs = recs.filter((r) => r.type === opt.type);
   }
   if (opt.status) recs = recs.filter((r) => r.status === opt.status);
@@ -311,7 +311,7 @@ function cmdVerify(id: string, opt: Record<string, string>): void {
   if (opt.confidence !== undefined && opt.confidence !== '') hit.rec.confidence = parseConfidence(opt.confidence, hit.rec.confidence);
   if (opt.status) {
     const allowed = hit.rec.type === 'reconcile' ? TASK_STATUS : OPEN_STATUS;
-    if (!allowed.includes(opt.status)) die(4, `status must be ${allowed.join('|')} for ${hit.rec.type}, got '${opt.status}'`);
+    if (!allowed.includes(opt.status)) die(2, `status must be ${allowed.join('|')} for ${hit.rec.type}, got '${opt.status}'`);
     hit.rec.status = opt.status;
   }
   hit.rec.verified_at = at;
@@ -330,7 +330,7 @@ function cmdRetire(id: string, opt: Record<string, string>): void {
   hit.rec.status = 'superseded';
   if (opt.by) {
     const target = find(opt.by);
-    if (!target) die(4, `retire --by target not found: ${opt.by}`);
+    if (!target) die(2, `retire --by target not found: ${opt.by}`);
     hit.rec.supersedes = opt.by;
   }
   hit.rec.history.push({ at, event: `retired: ${opt.reason}` });
@@ -346,7 +346,7 @@ function cmdReconcile(id: string, opt: Record<string, string>): void {
     die(4, `${id} is not an open reconcile task`);
   if (!opt.winner || !opt.resolution) die(2, 'usage: aegis memory reconcile <task-id> --winner <id> --resolution <text>');
   if (!hit.rec.parties!.includes(opt.winner))
-    die(4, `winner must be one of ${hit.rec.parties!.join(', ')}, got '${opt.winner}'`);
+    die(2, `winner must be one of ${hit.rec.parties!.join(', ')}, got '${opt.winner}'`);
   const loser = hit.rec.parties!.find((p) => p !== opt.winner)!;
   const at = new Date().toISOString();
   hit.rec.status = 'resolved';

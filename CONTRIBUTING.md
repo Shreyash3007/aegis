@@ -7,7 +7,7 @@ valuable contributions right now are **real-world trials**, not code.
 
 Run Aegis against a real repo and report what actually happened:
 
-1. Install: `npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.6.0.tar.gz`
+1. Install: `npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.8.0.tar.gz`
 2. `cd your-repo && aegis init --yes`
 3. Use it for real work, then open an issue with: what broke, what felt wrong,
    what was missing, and the exact commands/output. Honest UNMEASURED beats

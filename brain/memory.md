@@ -2,12 +2,15 @@
 
 # Memory (record store)
 
-- total: 2 | stale (re-verify): 0 | open reconciles: 0
+- total: 5 | stale (re-verify): 0 | open reconciles: 0
 
 ## Active
 
 - `mem-0001` [decision/0.5] ship status-surface slice as v0.7.0 minor (cites:1)
 - `mem-0002` [finding/0.5] jev triage all-REVERIFY on own 06b review (cites:1)
+- `mem-0003` [finding/0.5] live page reported stale, repo was current (cites:1)
+- `mem-0004` [finding/0.5] stale-page report resolved to edge cache (cites:1)
+- `mem-0005` [decision/0.5] exit-code discipline: malformed 2, refused 4 (cites:1)
 
 ## Pending
 

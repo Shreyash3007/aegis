@@ -95,14 +95,14 @@ test('eval trigger: shape errors are exit 4', async (t) => {
   const env = { TYPESAFE_API_KEY: '', JEV_BACKEND: 'mock' };
   const unknown = writeCases(dir, [{ id: 'c1', prompt: 'x', expect: '99z-nope' }]);
   const r1 = aegis(dir, ['eval', 'trigger', '--file', unknown], { env });
-  assert.equal(r1.status, 4, r1.stderr);
+  assert.equal(r1.status, 2, r1.stderr);
   assert.match(r1.stderr, /unknown skill/);
   const dup = writeCases(dir, [
     { id: 'c1', prompt: 'x', expect: '01a-prd' },
     { id: 'c1', prompt: 'y', expect: '01a-prd' },
   ]);
-  assert.equal(aegis(dir, ['eval', 'trigger', '--file', dup], { env }).status, 4);
-  assert.equal(aegis(dir, ['eval', 'trigger', '--threshold', '2'], { env }).status, 4);
+  assert.equal(aegis(dir, ['eval', 'trigger', '--file', dup], { env }).status, 2);
+  assert.equal(aegis(dir, ['eval', 'trigger', '--threshold', '2'], { env }).status, 2);
 });
 
 test('eval trigger: degraded backend exits 2 (unmeasurable, honestly)', async (t) => {

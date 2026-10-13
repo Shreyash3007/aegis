@@ -178,16 +178,16 @@ function builtinCases(scope: ScopeEntry[]): TriggerCase[] {
 function readCases(file: string, scope: ScopeEntry[]): TriggerCase[] {
   let raw: any;
   try { raw = JSON.parse(fs.readFileSync(file, 'utf8')); }
-  catch { die(4, `unparseable cases JSON: ${file}`); }
-  if (!Array.isArray(raw) || !raw.length) die(4, 'cases file must be a non-empty array [{id, prompt, expect}]');
+  catch { die(2, `unparseable cases JSON: ${file}`); }
+  if (!Array.isArray(raw) || !raw.length) die(2, 'cases file must be a non-empty array [{id, prompt, expect}]');
   const names = new Set(scope.map((s) => s.name));
   const seen = new Set<string>();
   return raw.map((c: any, i: number) => {
     if (!c || typeof c.id !== 'string' || typeof c.prompt !== 'string' || !c.prompt.trim() || typeof c.expect !== 'string')
-      die(4, `cases[${i}]: needs string "id", non-empty "prompt", string "expect"`);
-    if (seen.has(c.id)) die(4, `cases[${i}]: duplicate id "${c.id}"`);
+      die(2, `cases[${i}]: needs string "id", non-empty "prompt", string "expect"`);
+    if (seen.has(c.id)) die(2, `cases[${i}]: duplicate id "${c.id}"`);
     seen.add(c.id);
-    if (!names.has(c.expect)) die(4, `cases[${i}]: unknown skill "${c.expect}" (not in installed scope)`);
+    if (!names.has(c.expect)) die(2, `cases[${i}]: unknown skill "${c.expect}" (not in installed scope)`);
     return { id: c.id, prompt: c.prompt, expect: c.expect } as TriggerCase;
   });
 }
@@ -198,7 +198,7 @@ async function evalTrigger(args: string[]): Promise<void> {
   const ti = args.indexOf('--threshold');
   const threshold = ti >= 0 ? Number(args[ti + 1]) : TRIGGER_THRESHOLD;
   if (!Number.isFinite(threshold) || threshold < 0 || threshold > 1)
-    die(4, '--threshold must be 0..1');
+    die(2, '--threshold must be 0..1');
   const backend = resolveBackend();
   if (backend.name === 'degraded')
     die(2, 'trigger eval needs a judgment backend (precision is unmeasurable without a judge): set TYPESAFE_API_KEY or JEV_BACKEND=mock');

@@ -33,10 +33,10 @@ export function demo(args: string[]): void {
     if (!files.length) die(2, 'demo record needs at least one --file <path>');
     for (const f of files) {
       const abs = path.resolve(REPO, f);
-      if (!fs.existsSync(abs)) die(4, `demo artifact missing: ${f} (record what exists - never what is planned)`);
+      if (!fs.existsSync(abs)) die(2, `demo artifact missing: ${f} (record what exists - never what is planned)`);
     }
     if (kind === 'ui' && !files.some((f) => f.toLowerCase().endsWith('.html')))
-      die(4, 'UI demo needs at least one .html prototype (palette, type, components, states, exact working style)');
+      die(2, 'UI demo needs at least one .html prototype (palette, type, components, states, exact working style)');
     const ctx = resolveState(args, true);
     const s = ctx.s as any;
     const at = new Date().toISOString();

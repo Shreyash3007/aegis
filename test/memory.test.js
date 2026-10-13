@@ -30,19 +30,19 @@ test('memory add/list/get: typed record with citations', (t) => {
 
 test('memory add: rejects bad type, bad confidence, missing link targets', (t) => {
   const dir = scratch(t);
-  assert.equal(mem(dir, ['add', '--type', 'hunch', '--title', 'x', '--body', 'y']).status, 4);
-  assert.equal(addFinding(dir, ['--confidence', '2']).status, 4);
-  assert.equal(addFinding(dir, ['--supersedes', 'mem-9999']).status, 4);
-  assert.equal(addFinding(dir, ['--contradicts', 'mem-9999']).status, 4);
+  assert.equal(mem(dir, ['add', '--type', 'hunch', '--title', 'x', '--body', 'y']).status, 2);
+  assert.equal(addFinding(dir, ['--confidence', '2']).status, 2);
+  assert.equal(addFinding(dir, ['--supersedes', 'mem-9999']).status, 2);
+  assert.equal(addFinding(dir, ['--contradicts', 'mem-9999']).status, 2);
 });
 
 test('memory add: cites must resolve (phantom citations refused)', (t) => {
   const dir = scratch(t);
   const phantom = mem(dir, ['add', '--type', 'finding', '--title', 'x', '--body', 'y', '--cites', 'src/nope.ts:1']);
-  assert.equal(phantom.status, 4, phantom.stderr);
+  assert.equal(phantom.status, 2, phantom.stderr);
   assert.match(phantom.stderr, /cite target not found/);
   const dangling = mem(dir, ['add', '--type', 'finding', '--title', 'x', '--body', 'y', '--cites', 'mem-0099']);
-  assert.equal(dangling.status, 4, dangling.stderr);
+  assert.equal(dangling.status, 2, dangling.stderr);
   assert.match(dangling.stderr, /dangling record ref/);
   fs.writeFileSync(path.join(dir, 'real.ts'), 'export const r = 1\n');
   assert.equal(mem(dir, ['add', '--type', 'finding', '--title', 'x', '--body', 'y',

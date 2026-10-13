@@ -16,24 +16,24 @@ const GATE_THRESHOLD = 0.7; // CONSTRAINTS §4: triage + citation gates
 function readJson(file: string): any {
   if (!file) die(2, 'usage: aegis jev <judge|triage|score|classify|cite> --file <request.json> [--threshold f]');
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
-  catch { die(4, `unparseable JSON: ${file}`); }
+  catch { die(2, `unparseable JSON: ${file}`); }
 }
 
 function checkState(v: unknown): string {
-  if (typeof v !== 'string' || !v.trim()) die(4, 'request needs a non-empty string "state" (the facts Jev may consider - never secrets)');
+  if (typeof v !== 'string' || !v.trim()) die(2, 'request needs a non-empty string "state" (the facts Jev may consider - never secrets)');
   return v;
 }
 
 function checkQuestion(q: any, i: number): JevQuestion {
-  if (!q || typeof q !== 'object') die(4, `questions[${i}]: must be an object`);
-  if (!['noul', 'choice', 'score'].includes(q.type)) die(4, `questions[${i}]: type must be noul|choice|score`);
-  if (typeof q.question !== 'string' || !q.question.trim()) die(4, `questions[${i}]: needs a non-empty "question"`);
+  if (!q || typeof q !== 'object') die(2, `questions[${i}]: must be an object`);
+  if (!['noul', 'choice', 'score'].includes(q.type)) die(2, `questions[${i}]: type must be noul|choice|score`);
+  if (typeof q.question !== 'string' || !q.question.trim()) die(2, `questions[${i}]: needs a non-empty "question"`);
   if (q.type === 'choice') {
     const n = Array.isArray(q.options) ? q.options.length : Object.keys(q.options ?? {}).length;
-    if (n < 2) die(4, `questions[${i}]: choice needs >= 2 options`);
+    if (n < 2) die(2, `questions[${i}]: choice needs >= 2 options`);
   }
   if (q.type === 'score' && (!Array.isArray(q.levels) || q.levels.length < 2))
-    die(4, `questions[${i}]: score needs >= 2 levels`);
+    die(2, `questions[${i}]: score needs >= 2 levels`);
   return q as JevQuestion;
 }
 
@@ -53,7 +53,7 @@ function verdictLine(v: JevResult['verdicts'][number]): string {
 async function cmdJudge(file: string, threshold?: number): Promise<void> {
   const req = readJson(file);
   const state = checkState(req.state);
-  if (!Array.isArray(req.questions) || !req.questions.length) die(4, 'request needs a non-empty "questions" array');
+  if (!Array.isArray(req.questions) || !req.questions.length) die(2, 'request needs a non-empty "questions" array');
   const questions = req.questions.map(checkQuestion);
   const r = await judge(state, questions, threshold !== undefined ? { threshold } : {});
   console.log([...header(r), ...r.verdicts.map(verdictLine)].join('\n'));
@@ -63,10 +63,10 @@ async function cmdJudge(file: string, threshold?: number): Promise<void> {
 async function cmdTriage(file: string, threshold: number): Promise<void> {
   const req = readJson(file);
   const state = checkState(req.state);
-  if (!Array.isArray(req.findings) || !req.findings.length) die(4, 'triage needs a non-empty "findings" array [{id, text}]');
+  if (!Array.isArray(req.findings) || !req.findings.length) die(2, 'triage needs a non-empty "findings" array [{id, text}]');
   for (const [i, f] of req.findings.entries()) {
     if (!f || typeof f.id !== 'string' || typeof f.text !== 'string' || !f.text.trim())
-      die(4, `findings[${i}]: needs string "id" and non-empty string "text"`);
+      die(2, `findings[${i}]: needs string "id" and non-empty string "text"`);
   }
   const questions: JevQuestion[] = req.findings.map((f: any) => ({
     id: f.id, type: 'noul', question: `Should this finding block the lane? ${f.text}`,
@@ -92,10 +92,10 @@ const ACTION_LEVELS = ['noise', 'actionable', 'critical'];
 async function cmdScore(file: string, threshold?: number): Promise<void> {
   const req = readJson(file);
   const state = checkState(req.state);
-  if (!Array.isArray(req.items) || !req.items.length) die(4, 'score needs a non-empty "items" array [{id, text}]');
+  if (!Array.isArray(req.items) || !req.items.length) die(2, 'score needs a non-empty "items" array [{id, text}]');
   for (const [i, it] of req.items.entries()) {
     if (!it || typeof it.id !== 'string' || typeof it.text !== 'string' || !it.text.trim())
-      die(4, `items[${i}]: needs string "id" and non-empty string "text"`);
+      die(2, `items[${i}]: needs string "id" and non-empty string "text"`);
   }
   const questions: JevQuestion[] = req.items.map((it: any) => ({
     id: it.id, type: 'score', question: `How actionable is this review item? ${it.text}`, levels: ACTION_LEVELS,
@@ -123,7 +123,7 @@ function patternClassify(action: string): { level: string; why: string } {
 
 async function cmdClassify(file: string, threshold?: number): Promise<void> {
   const req = readJson(file);
-  if (typeof req.action !== 'string' || !req.action.trim()) die(4, 'classify needs a non-empty string "action"');
+  if (typeof req.action !== 'string' || !req.action.trim()) die(2, 'classify needs a non-empty string "action"');
   const state = checkState(req.state ?? `Proposed agent action: ${req.action}`);
   const pattern = patternClassify(req.action);
   const r = await judge(state, [{
@@ -146,10 +146,10 @@ async function cmdClassify(file: string, threshold?: number): Promise<void> {
 async function cmdCite(file: string, threshold: number): Promise<void> {
   const req = readJson(file);
   const evidence = checkState(req.evidence);
-  if (!Array.isArray(req.claims) || !req.claims.length) die(4, 'cite needs a non-empty "claims" array [{id, text}]');
+  if (!Array.isArray(req.claims) || !req.claims.length) die(2, 'cite needs a non-empty "claims" array [{id, text}]');
   for (const [i, c] of req.claims.entries()) {
     if (!c || typeof c.id !== 'string' || typeof c.text !== 'string' || !c.text.trim())
-      die(4, `claims[${i}]: needs string "id" and non-empty string "text"`);
+      die(2, `claims[${i}]: needs string "id" and non-empty string "text"`);
   }
   const questions: JevQuestion[] = req.claims.map((c: any) => ({
     id: c.id, type: 'noul', question: `Is this claim supported by the evidence in state? Claim: ${c.text}`,
@@ -178,7 +178,7 @@ export async function jev(args: string[]): Promise<void> {
   const ti = args.indexOf('--threshold');
   const threshold = ti >= 0 ? Number(args[ti + 1]) : undefined;
   if (threshold !== undefined && (!Number.isFinite(threshold) || threshold < 0 || threshold > 1))
-    die(4, '--threshold must be 0..1');
+    die(2, '--threshold must be 0..1');
   if (op === 'judge') return cmdJudge(file as string, threshold);
   if (op === 'triage') return cmdTriage(file as string, threshold ?? GATE_THRESHOLD);
   if (op === 'score') return cmdScore(file as string, threshold);

@@ -21,7 +21,7 @@ The orchestra doesn't play without a conductor; the conductor doesn't play the i
 
 ## When-NOT
 - Never reason from remembered state — CLI output is truth.
-- Exit 4 (illegal): diagnose the blocker, never retry blindly.
+- Exit 2 (malformed call: bad args, bad values) vs exit 4 (well-formed but refused): fix the call vs diagnose the blocker, never retry either blindly.
 
 ## Process
 - Read position, legal transitions, blockers, lanes: `aegis status`

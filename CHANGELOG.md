@@ -4,6 +4,29 @@ All notable changes to Aegis. Format follows [Keep a Changelog](https://keepacha
 versioning follows [SemVer](https://semver.org/). Evidence for every claim
 lives in `docs/DOGFOOD-v*.md` and the cited commits.
 
+## [0.8.0] - 2026-10-13
+
+Audit release: a 148-check adversarial harness (`scripts/audit.mjs`:
+usage/shape matrix, state-machine edges, integrity trips, idempotency,
+stress, help-surface consistency) walked every command and refusal path.
+Headline finding: usage exits were split 2/4 across commands. The rule is
+now mechanical - **2 = malformed call, 4 = well-formed but refused**
+(reasons, protocol moments, and gates keep their codes) - remapped across
+~40 sites, recorded in the 06a conductor rule and the N1 exit-code contract.
+
+### Changed
+
+- Malformed invocations (bare commands, bad enums, out-of-range numerics,
+  unknown skills/keys/suites, unparseable request files) exit 2 everywhere:
+  `transition`, `slice`, `lane`, `loops`, `config set`, `hooks --profile`,
+  `eval trigger` inputs, all `jev` request shapes, `demo record`, all
+  `memory add` validations.
+- `CONTRACT_EXITS[2]` widened to `malformed call or missing state`.
+
+### Verified
+
+- Audit harness: 148 checks, 0 findings. Suite 153/153, lint 68/68.
+
 ## [0.7.0] - 2026-10-13
 
 Self-cycle release: the complete v0.6.0 pipeline walked on this repo itself
