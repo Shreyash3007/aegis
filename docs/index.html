@@ -115,7 +115,7 @@
       <a class="btn btn-primary" href="#install">Get started</a>
       <a class="btn btn-ghost" href="#guide">“Walk me through Aegis”</a>
     </div>
-    <div class="install" id="install"><span class="p">$</span> npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.6.0.tar.gz
+    <div class="install" id="install"><span class="p">$</span> npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.7.0.tar.gz
       <span class="c"># then in any git repo: aegis init — or just tell your agent "walk me through Aegis"</span></div>
   </div>
 </header>
@@ -172,6 +172,41 @@
         <span class="mono">aegis exec -- &lt;cmd&gt; · aegis wave</span></div>
       <div class="card"><h3>Honest validation</h3><p>Your smoke scripts become first-class gates. Every metric cites its tool — or admits UNMEASURED.</p>
         <span class="mono">aegis validate &lt;suite&gt;</span></div>
+      <div class="card"><h3>Loop-until-clean</h3><p>Every lane re-verifies through the merge oracle. Three failed cycles escalate with an evidence pack — re-running unchanged code is doubt theater, also escalated.</p>
+        <span class="mono">aegis clean &lt;branch&gt;</span></div>
+      <div class="card"><h3>Quarantine</h3><p>Park a failing lane with a reason. The oracle refuses it until a human clears it; siblings keep moving on last-good.</p>
+        <span class="mono">aegis quarantine freeze · clear · list</span></div>
+      <div class="card"><h3>Record memory</h3><p>Typed decisions with confidence, citations, and expiry. Contradictions open reconcile tasks — never silent overwrites. Lane scratch stays sealed until promoted.</p>
+        <span class="mono">aegis memory add · reconcile · promote</span></div>
+      <div class="card"><h3>Judgment ring</h3><p>Batched yes/no, pick-one, and score judgments over direct TypeSafe HTTPS. No key means a degraded mode that says so — never a silent guess.</p>
+        <span class="mono">aegis jev triage · score · classify · cite</span></div>
+      <div class="card"><h3>Demo approval</h3><p>UI work locks visual direction in an HTML prototype; non-UI work pins contracts plus a trace. No production lane opens before a human approves.</p>
+        <span class="mono">aegis demo record · gate DEMO --approve</span></div>
+      <div class="card"><h3>Trigger precision</h3><p>Every skill's triggers are eval-tested against the judgment ring. Below threshold means rewrite the skill — measured 43/43 on the stock set.</p>
+        <span class="mono">aegis eval trigger</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="refusals">
+  <div class="wrap">
+    <div class="kicker">Flagging</div>
+    <h2>Aegis says no. In writing, with an exit code.</h2>
+    <p class="lead">Most tools only report success. Aegis refuses — and each refusal names its evidence.
+      These are real CLI behaviors, not aspirations:</p>
+    <div class="grid c3">
+      <div class="card pain"><h3>exit 4 · illegal jump</h3>
+        <p>Skipping pipeline stages is refused: <span class="mono">ILLEGAL transition 03b -&gt; 05a (no such edge)</span></p></div>
+      <div class="card pain"><h3>exit 4 · open gate</h3>
+        <p>Lanes stay shut until a human approves: <span class="mono">gate DEMO (demo-approval) OPEN - CLI refuses</span></p></div>
+      <div class="card pain"><h3>exit 9 · quarantined merge</h3>
+        <p>Frozen lanes are refused until cleared: <span class="mono">QUARANTINED … - oracle refuses until a human clears</span></p></div>
+      <div class="card pain"><h3>exit 5 · doubt theater</h3>
+        <p>Re-verifying unchanged code escalates: <span class="mono">re-verified 380beb84 with no new changes</span></p></div>
+      <div class="card pain"><h3>exit 4 · phantom citation</h3>
+        <p>Memory cites must resolve to repo files: <span class="mono">cite target not found … (cites must resolve)</span></p></div>
+      <div class="card pain"><h3>exit 13 · nothing to merge</h3>
+        <p>An empty slice is never a pass: <span class="mono">NOTHING TO MERGE … This is NOT a pass</span></p></div>
     </div>
   </div>
 </section>
@@ -191,22 +226,34 @@
     <div class="kicker">Proof, not promises</div>
     <h2>Tested. Trialed on production repos.<br>Run on itself.</h2>
     <div class="numbers">
-      <div class="num"><div class="v">147</div><div class="k">integration tests,<br>CI on node 20/22</div></div>
+      <div class="num"><div class="v">153</div><div class="k">integration tests,<br>CI on node 20/22</div></div>
       <div class="num"><div class="v">9.5/10</div><div class="k">real monorepo trial —<br>“must-fix list is empty”</div></div>
       <div class="num"><div class="v">68/68</div><div class="k">skill files pass<br>deterministic eval</div></div>
       <div class="num"><div class="v">10/10</div><div class="k">events under 10 concurrent<br>writers, measured</div></div>
     </div>
+    <div class="numbers">
+      <div class="num"><div class="v">43/43</div><div class="k">trigger precision,<br>measured live</div></div>
+      <div class="num"><div class="v">71 · 0</div><div class="k">self-dogfood steps ·<br>unexpected exits</div></div>
+      <div class="num"><div class="v">6</div><div class="k">human gates<br>(PRD·G1·G2·G3·G4·DEMO)</div></div>
+      <div class="num"><div class="v">35</div><div class="k">CLI commands,<br>one surface</div></div>
+    </div>
     <p class="lead" style="margin-top:36px">Every release survives independent adversarial re-testing on real repos —
       and Aegis runs on its own repo, hooks and all. v0.6.0: judgment ring live-verified
       against TypeSafe, trigger precision measured at 43/43, and a 71-step self-dogfood
-      with zero unexpected exits. The honesty contract is the product:
+      with zero unexpected exits. v0.7.0 walked the whole pipeline on itself — 00a to 08b,
+      every gate refused then approved — and shipped conductor visibility plus enforced
+      citations through a slice merged by the oracle. The honesty contract is the product:
       cited or UNMEASURED, never fabricated.</p>
+    <p class="lead">Read the evidence: <a href="https://github.com/Shreyash3007/aegis/blob/main/CHANGELOG.md">CHANGELOG</a> ·
+      <a href="https://github.com/Shreyash3007/aegis/blob/main/docs/DOGFOOD-v0.6.md">DOGFOOD-v0.6</a> ·
+      <a href="https://github.com/Shreyash3007/aegis/blob/main/docs/GODSKILL-SPEC.md">god-skill spec</a> ·
+      <a href="https://github.com/Shreyash3007/aegis/blob/main/docs/ROUTING.md">blade routing</a>.</p>
   </div>
 </section>
 
 <footer>
   <div class="wrap">
-    <div>AEGIS · MIT License · v0.6.0</div>
+    <div>AEGIS · MIT License · v0.7.0</div>
     <div>
       <a href="https://github.com/Shreyash3007/aegis">GitHub</a> ·
       <a href="https://github.com/Shreyash3007/aegis/releases">Releases</a> ·

@@ -4,6 +4,38 @@ All notable changes to Aegis. Format follows [Keep a Changelog](https://keepacha
 versioning follows [SemVer](https://semver.org/). Evidence for every claim
 lives in `docs/DOGFOOD-v*.md` and the cited commits.
 
+## [0.7.0] - 2026-10-13
+
+Self-cycle release: the complete v0.6.0 pipeline walked on this repo itself
+(00a to 08b, every gate refused-then-approved), shipping conductor
+visibility and cite-or-stamp enforcement through a slice worktree merged via
+the oracle. Minor bump: `memory add` gains a new refusal.
+
+### Added
+
+- `status` and the deterministic handoff surface quarantine freezes, clean
+  failing branches with cycle counts, the demo record, and the memory
+  summary (conditional lines only; stock output unchanged).
+- N1 self-contracts (`src/contracts/commands.ts`): the CLI command surface
+  and exit-code contract, with `test/contracts-self.test.js` refusing
+  runtime drift from the file.
+- Missing-state errors point slice-worktree operators back at the main
+  checkout via shared `noStateMsg` (seven call sites) instead of suggesting
+  a forked `init`.
+- `doctor` drift detector: tracked `.aegis/` files and missing `.aegis/`
+  ignore coverage (regression cover for the index-poison trap).
+
+### Changed
+
+- `memory add --cites` enforced: local paths must resolve, `mem-` refs must
+  be live, URLs exempt. Phantom citations exit 4.
+
+### Verified
+
+- Suite 153/153, `lint-skills --all` 68/68, dogfood re-run 71 steps
+  0 unexpected, concurrency file twice 7/7, full walk 00a to 08b with live
+  Jev triage consumed as review input at 06b.
+
 ## [0.6.0] - 2026-10-13
 
 The god-skill release: Aegis becomes the single enforcement + judgment +

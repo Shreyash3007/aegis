@@ -207,7 +207,7 @@ Exit codes: `0 ok · 1 not a git repo · 2 missing/corrupt state · 3 blocked ·
 
 ```bash
 npm install && npm run build   # strict tsc, dist/ is committed
-npm test                       # 147 integration tests (npm install only, no extra services)
+npm test                       # 153 integration tests (npm install only, no extra services)
 aegis eval --all               # 68/68 skill files conform
 ```
 
@@ -217,6 +217,8 @@ code second) and [SECURITY.md](SECURITY.md) for responsible disclosure.
 
 ## Release history
 
+v0.7.0 self-cycle: conductor visibility in status, cite-or-stamp enforcement,
+worktree guidance, N1 self-contracts (see [CHANGELOG.md](CHANGELOG.md)) ·
 v0.6.0 god-skill framework: Margin Format gate, CONSTRAINTS, loop-until-clean
 + quarantine, record memory, TypeSafe judgment ring, demo-approval gate,
 trigger-precision eval (see [CHANGELOG.md](CHANGELOG.md)) ·

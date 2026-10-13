@@ -7,9 +7,13 @@
 - active lanes: 0/2
 - open fix: none
 
+## Machinery
+- demo: ui [docs/index.html]
+- memory: 2 active, 0 stale (re-verify), 0 open reconciles
+
 ## Legal forward transitions
 - -> 08c: legal
 
 ## Last checkpoint
-- id: cp-1784892193435
-- git HEAD: 6218adc0
+- id: cp-1791891291717
+- git HEAD: ff176492
