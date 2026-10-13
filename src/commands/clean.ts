@@ -26,14 +26,14 @@ function branchSha(branch: string): string {
   return sha;
 }
 
-/** Freeze target -> stored branch: prefer the real ref when the name is
- *  ambiguous (bare `feature` over a guessed `aegis/slice-feature`), so
- *  `quarantine list` shows what the oracle actually refuses. */
+/** Freeze target -> stored branch: explicit names win over guessed ones.
+ *  Order: 'aegis/...' prefix as-is, then the bare ref as given, then the
+ *  lane convention aegis/slice-<name> (verified, else guessed for lanes
+ *  not yet registered). Never double-prefixes a name like 'slice-x'. */
 function resolveFreezeBranch(target: string): string {
-  const cand = target.startsWith('aegis/') ? target : `aegis/slice-${target}`;
-  if (gitTry(['rev-parse', '--verify', cand])) return cand;
+  if (target.startsWith('aegis/')) return target;
   if (gitTry(['rev-parse', '--verify', target])) return target;
-  return cand;
+  return `aegis/slice-${target}`;
 }
 
 /** Quarantine record matcher: exact branch, the freeze target as given, or the

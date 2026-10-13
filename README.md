@@ -90,7 +90,7 @@ aegis init --yes && aegis ast build   # one trial found 2 real circular deps thi
 Requires Node 18+ and git. GitHub-only distribution (never on npm registry).
 
 ```bash
-npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.5.2.tar.gz
+npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.6.0.tar.gz
 # already have v0.3.0+? just: aegis update
 ```
 
@@ -207,7 +207,7 @@ Exit codes: `0 ok · 1 not a git repo · 2 missing/corrupt state · 3 blocked ·
 
 ```bash
 npm install && npm run build   # strict tsc, dist/ is committed
-npm test                       # 101 integration tests (~20s, no extra deps)
+npm test                       # 147 integration tests (npm install only, no extra services)
 aegis eval --all               # 68/68 skill files conform
 ```
 
@@ -217,6 +217,9 @@ code second) and [SECURITY.md](SECURITY.md) for responsible disclosure.
 
 ## Release history
 
+v0.6.0 god-skill framework: Margin Format gate, CONSTRAINTS, loop-until-clean
++ quarantine, record memory, TypeSafe judgment ring, demo-approval gate,
+trigger-precision eval (see [CHANGELOG.md](CHANGELOG.md)) ·
 v0.5.2 aegis-guide skill (00f): "walk me through Aegis" conversational
 onboarding · v0.5.1 AFK autonomy + ghost-binary tripwire + wave prompt
 block ·

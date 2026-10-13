@@ -210,5 +210,23 @@ function drift(): string[] {
       } catch { /* pre-first-commit or shallow history - nothing to compare */ }
     }
   }
+  // 3. machine state tracked by the git index (A1.4): .gitignore must cover
+  // .aegis/, and nothing under it may be committed. The failure mode is an
+  // index-poison trap: an untracked .gitignore deleted by a branch switch
+  // un-ignores the whole tree, the next `git add -A` absorbs it, and the
+  // following checkout deletes state.json from disk.
+  try {
+    const tracked = git(['ls-files', '--', '.aegis']).split('\n').filter(Boolean);
+    if (tracked.length)
+      notes.push(`${tracked.length} machine-state file(s) tracked by git (e.g. ${tracked[0]}) - .aegis/ must stay gitignored; untrack with git rm -r --cached .aegis`);
+  } catch { /* not a git repo or no git - nothing to compare */ }
+  try {
+    const gi = fs.readFileSync(path.join(REPO, '.gitignore'), 'utf8')
+      .split('\n').map((l) => l.trim());
+    if (!gi.includes('.aegis/'))
+      notes.push('.gitignore does not cover .aegis/ - the next `git add -A` will absorb machine state into the index');
+  } catch {
+    notes.push('no .gitignore - the next `git add -A` will absorb .aegis/ machine state into the index');
+  }
   return notes;
 }

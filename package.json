@@ -1,7 +1,7 @@
 {
   "name": "aegis",
-  "version": "0.5.2",
-  "description": "AEGIS runtime \u2014 the enforcement layer for AI-native development",
+  "version": "0.6.0",
+  "description": "AEGIS runtime \\u2014 the enforcement layer for AI-native development",
   "type": "module",
   "bin": {
     "aegis": "dist/cli.js"
