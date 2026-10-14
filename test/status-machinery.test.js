@@ -53,7 +53,11 @@ test('worktree without .aegis points back at main (never suggests a forked init)
     { cwd: wt, encoding: 'utf8' });
   assert.equal(child.status, 2);
   assert.match(child.stderr, /slice worktree; aegis state lives in the main checkout/);
-  assert.match(child.stderr, new RegExp(dir.replace(/\\/g, '[/\\\\]')));
+  // The named checkout must be REAL (8.3 short-vs-long paths differ per
+  // platform, so verify existence + state instead of string equality).
+  const named = (child.stderr.match(/main checkout \(([^)]+)\)/) || [])[1];
+  assert.ok(named, 'names the main checkout');
+  assert.ok(fs.existsSync(path.join(named, '.aegis', 'state.json')), `named checkout holds live state: ${named}`);
   assert.doesNotMatch(child.stderr, /run aegis init/);
 });
 
