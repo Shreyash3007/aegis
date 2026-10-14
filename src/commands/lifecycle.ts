@@ -166,6 +166,13 @@ function attention(): string[] {
     notes.push(`fix OPEN: "${s.fix.active.desc}" - close it (aegis fix done) or abandon with --reason`);
   for (const [edge, n] of Object.entries(s.loop_counters ?? {}))
     if (n > 0) notes.push(`loop counter ${edge} at ${n}/${t.max_loop} - ${t.max_loop - n} more traversal(s) parks the run (exit 5)`);
+  // Cycle guard approaches: a state visited max-1 times parks the NEXT entry
+  // (exit 5). Three full release walks saturate the pipeline states - surface
+  // it here so the operator plans the audited reset at cycle start, not
+  // mid-walk: aegis loops reset --reason "<reviewed>".
+  for (const [st, n] of Object.entries(s.state_visits ?? {}))
+    if (n === t.max_loop - 1)
+      notes.push(`state ${st} visited ${n}/${t.max_loop} - next entry parks the run (exit 5); reset at cycle start after review: aegis loops reset --reason "<why>"`);
   for (const e of (t.edges ?? []).filter((e) => e.from === s.current_skill && !e.backward))
     if (e.gate && s.gates?.[e.gate]?.status !== 'approved')
       notes.push(`gate ${e.gate} OPEN blocks ${e.from}->${e.to} - an AFK run parks here; approve it or delegate explicitly`);

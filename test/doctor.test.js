@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { scratch, aegis, gitIn } from './helpers.js';
+import { scratch, aegis, gitIn, readState, writeState } from './helpers.js';
 
 test('doctor: clean install reports no machine-state drift', (t) => {
   const dir = scratch(t);
@@ -43,6 +43,17 @@ test('doctor: routed blades missing from the store are drift', (t) => {
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /routed blade\(s\) missing from the skill store/);
   assert.match(r.stdout, /jev-use/); // a known blade is named
+});
+
+test('doctor: cycle guard approaching is attention (reset at cycle start)', (t) => {
+  const dir = scratch(t);
+  const s = readState(dir);
+  s.state_visits = { '07a': 2 }; // max_loop is 3: one more entry parks
+  writeState(dir, s);
+  const r = aegis(dir, ['doctor']);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /state 07a visited 2\/3/);
+  assert.match(r.stdout, /aegis loops reset --reason/);
 });
 
 test('doctor: stale hook bake is drift; fresh bake is silent', (t) => {

@@ -151,33 +151,45 @@ enforces the rules mechanically whichever agent you use.
 |---|---|---|
 | `aegis init [--yes] [--overwrite] [--apps a,b] [--profile min\|std\|full]` | Scaffold .aegis/ + brain/, git hooks (existing preserved + chained), doctor, interview (brownfield auto-detected); minimal profile = standalone tools only (no hooks/brain) | 0 / 1 / 2 |
 | `aegis doctor [--save]` | Environment report, stale-worktree prune, state-vs-git drift notes | 0 |
-| `aegis status [--app n] [--markdown]` / `next` | State, legal transitions, lanes / recommended next skill; --markdown writes a deterministic brain/handoff.md | 0 / 3 |
-| `aegis transition <s> [--reason t] [--app n]` | Record a validated move (illegal refused; loops escalate) | 0 / 4 / 5 |
-| `aegis gate <name> --approve [--app n]` | Human gate approval (TTY confirm / CI token / autonomy=full) | 0 / 7 |
+| `aegis status [--app n] [--markdown]` / `next` | State, legal transitions, lanes / recommended next skill; --markdown writes a deterministic brain/handoff.md | 0 / 2 / 3 |
+| `aegis transition <s> [--reason t] [--app n]` | Record a validated move (illegal refused; loops escalate) | 0 / 2 / 4 / 5 |
+| `aegis gate <name> --approve [--evidence r] [--app n]` | Human gate approval with evidence pointer; DEMO pins the artifact hash (TTY confirm / CI token / autonomy=full) | 0 / 2 / 7 |
 | `aegis contracts [--app n]` | Verify contracts merged to base branch (N1) | 0 / 4 |
-| `aegis fix start\|done\|abandon` / `chore` | Fast lane for small changes; `done` requires tests | 0 / 4 / 9 |
+| `aegis fix start\|done\|abandon` / `chore` | Fast lane for small changes; `done` requires tests | 0 / 2 / 4 / 9 |
 | `aegis slice create\|list\|remove` | Worktree-per-slice + lane caps (N2/N5) | 0 / 2 / 4 |
-| `aegis merge check <branch>` | Merge oracle: real merge + tsc + contract drift (N3) | 0 / 9 / 13 |
-| `aegis validate <suite>` | contracts (tsc or contracts_doc) / tests (auto-detects npm/yarn/pnpm/bun) / deps / perf / e2e + your custom suites | 0 / 9 |
+| `aegis merge check <branch>` | Merge oracle: real merge + tsc + contract drift (N3) | 0 / 2 / 9 / 13 |
+| `aegis validate <suite>` | contracts (tsc or contracts_doc) / tests (auto-detects npm/yarn/pnpm/bun) / deps / perf / e2e + your custom suites | 0 / 2 / 9 |
 | `aegis typecheck` | Multi-stack typecheck oracle: tsc / cargo check / go vet / py_compile, or honest UNMEASURED | 0 / 9 |
 | `aegis checkpoint` / `resume` | Snapshot / hash-verified recovery | 0 / 2 / 6 |
 | `aegis ast build` / `diff` | Deterministic module graph, circular deps / impact analysis | 0 / 8 / 2 |
 | `aegis import check` | Verify brownfield brain docs exist, substantive, cited | 0 / 2 / 4 |
 | `aegis exec -- <cmd>` | Recorded + checkpointed command run (executor waves) | passthrough |
 | `aegis wave` | Emit the executor prompt block (brain/wave-prompt.md) — paste into every wave prompt | 0 |
-| `aegis sync` / `gc` | Sync AGENTS.md/CLAUDE.md AEGIS block / checkpoint retention | 0 |
-| `aegis lane open\|close <s>` / `loops reset --reason` | Lane management / audited loop-counter reset | 0 / 4 |
-| `aegis config [set k v]` | Interview answers, `contracts_path[.<app>]`, `validate_suite.<name>`, `apps` | 0 / 4 |
+| `aegis sync` / `gc` | Sync AGENTS.md/CLAUDE.md AEGIS block + transitions invariant forward / checkpoint retention | 0 |
+| `aegis lint-skills [--all\|<file>]` | Margin Format gate: frontmatter, budgets, body order, CLI refs, links, trigger collisions | 0 / 2 / 11 |
+| `aegis clean <branch>` | Loop-until-clean: oracle verify + classify, 3 cycles to escalation, unchanged-SHA re-run is doubt theater | 0 / 2 / 9 / 5 |
+| `aegis quarantine freeze\|clear\|list` | Park failing lanes with audited reason; oracle refuses frozen paths | 0 / 2 / 4 / 9 |
+| `aegis memory <add\|list\|get\|verify\|retire\|reconcile\|promote\|sync>` | Typed records with confidence/cites/expiry; contradictions open reconcile tasks; truth committed at brain/memory/ | 0 / 2 / 4 |
+| `aegis jev <judge\|triage\|score\|classify\|cite> --file` | Judgment ring over direct TypeSafe HTTPS; degraded without key (says so verbatim) | 0 / 2 |
+| `aegis demo <record\|status>` | Pin the prototype-track artifact; DEMO approval unlocks production lanes | 0 / 2 |
+| `aegis eval trigger [--file cases] [--threshold f]` | Trigger-precision eval (built-in self-test; below threshold = rewrite list) | 0 / 2 / 11 |
+| `aegis lane open\|close <s>` / `loops reset --reason` | Lane management / audited loop-counter reset | 0 / 2 / 4 |
+| `aegis config [set k v]` | Interview answers, `contracts_path[.<app>]`, `validate_suite.<name>`, `apps` | 0 / 2 / 4 |
 | `aegis monitor --once` | Post-ship health pass for cron/CI | 0 / 10 |
-| `aegis eval <file\|--all>` | Skill-file eval harness; opt-in model judge | 0 / 11 |
+| `aegis eval <file\|--all>` | Skill-file eval harness; opt-in model judge | 0 / 2 / 11 |
 | `aegis update [--check]` / `--version` | Self-update from latest tag / print version | 0 / 2 |
-| `aegis hooks [--profile min\|std\|strict]` | Hook strictness: minimal (record-only) / standard / strict (+ tests on pre-push) | 0 / 4 |
-| `aegis migrate` | Schema migration across CLI versions | 0 / 12 |
+| `aegis hooks [--profile min\|std\|strict]` | Hook strictness: minimal (record-only) / standard / strict (+ tests on pre-push) | 0 / 2 / 4 |
+| `aegis migrate` | Schema migration across CLI versions | 0 / 2 / 12 |
 
-Exit codes: `0 ok · 1 not a git repo · 2 missing/corrupt state · 3 blocked ·
-4 illegal · 5 loop escalation · 6 integrity · 7 gate · 8 ast cycles ·
-9 merge/validate refused · 10 monitor breach · 11 eval fail · 12 schema ·
-13 nothing to merge`
+Exit codes: `0 ok · 1 not a git repo · 2 malformed call or missing state ·
+3 blocked · 4 well-formed but refused · 5 loop escalation · 6 integrity ·
+7 gate · 8 ast cycles · 9 merge/validate refused · 10 monitor breach ·
+11 eval fail · 12 schema · 13 nothing to merge`
+
+Pipeline states saturate: after ~3 full release walks the visit counters
+park further entries (exit 5) by design. `aegis doctor` warns at 2/3 - plan
+an audited `aegis loops reset --reason "<reviewed>"` at the next cycle
+start, never mid-walk.
 
 ## Docs
 
