@@ -30,7 +30,7 @@ Boring by design: if init isn't boring, it's wrong.
 - Create `brain/` tree + `_templates/`: `aegis init --yes`
 - Install git hooks (pre-commit, post-commit, pre-push), CLI resolution PATH -> local build -> npx: `aegis hooks`
 - Write initial `transitions.json` + `state.json` with schema_version: `aegis status`
-- Install skill files into `.aegis/skills/` (refresh target for sync): `aegis sync`
+- Install skill files into `.aegis/skills/` at install time (`aegis init --yes`); later refresh AGENTS.md/CLAUDE.md + transitions via: `aegis sync`
 - Hand off to 00b unless `--yes` (defaults, agent mode): `aegis transition 00b`
 
 ## Verification

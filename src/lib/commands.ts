@@ -18,6 +18,7 @@ import { typecheck } from '../commands/typecheck.js';
 import { hooks } from '../commands/hooks.js';
 import { wave } from '../commands/wave.js';
 import { clean, quarantine } from '../commands/clean.js';
+import { remove } from '../commands/remove.js';
 import { demo } from '../commands/demo.js';
 import { jev } from '../commands/jev.js';
 import { memory } from '../commands/memory.js';
@@ -30,12 +31,15 @@ const DISPATCH: Record<string, (args: string[]) => void | Promise<void>> = {
   checkpoint, resume, ast, sync, gc, config, merge, slice, validate, monitor,
   eval: evalCmd, migrate, fix, chore, import: importCmd, update, exec, typecheck, hooks,
   wave, 'lint-skills': (args) => lintSkills(args, Object.keys(DISPATCH)),
-  clean, quarantine, memory, jev, demo,
+  clean, quarantine, memory, jev, demo, remove,
 };
 
 export const COMMANDS: string[] = Object.keys(DISPATCH);
 // Inject the command set into eval (no reverse import - DAG stays clean).
-setKnownCommands(COMMANDS);
+// 'completions' is cli-handled (it needs COMMANDS; a command module importing
+// the dispatcher back would be the exact cycle 02a forbids), so it joins the
+// known set explicitly for skill linting.
+setKnownCommands([...COMMANDS, 'completions']);
 
 /** Run a command by name. Returns false for unknown names (cli.ts owns help/errors). */
 export async function run(cmd: string, args: string[]): Promise<boolean> {

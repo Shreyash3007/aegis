@@ -22,8 +22,12 @@ function machineryLines(s: State): string[] {
 }
 
 function blockers(s: State, t: Transitions, e: Edge): string[] {
+  // Every blocker hands the operator its fix: status/next are read by tired
+  // humans and AFK agents alike, and "you are blocked" without "do this"
+  // is where runs go to die. Texts stay match-stable (tests assert the
+  // prefixes); recoveries append after a pipe.
   const b: string[] = [];
-  if (e.gate && s.gates[e.gate]?.status !== 'approved') b.push(`gate ${e.gate} (${t.gates[e.gate]}) OPEN`);
+  if (e.gate && s.gates[e.gate]?.status !== 'approved') b.push(`gate ${e.gate} (${t.gates[e.gate]}) OPEN | approve: aegis gate ${e.gate} --approve`);
   if (e.gate === 'DEMO' && s.gates.DEMO?.status === 'approved') {
     // Approval binds the artifact, not just the moment: an unrecorded or
     // swapped demo re-locks every 04a entry until re-approval. Pre-0.9
@@ -34,7 +38,7 @@ function blockers(s: State, t: Transitions, e: Edge): string[] {
       if (stale) b.push(`DEMO approval stale: ${stale}`);
     }
   }
-  if (e.requiresContracts && !s.contracts_merged) b.push('contracts UNMERGED');
+  if (e.requiresContracts && !s.contracts_merged) b.push('contracts UNMERGED | verify: aegis contracts');
   const loop = s.loop_counters[`${e.from}->${e.to}`] || 0;
   if (loop >= t.max_loop) b.push(`edge loop limit ${loop}/${t.max_loop}`);
   if ((s.state_visits[e.to] || 0) >= t.max_loop) b.push(`state ${e.to} visited ${s.state_visits[e.to]}x (cycle guard)`);

@@ -195,7 +195,8 @@ function sectionE(dir) {
       { env: process.env });
     if (r.code !== 0) { check(S, `bulk memory add ${i}`, r.code, 0, `${r.stdout}${r.stderr}`.slice(0, 200)); break; }
   }
-  const lines = fs.readFileSync(path.join(dir, '.aegis', 'memory', 'records.jsonl'), 'utf8').trim().split('\n');
+  const memStore = path.join(dir, 'brain', 'memory', 'records.jsonl');
+  const lines = fs.readFileSync(memStore, 'utf8').trim().split('\n');
   const ids = lines.map((l) => JSON.parse(l).id);
   check(S, '50 records appended', ids.length, 50, `${ids.length}`);
   check(S, 'seq ids unique, no gaps', new Set(ids).size === 50 && ids[49] === 'mem-0050', true, ids.slice(-3).join(','));

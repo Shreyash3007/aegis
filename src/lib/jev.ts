@@ -65,6 +65,24 @@ class BackendError extends Error {
   constructor(message: string, status?: number) { super(message); this.status = status; }
 }
 
+/** Egress redaction (audit #22): judgment states POST to api.typesafe.ai,
+ *  so credentials inside them must die before send. Applied on the typesafe
+ *  path only (mock/degraded never leave the machine). Patterns mirror
+ *  upstream jev-use redact.ts: URL passwords, auth/cookie headers,
+ *  -u user:pass, KEY=/TOKEN=/SECRET= assignments, known key shapes.
+ *  What the removal costs a verdict is unknowable locally - states carrying
+ *  secrets should be rephrased, not just redacted; the shapes below are the
+ *  backstop, not the plan. */
+export function redactState(state: string): string {
+  return state
+    .replace(/https?:\/\/[^/\s:@]+:[^/\s@]+@/g, 'https://[redacted]@')
+    .replace(/(authorization:\s*(?:bearer|basic|token)\s+)\S+/gi, '$1[redacted]')
+    .replace(/(^|\n)\s*cookie:[^\n]*/gi, '$1cookie: [redacted]')
+    .replace(/(^|\s)(-u|--user)\s+\S+:\S+/g, '$1$2 [redacted]')
+    .replace(/\b([A-Za-z_0-9]*(?:TOKEN|SECRET|PASSWORD|API_KEY)\s*=\s*)([^\s'";]+)/g, '$1[redacted]')
+    .replace(/\b(sk-[A-Za-z0-9\-_]{8,}|gh[pousr]_[A-Za-z0-9_]+|xox[baprs]-[A-Za-z0-9-]+)\b/g, '[redacted]');
+}
+
 function toNativeQuestion(q: JevQuestion & { id: string }): Record<string, unknown> {
   if (q.type === 'noul')
     return { type: 'noul', instructions: q.question, ...(q.criteria ? { criteria: q.criteria } : {}) };
@@ -213,7 +231,7 @@ export async function judge(
   }
   try {
     const body = {
-      model: backend.model ?? JEV_DEFAULT_MODEL, state,
+      model: backend.model ?? JEV_DEFAULT_MODEL, state: redactState(state),
       questions: Object.fromEntries(qs.map((q) => [q.id, toNativeQuestion(q)])),
     };
     const res = await postBackend(`${backend.baseUrl}/v1/systemone`,

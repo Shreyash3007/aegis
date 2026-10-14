@@ -18,6 +18,14 @@ const SETTABLE: Record<string, (cfg: Cfg, v: string) => void> = {
     const mt = (c.model_tiers ?? { strong: 'default', standard: 'default', light: 'default' }) as Config['model_tiers'];
     mt.strong = v; c.model_tiers = mt;
   },
+  model_standard: (c, v) => {
+    const mt = (c.model_tiers ?? { strong: 'default', standard: 'default', light: 'default' }) as Config['model_tiers'];
+    mt.standard = v; c.model_tiers = mt;
+  },
+  model_light: (c, v) => {
+    const mt = (c.model_tiers ?? { strong: 'default', standard: 'default', light: 'default' }) as Config['model_tiers'];
+    mt.light = v; c.model_tiers = mt;
+  },
   human_lane_cap: (c, v) => { c.human_lane_cap = Math.max(1, parseInt(v, 10) || 2); },
   ship_profile: (c, v) => { c.ship_profile = v === 'prototype' ? 'prototype' : 'production'; },
   pii_logs: (c, v) => { c.pii_logs = v === 'true'; },

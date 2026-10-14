@@ -9,7 +9,7 @@ import { REPO } from './util.js';
 // Matches both the current `# AEGIS MANAGED HOOK` banner and the v0.2.0
 // `# AEGIS <name>: ...` banner, so re-init after an upgrade treats old
 // Aegis hooks as ours (overwrite) rather than foreign (move aside + chain).
-const MARKER = '# AEGIS';
+export const MARKER = '# AEGIS';
 
 // Chain block: if a pre-existing hook was moved aside at init, run it first.
 // $0 is the hook path git invoked; the orig lives next to it. Blocking hooks

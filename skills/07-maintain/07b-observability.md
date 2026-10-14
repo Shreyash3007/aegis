@@ -24,13 +24,13 @@ Unobservable systems own you, not the reverse.
 
 ## Process
 - Structured logging (trace ID, user ID per PII config, timestamp, stack) + error tracking integration: `aegis status`
-- Health endpoints (/health, /ready, /metrics): `aegis monitor --once`
-- Per-journey 2-4 SLIs (availability, p95 latency, correctness, freshness) with one SLO target each; burn-rate -> alert tier (fast burn pages, slow burn tickets, in-budget logs): `aegis monitor --once`
-- Write monitor targets (endpoints + latency benchmarks) for CI checks: `aegis monitor --once`
+- Register each health endpoint as a monitor target (URL + latency benchmark): `aegis monitor target add`
+- Verify every target live before ship (unreachable at setup = flag, never silent): `aegis monitor --once`
+- Per-journey 2-4 SLIs (availability, p95 latency, correctness, freshness) with one SLO target each; burn-rate -> alert tier (fast burn pages, slow burn tickets, in-budget logs): `aegis status`
 - Runbooks for top-5 failure modes; self-critique; present; advance: `aegis transition 07c`
 
 ## Verification
-- Endpoint claims cite monitor-run results.
+- Endpoint claims cite monitor-run results; every target registered via the target command, none hand-authored.
 - SLO example budgets: 99.9% = 43 min/month; 99.95% = 22 min/month.
 - Self-check: too much/too little logging? 3-AM-diagnosable from these signals alone?
 
@@ -39,6 +39,6 @@ Unobservable systems own you, not the reverse.
 - Monitor target unreachable at setup -> flag before ship.
 
 ## Interactions
-- CLI: `aegis monitor --once`, `aegis transition 07c`.
+- CLI: `aegis monitor target add`, `aegis monitor --once`, `aegis transition 07c`.
 - Brain: read codebase, system, api-contracts; write observability-spec, monitor targets, dashboards.
 - Next: `07c-documentation`. Touchpoint: overhead-vs-budget conflict.

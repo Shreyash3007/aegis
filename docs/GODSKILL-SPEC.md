@@ -4,6 +4,28 @@ Status: SPEC, unapproved. Source of truth for agents after approval is derived
 contracts; this file is the human approval surface alongside
 `output/god-skill/god-skill-map.html` (workspace).
 
+## 0. Enforcement ledger (added v0.9 audit — prose may not wear wall costumes)
+
+Every section below carries one status. Only `enforced` sections may be
+cited as guarantees; `advisory` sections guide agents; `planned` sections
+are explicit future work, never promises.
+
+| § | Section | Status | Evidence |
+|---|---|---|---|
+| 3-5 | Principles, architecture, autonomy ladder | advisory | CONSTRAINTS.md; patterns authoritative in CLI, Jev second opinion |
+| 6 | Gates and loops: loop-until-clean, quarantine, demo loop, escalation | enforced | `clean`, `quarantine`, `demo`, exit 5/9 (suite) |
+| 6 | Gates and loops: doubt gate (fresh-context 04→05) | advisory | required 04c skill step + reconcile classes, agent-executed |
+| 6 | Gates and loops: research loop | advisory | routed via restored agent-reach blade; no CLI surface |
+| 7 | Confidence and Jev wiring | enforced | `jev` direct HTTPS, thresholds, degraded mode (suite + live) |
+| 8 | Memory records, decay, reconcile, lane sealing | enforced | `memory` store, committed truth, hashed (suite) |
+| 8 | Quarantined lanes | enforced | oracle refusal (suite) |
+| 9 | Margin Format + lint-skills + trigger eval | enforced | `lint-skills` 68/68, `eval trigger` live 43/43 |
+| 10 | Prototype track + demo gate | enforced | `demo record`, DEMO pin on all 04a entries (suite) |
+| 11 | Quality phase + simulations | advisory | 05d skill protocol; simulation tiers in CONSTRAINTS, no CLI harness |
+| 12 | Multi-agent protocol | advisory | blackboard = handoff.md + committed memory (named below); no mechanical hook |
+| 13 | Dependency law | advisory | merge oracle checks contracts; budgets prose |
+| 14 | Acceptance | revised v0.9 | see below |
+
 ## 1. Goal
 
 Evolve aegis (installed 0.5.2, `D:\Projects\aegis`) into the single hybrid
@@ -156,7 +178,10 @@ nothing required.
   oracle → next. One slice per agent per wave.
 - Blackboard only: files + CLI state. No agent-to-agent messages, no
   persona-spawns-persona. `aegis exec` records every run (audit/replay).
-- Idempotent resumable lanes (checkpoints + reconstruction packs).
+- The blackboard is named, not implied: `brain/handoff.md` (pipeline
+  position + machinery snapshot, byte-deterministic) and committed
+  `brain/memory/` records (decisions, findings, reconcile outcomes).
+  Idempotent resumable lanes (checkpoints + reconstruction packs).
 
 ## 13. Dependency law (no mess)
 
@@ -166,11 +191,19 @@ nothing required.
   path per wave. Every file maps slice → contract → evidence → blueprint;
   orphans fail the gate.
 
-## 14. Acceptance (all must hold)
+## 14. Acceptance (all must hold; revised v0.9 — token spend is unmeasurable,
+so criterion 2 now measures its enforceable proxies)
 
 1. Free/small-model pilot ships a small feature on start/approve/ship
-   alone. 2. Trigger evals pass; phase token spend trends down.
-3. Zero gate passes without evidence; zero unbounds except demo loop.
+   alone — STATUS: planned (pilot harness: `scripts/dogfood.mjs` scenario D
+   runs the pipeline with JEV_BACKEND=mock + small-model executor; recorded
+   in the DOGFOOD doc when run).
+2. Trigger evals pass; skill line budgets hold and wave token-budgets are
+   declared (tokens-budget is advisory metadata, never metered — metering
+   would need provider billing hooks that don't exist; the measurable proxy
+   is budget conformance via `lint-skills`).
+3. Zero gate passes without evidence (approvals record evidence pointers;
+   DEMO pins the artifact hash); zero unbounds except demo loop.
 4. No file over budget; no duplicated concept; slop gate clean.
 5. Aegis dogfoods the spec on itself with changelog.
 

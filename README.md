@@ -207,6 +207,10 @@ start, never mid-walk.
 - Gate proof-of-human is an attributed audit trail, not cryptography — a
   determined agent with shell access can set env vars. It catches drift and
   confabulation, not adversaries.
+- The judgment ring sends state off-machine: `aegis jev` POSTs your request
+  file to api.typesafe.ai (redacted for common credential shapes, but
+  redaction is a backstop — never judge secrets). `JEV_BACKEND=mock` sends
+  nothing anywhere.
 - Only Kimi Code (Linux) is verified end-to-end so far; other platforms work
   through the same CLI but are UNVERIFIED until evidenced (matrix above).
 - External executors (opencode/GLM) comply via prompts + `aegis exec`;

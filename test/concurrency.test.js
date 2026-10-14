@@ -125,3 +125,14 @@ test("config set <optional> '-' removes the key instead of storing '-'", (t) => 
   // and validate contracts falls back to the default path wording
   assert.match(aegis(dir, ['validate', 'contracts']).stdout, /no src\/contracts/);
 });
+
+test('exec --timeout kills runaways, records TIMEOUT (data, not a pass)', (t) => {
+  const dir = scratch(t);
+  const slow = `"${process.execPath}" -e "setTimeout(() => {}, 30000)"`;
+  const r = aegis(dir, ['exec', '--timeout', '1', '--', slow]);
+  assert.equal(r.status, 1, r.stderr + r.stdout);
+  assert.match(r.stderr, /exec TIMEOUT after 1s/);
+  const hist = readState(dir).history.map((h) => h.event ?? '').join('\n');
+  assert.match(hist, /exec \(exit TIMEOUT\)/);
+  assert.equal(aegis(dir, ['exec', '--timeout', 'bogus', '--', slow]).status, 2);
+});

@@ -21,6 +21,11 @@ const server = http.createServer(async (req, res) => {
   let body = '';
   for await (const chunk of req) body += chunk;
   console.log('REQ ' + body.length);
+  // No backslash escapes inside this -e template: template evaluation turns
+  // backslash-n into a real newline, which breaks regex literals
+  // (Invalid regular expression: missing /). fromCharCode keeps the child
+  // parseable.
+  console.log('BODY ' + body.split(String.fromCharCode(10)).join('[NL]').slice(0, 4000));
   if (mode === 'error') { res.writeHead(500, { 'content-type': 'application/json' }); res.end(JSON.stringify({ error: 'boom' })); return; }
   let answers = {};
   try {
@@ -48,11 +53,13 @@ function stub(t, env = {}) {
     buf += d.toString();
     reqs += (d.toString().match(/^REQ /gm) || []).length;
   });
+  const bodies = () => [...buf.matchAll(/^BODY (.*)$/gm)].map((m) => m[1].split('[NL]').join('\n'));
+  child.stderr.on('data', (d) => { buf += '[STDERR]' + d.toString(); });
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('stub never reported a port: ' + buf)), 10000);
     child.stdout.on('data', () => {
       const m = buf.match(/PORT (\d+)/);
-      if (m) { clearTimeout(timer); resolve({ url: `http://127.0.0.1:${m[1]}/v1/systemone`, requests: () => reqs }); }
+      if (m) { clearTimeout(timer); resolve({ url: `http://127.0.0.1:${m[1]}/v1/systemone`, requests: () => reqs, bodies }); }
     });
     child.on('error', reject);
   });
@@ -79,6 +86,30 @@ test('jev judge: live verdicts with provenance + unsure escalation', async (t) =
   assert.match(r.stdout, /backend: typesafe/);
   assert.match(r.stdout, /\[hi\] noul answer=0\.9 conf=0\.8\(estimated\) OK/);
   assert.match(r.stdout, /\[lo\] choice answer="b" conf=0\.3\(reported\) ESCALATE\(unsure\)/);
+});
+
+test('jev judge: credentials in state are redacted before egress', async (t) => {
+  const dir = scratch(t);
+  const { url, bodies } = await stub(t);
+  const secret = 'sk-live-ABCDEF1234567890';
+  const f = writeReq(dir, 'j.json', { state: `deploy with key ${secret} via https://bot:s3cret@example.com/hook and header Authorization: Bearer ${secret}`, questions: [
+    { id: 'q', type: 'noul', question: 'Safe to proceed?' },
+  ] });
+  const r = aegis(dir, ['jev', 'judge', '--file', f], { env: live(url) });
+  assert.equal(r.status, 0, r.stderr);
+  // spawnSync blocks the loop, so the stub's piped stdout may not have
+  // flushed yet: poll the captured bodies briefly instead of asserting
+  // on a potentially undelivered buffer.
+  let sent = '';
+  for (let i = 0; i < 40 && !sent; i++) {
+    await new Promise((r2) => setTimeout(r2, 250));
+    sent = bodies().join('\n');
+  }
+  assert.ok(sent.length > 0, 'stub captured the wire body');
+  assert.doesNotMatch(sent, /sk-live-ABCDEF1234567890/);
+  assert.doesNotMatch(sent, /bot:s3cret@/);
+  assert.doesNotMatch(sent, /Bearer sk-live/);
+  assert.match(sent, /\[redacted\]/);
 });
 
 test('jev triage: 0.7 gate maps ACT/DROP/REVERIFY', async (t) => {

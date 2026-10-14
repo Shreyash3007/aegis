@@ -11,7 +11,7 @@ export function ast(args: string[]): void {
   if (sub === 'build') {
     const g = buildGraph();
     if (g.modules.length === 0) {
-      console.log('no-AST mode: no tsconfig.json or no TS sources (O4) - AST features unavailable');
+      console.log('no-AST mode: TypeScript-only graph (ts-morph) - no tsconfig.json or no TS sources here, so graph/cycle checks are UNMEASURED on this repo, never faked');
       return;
     }
     writeJ(graphP(), g);

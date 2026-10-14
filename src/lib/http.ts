@@ -25,6 +25,34 @@ const retryable = (status?: number): boolean =>
   status === undefined || status === 408 || status === 429 || status >= 500;
 // Note: status 0 marks post-HTTP failures (unparseable body) - never retried.
 
+/** Raw endpoint probe for monitors: status code (or 'unreachable' /
+ *  'timeout') plus round-trip latency. Same teardown guarantees as
+ *  postJson - no pooled socket may outlive the call, so a breach exit
+ *  (process.exit) can never race libuv handle teardown on Windows. */
+export async function probeUrl(url: string, timeoutMs = 10_000): Promise<{ status: number | string; latency_ms: number }> {
+  const mod = (url.startsWith('https:') ? https : http) as typeof http;
+  const agent = new mod.Agent({ keepAlive: false });
+  const start = Date.now();
+  try {
+    const status: number = await new Promise((resolve, reject) => {
+      const req = mod.request(url, { method: 'GET', agent }, (res) => {
+        res.resume(); // drain without storing - only the status matters
+        res.on('end', () => resolve(res.statusCode ?? 0));
+        res.on('error', reject);
+      });
+      req.on('error', reject);
+      req.setTimeout(timeoutMs, () => req.destroy(new Error('timed out')));
+      req.end();
+    });
+    return { status, latency_ms: Date.now() - start };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : '';
+    return { status: msg.includes('timed out') ? 'timeout' : 'unreachable', latency_ms: Date.now() - start };
+  } finally {
+    agent.destroy();
+  }
+}
+
 export async function postJson(
   url: string, headers: Record<string, string>, body: unknown,
   opts: PostOptions = {},

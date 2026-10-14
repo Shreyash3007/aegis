@@ -1,17 +1,22 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { AEGIS_DIR, REPO, die, ok, readJ, writeJ } from '../lib/util.js';
+import { probeUrl } from '../lib/http.js';
 
 /** aegis monitor --once - ONE monitoring pass, designed for cron/CI (08b).
  *  Aegis never runs on a timer; the scheduler is external.
- *  Targets come from .aegis/monitor-targets.json: [{url, benchmark_ms}]
+ *  Targets come from .aegis/monitor-targets.json: [{url, benchmark_ms}] -
+ *  managed with `monitor target add|remove|list` (07b writes them).
+ *  Probes run over the shared non-keep-alive transport, so a breach exit
+ *  can never corrupt its own code the way pooled sockets did pre-0.7.
  *  Exit 10 on threshold breach. UNMEASURED when no targets configured. */
 
 interface Target { url: string; benchmark_ms?: number }
 interface CheckResult { url: string; ok: boolean; status: number | string; latency_ms: number; breach: boolean }
 
 export async function monitor(args: string[]): Promise<void> {
-  if (!args.includes('--once')) die(2, 'usage: aegis monitor --once (scheduler is external: cron/CI)');
+  if (args[0] === 'target') return monitorTarget(args.slice(1));
+  if (!args.includes('--once')) die(2, 'usage: aegis monitor --once | aegis monitor target <add|remove|list> (scheduler is external: cron/CI)');
   const targetsP = path.join(AEGIS_DIR, 'monitor-targets.json');
   const reportDir = path.join(AEGIS_DIR, 'monitor');
   fs.mkdirSync(reportDir, { recursive: true });
@@ -21,22 +26,22 @@ export async function monitor(args: string[]): Promise<void> {
     ok('monitor: UNMEASURED - no .aegis/monitor-targets.json (configure endpoints first)');
     return;
   }
-  const targets = readJ<Target[]>(targetsP);
+  let targets: Target[];
+  try {
+    const parsed: unknown = readJ<unknown>(targetsP);
+    if (!Array.isArray(parsed)) die(2, 'monitor-targets.json must be an array [{url, benchmark_ms}]');
+    targets = parsed as Target[];
+  } catch {
+    die(2, 'monitor-targets.json is unparseable - fix it: aegis monitor target list');
+  }
   const results: CheckResult[] = [];
   for (const t of targets) {
+    if (!t || typeof t.url !== 'string' || !t.url) die(2, 'monitor-targets.json holds a malformed entry (need {url}) - fix it: aegis monitor target list');
     const bench = t.benchmark_ms ?? 200;
-    const start = Date.now();
-    try {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 10_000);
-      const res = await fetch(t.url, { signal: ctrl.signal });
-      clearTimeout(timer);
-      const latency = Date.now() - start;
-      results.push({ url: t.url, ok: res.ok, status: res.status, latency_ms: latency,
-        breach: !res.ok || latency > bench * 2 });
-    } catch (e: any) {
-      results.push({ url: t.url, ok: false, status: 'unreachable', latency_ms: Date.now() - start, breach: true });
-    }
+    const probed = await probeUrl(t.url);
+    const okRes = typeof probed.status === 'number' && probed.status >= 200 && probed.status < 300;
+    results.push({ url: t.url, ok: okRes, status: probed.status, latency_ms: probed.latency_ms,
+      breach: !okRes || probed.latency_ms > bench * 2 });
   }
   const breaches = results.filter((r) => r.breach);
   const status = breaches.length ? 'BREACH' : 'HEALTHY';
@@ -51,4 +56,46 @@ export async function monitor(args: string[]): Promise<void> {
 
   if (breaches.length) die(10, `monitor: BREACH on ${breaches.length}/${results.length} targets`);
   ok(`monitor: HEALTHY - ${results.length} targets within thresholds`);
+}
+
+function readTargets(): { path: string; targets: Target[] } {
+  const p = path.join(AEGIS_DIR, 'monitor-targets.json');
+  if (!fs.existsSync(p)) return { path: p, targets: [] };
+  let parsed: unknown;
+  try { parsed = readJ<unknown>(p); }
+  catch { die(2, 'monitor-targets.json is unparseable - fix it or delete it to start over'); }
+  if (!Array.isArray(parsed)) die(2, 'monitor-targets.json must be an array [{url, benchmark_ms}]');
+  return { path: p, targets: parsed as Target[] };
+}
+
+/** Target registry for the 07b observability spec: add/remove/list the
+ *  endpoints CI watches. Validation is strict (malformed entries exit 2)
+ *  because a monitor that watches garbage reports health dishonestly. */
+function monitorTarget(args: string[]): void {
+  const [op, url] = args;
+  const { path: p, targets } = readTargets();
+  if (op === 'list') {
+    if (!targets.length) { console.log('no monitor targets (add one: aegis monitor target add <url>)'); return; }
+    for (const t of targets) console.log(`${t.url} (benchmark ${t.benchmark_ms ?? 200}ms)`);
+    return;
+  }
+  if (op === 'add') {
+    if (!url || !/^https?:\/\/\S+$/.test(url)) die(2, 'usage: aegis monitor target add <http(s)://url> [--benchmark-ms <n>]');
+    const bi = args.indexOf('--benchmark-ms');
+    const bench = bi >= 0 ? Number(args[bi + 1]) : 200;
+    if (!Number.isInteger(bench) || bench <= 0) die(2, '--benchmark-ms must be a positive integer (milliseconds)');
+    if (targets.some((t) => t.url === url)) die(4, `target already watched: ${url}`);
+    targets.push({ url, benchmark_ms: bench });
+    writeJ(p, targets);
+    ok(`monitor target added: ${url} (benchmark ${bench}ms) - CI checks it via: aegis monitor --once`);
+    return;
+  }
+  if (op === 'remove') {
+    if (!url) die(2, 'usage: aegis monitor target remove <url>');
+    if (!targets.some((t) => t.url === url)) die(2, `target not watched: ${url} (see: aegis monitor target list)`);
+    writeJ(p, targets.filter((t) => t.url !== url));
+    ok(`monitor target removed: ${url}`);
+    return;
+  }
+  die(2, 'usage: aegis monitor target <add|remove|list>');
 }
