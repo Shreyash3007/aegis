@@ -40,8 +40,12 @@ function sh(bin, args, opts = {}) {
 {
   console.log('release-check: local suite (this takes a few minutes)...');
   const r = sh(process.execPath, ['--test', 'test/'], { timeout: 600_000 });
-  const m = r.out.match(/# (?:ℹ )?pass (\d+)\n.*?# (?:ℹ )?fail (\d+)/s) || r.out.match(/pass (\d+)[\s\S]*?fail (\d+)/);
-  const pass = m ? m[1] : '?', fail = m ? m[2] : '?';
+  // node --test summary tail looks like "ℹ tests 178 / ℹ pass 178 / ℹ fail 0"
+  // (ANSI glyphs, no '#' prefix): take the LAST pass/fail pair in the output.
+  const passes = [...r.out.matchAll(/pass (\d+)/g)].map((m) => m[1]);
+  const fails = [...r.out.matchAll(/fail (\d+)/g)].map((m) => m[1]);
+  const pass = passes.length ? passes[passes.length - 1] : '?';
+  const fail = fails.length ? fails[fails.length - 1] : '?';
   step('1. local test suite green', r.code === 0, `exit=${r.code} pass=${pass} fail=${fail}`);
 }
 // 2. audit harness

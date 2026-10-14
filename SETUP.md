@@ -4,7 +4,7 @@
 
 ```bash
 # From GitHub (recommended once the repo is published):
-npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.8.0.tar.gz
+npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.9.0.tar.gz
 
 # Already installed? `aegis update` self-updates to the latest tag (same tarball path).
 

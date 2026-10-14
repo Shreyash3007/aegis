@@ -90,7 +90,7 @@ aegis init --yes && aegis ast build   # one trial found 2 real circular deps thi
 Requires Node 18+ and git. GitHub-only distribution (never on npm registry).
 
 ```bash
-npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.8.0.tar.gz
+npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.9.0.tar.gz
 # already have v0.3.0+? just: aegis update
 ```
 
@@ -233,6 +233,9 @@ code second) and [SECURITY.md](SECURITY.md) for responsible disclosure.
 
 ## Release history
 
+v0.9.0 integrity release: audit-finding closures with regression tests,
+evidence-bound approvals, committed memory truth, release ritual
+(see [CHANGELOG.md](CHANGELOG.md)) ·
 v0.8.0 audit release: exit-code discipline (malformed 2, refused 4) across
 ~40 sites + 148-check adversarial harness (see [CHANGELOG.md](CHANGELOG.md)) ·
 v0.7.0 self-cycle: conductor visibility in status, cite-or-stamp enforcement,

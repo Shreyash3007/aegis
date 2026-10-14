@@ -4,6 +4,80 @@ All notable changes to Aegis. Format follows [Keep a Changelog](https://keepacha
 versioning follows [SemVer](https://semver.org/). Evidence for every claim
 lives in `docs/DOGFOOD-v*.md` and the cited commits.
 
+## [0.9.0] - 2026-10-14
+
+Integrity release: every structural finding from the read-only v0.8.0 audit
+closed, each with a regression test. Minor bump: new refusals are behavior
+changes (`memory` cite strictness precedent), and this release adds several.
+
+### Added
+
+- `aegis monitor target add|remove|list` - the endpoint registry 07b always
+  assumed; strict validation, loopback HEALTHY/BREACH tests.
+- `aegis remove` - uninstaller: drops `.aegis/`, restores foreign hooks
+  byte-identical, removes its `.gitignore` line, refuses stranded lanes,
+  keeps `brain/`.
+- `aegis help <command>` - per-command detail generated from the help block
+  (cannot drift); `aegis completions <bash|zsh|pwsh>` generated from the
+  dispatch table (no import cycle: cli-handled like help/version).
+- `aegis exec --timeout <s>` - kills runaways, records TIMEOUT as data.
+- `memory add --app` - per-record app tags, `--app` filtered lists,
+  declared-app validation; scope table in MONOREPO-DESIGN.md.
+- Gate evidence pointers (`--evidence`) on every approval; DEMO approval
+  pins the artifact hash - swapped demos re-lock 04a entries until
+  re-approval; pre-pin approvals re-taken once.
+- Doctor: routed-blade liveness, stale hook-bake, cycle-guard approach
+  warnings. Exit-code recovery hints in every blocker line.
+
+### Changed
+
+- Memory truth lives committed at `brain/memory/` (hashed, tamper-evident,
+  migrates forward automatically); `.aegis/memory/` is index cache only;
+  crash-safe tail-scan IDs.
+- `slice create/remove` obey the state lock with conflict rollback
+  (duplicate-name refusal included).
+- Probes and judgments share the non-keep-alive transport (`monitor`
+  included - same abort class as the Jev fix).
+- Help reorganized by workflow; exit-code meanings aligned between help,
+  contract, and README table (now complete: all 35+2 commands).
+- SPEC carries an enforcement ledger (enforced/advisory/planned per
+  section), named blackboard, revised acceptance; doubt gate is a required
+  04c step; research loop routes via restored blades.
+
+### Fixed
+
+- Merge oracle self-sufficient git identity (CI runners ship none) -
+  the cause of the red CI shipped through v0.6-0.8.
+- CI matrix: ubuntu(20,22) + windows(22); audit harness runs in CI.
+- 8.3 short-path test assertion; jev stub `-e` template backslash hazard.
+- Stale install URLs, footer link/text mismatch, "60 edges" caption.
+
+### Security
+
+- Jev egress redaction (wire-proven) + documented trust model; update
+  supply-chain section (manual tag verification, no-checksum honesty).
+
+### Not done (measured, not promised)
+
+- Memory perf: 1k-record index rebuild + full scan measured ~340ms
+  startup-dominated; lazy index and summary sidecar deferred until evidence.
+- Executor-model variance in the pilot (below): judging roles ran mock.
+
+### Errata (append-only corrections to prior releases)
+
+- 0.6.0–0.8.0 shipped while CI was red (oracle identity bug, unnoticed
+  because dev machines carry a global identity). Fixed + regression-tested
+  here; ritual step 6 exists so it cannot recur silently.
+- "24 external blades" (0.6.0 notes): the registry holds 21; 5 were
+  archived by the prune and have been restored.
+- "Suite 153/153" (0.7.0/0.8.0 notes): Windows-local truth while CI was
+  red. This release's numbers are cross-platform gated.
+
+### Verified
+
+- Suite 178/178, lint 68/68, audit 150/0, dogfood 71 steps 0 unexpected
+  (x3 runs), concurrency 7/7 (x2), live trigger 43/43 (0.7.0 spike).
+
 ## [0.8.0] - 2026-10-13
 
 Audit release: a 148-check adversarial harness (`scripts/audit.mjs`:

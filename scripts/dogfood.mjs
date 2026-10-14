@@ -259,7 +259,7 @@ function scenarioC() {
   initAegis(dir, S);
   aegis(dir, S, 'brownfield detected by init', ['status'], 0);
 
-  aegis(dir, S, 'UI demo needs an .html prototype', ['demo', 'record', '--kind', 'ui', '--file', 'src/app.ts'], 4);
+  aegis(dir, S, 'UI demo needs an .html prototype (malformed -> 2)', ['demo', 'record', '--kind', 'ui', '--file', 'src/app.ts'], 2);
   aegis(dir, S, 'record the UI prototype', ['demo', 'record', '--kind', 'ui', '--file', 'index.html'], 0);
   write(dir, 'demo-v2.html', '<!doctype html><title>v2</title>');
   aegis(dir, S, 'iterate the demo (unbounded loop, supersedes)', ['demo', 'record', '--kind', 'ui', '--file', 'demo-v2.html'], 0);
