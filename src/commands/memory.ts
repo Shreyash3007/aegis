@@ -5,20 +5,26 @@ import { AEGIS_DIR, REPO, die, ok, noStateMsg } from '../lib/util.js';
 
 /** Record memory beside brain/ (SPEC §8): typed decision/contract/finding/
  *  assumption records with status, confidence, citations, expiry and
- *  supersedes-links. JSONL is source of truth; SQLite FTS5 (zero-dep via
- *  node:sqlite, token-scan fallback) is a rebuilt index, never truth.
- *  brain/memory.md is the rendered view (pure function of the store, so
- *  checkpoint hashes stay stable). Lane scratch is sealed: `list` hides it
- *  unless asked, and only `promote` (the merge-gate promotion) moves lane
- *  records into the main store. Contradictions open reconcile tasks - never
- *  silent overwrites. Single-writer assumption (conductor-serialized); no
- *  lockfile around the JSONL append. */
+ *  supersedes-links.
+ *  Truth lives COMMITTED at brain/memory/records.jsonl (+ lanes/): reviewable
+ *  diffs, survives disk loss, and automatically covered by checkpoint
+ *  integrity (brainHashes walks brain/). .aegis/memory/ holds only the
+ *  rebuilt SQLite FTS5 index + rendered cache - both regenerable via
+ *  `memory sync`. Lane scratch is sealed: `list` hides it unless asked, and
+ *  only `promote` (the merge-gate promotion) moves lane records into the
+ *  main store. Contradictions open reconcile tasks - never silent overwrites.
+ *  IDs derive from scanning the JSONL tail (no separate counter file, so no
+ *  two-op race); writers stay conductor-serialized (single-writer). */
 
 const MEM = () => path.join(AEGIS_DIR, 'memory');
-const MAIN = () => path.join(MEM(), 'records.jsonl');
-const LANE = (l: string) => path.join(MEM(), 'lanes', `${l}.jsonl`);
-const SEQ = () => path.join(MEM(), 'seq');
+const STORE = () => path.join(REPO, 'brain', 'memory');
+const MAIN = () => path.join(STORE(), 'records.jsonl');
+const LANE = (l: string) => path.join(STORE(), 'lanes', `${l}.jsonl`);
 const IDX = () => path.join(MEM(), 'index.db');
+// Pre-0.9 source of truth (gitignored, unhashed). ensureStore() migrates it
+// forward once, then removes it - never the reverse.
+const LEGACY_MAIN = () => path.join(MEM(), 'records.jsonl');
+const LEGACY_LANES = () => path.join(MEM(), 'lanes');
 
 export const TYPES = ['decision', 'contract', 'finding', 'assumption', 'reconcile'] as const;
 const OPEN_STATUS = ['active', 'pending', 'superseded'];
@@ -36,7 +42,37 @@ export interface MemRecord {
 
 function needInit(): void {
   if (!fs.existsSync(AEGIS_DIR)) die(2, noStateMsg('missing .aegis'));
-  fs.mkdirSync(path.join(MEM(), 'lanes'), { recursive: true });
+  fs.mkdirSync(path.join(STORE(), 'lanes'), { recursive: true });
+  ensureStore();
+}
+
+/** One-way forward migration: pre-0.9 gitignored truth (.aegis/memory) moves
+ *  into the committed store (brain/memory). Runs on every memory command;
+ *  no-ops once migrated. Prints to stderr so machine-readable stdout
+ *  (list/get) stays parseable. */
+function ensureStore(): void {
+  if (!fs.existsSync(LEGACY_MAIN()) && !fs.existsSync(LEGACY_LANES())) return;
+  const moved: string[] = [];
+  if (fs.existsSync(LEGACY_MAIN()) && !fs.existsSync(MAIN())) {
+    fs.copyFileSync(LEGACY_MAIN(), MAIN());
+    moved.push('records.jsonl');
+  }
+  if (fs.existsSync(LEGACY_LANES())) {
+    for (const f of fs.readdirSync(LEGACY_LANES())) {
+      if (!f.endsWith('.jsonl')) continue;
+      const dst = path.join(STORE(), 'lanes', f);
+      if (!fs.existsSync(dst)) {
+        fs.copyFileSync(path.join(LEGACY_LANES(), f), dst);
+        moved.push(`lanes/${f}`);
+      }
+    }
+  }
+  if (moved.length) {
+    try { fs.rmSync(LEGACY_MAIN(), { force: true }); } catch { /* keep going */ }
+    try { fs.rmSync(LEGACY_LANES(), { recursive: true, force: true }); } catch { /* keep going */ }
+    try { fs.rmSync(path.join(MEM(), 'seq'), { force: true }); } catch { /* pre-0.9 counter, superseded by tail scan */ }
+    console.error(`note: memory store migrated to brain/memory/ (${moved.join(', ')}) - the old gitignored copy is removed`);
+  }
 }
 
 function readAll(file: string): MemRecord[] {
@@ -50,9 +86,10 @@ function allLane(l: string): MemRecord[] { return readAll(LANE(l)); }
 export function allRecords(): MemRecord[] {
   needInit();
   const out = allMain();
-  if (fs.existsSync(path.join(MEM(), 'lanes')))
-    for (const f of fs.readdirSync(path.join(MEM(), 'lanes')))
-      if (f.endsWith('.jsonl')) out.push(...readAll(path.join(MEM(), 'lanes', f)));
+  const lanesDir = path.join(STORE(), 'lanes');
+  if (fs.existsSync(lanesDir))
+    for (const f of fs.readdirSync(lanesDir))
+      if (f.endsWith('.jsonl')) out.push(...readAll(path.join(lanesDir, f)));
   return out;
 }
 
@@ -63,11 +100,15 @@ export function isStale(r: MemRecord, now = Date.now()): boolean {
 }
 
 function nextId(): string {
+  // Crash-safe: derive from the JSONL tail, no separate counter file whose
+  // write could race or be lost between the two fs ops. Single-writer
+  // (conductor-serialized) keeps appends ordered.
   let n = 0;
-  try { n = parseInt(fs.readFileSync(SEQ(), 'utf8'), 10) || 0; } catch { /* first record */ }
-  n += 1;
-  fs.writeFileSync(SEQ(), `${n}\n`);
-  return `mem-${String(n).padStart(4, '0')}`;
+  for (const r of [...readAll(MAIN()), ...laneFiles().flatMap(readAll)]) {
+    const m = /^mem-(\d+)$/.exec(r.id);
+    if (m) n = Math.max(n, parseInt(m[1], 10));
+  }
+  return `mem-${String(n + 1).padStart(4, '0')}`;
 }
 
 function find(id: string): { rec: MemRecord; file: string } | null {
@@ -77,7 +118,7 @@ function find(id: string): { rec: MemRecord; file: string } | null {
 }
 
 function laneFiles(): string[] {
-  const d = path.join(MEM(), 'lanes');
+  const d = path.join(STORE(), 'lanes');
   if (!fs.existsSync(d)) return [];
   return fs.readdirSync(d).filter((f) => f.endsWith('.jsonl')).map((f) => path.join(d, f));
 }

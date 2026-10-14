@@ -146,3 +146,30 @@ test('resume pack carries the memory summary line', (t) => {
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /memory: 1 active, 0 stale \(re-verify\), 0 open reconciles/);
 });
+
+test('memory truth is committed: tampering records.jsonl trips integrity (exit 6)', (t) => {
+  const dir = scratch(t);
+  addFinding(dir);
+  assert.equal(aegis(dir, ['checkpoint']).status, 0);
+  const store = path.join(dir, 'brain', 'memory', 'records.jsonl');
+  assert.ok(fs.existsSync(store), 'truth lives committed at brain/memory/records.jsonl');
+  fs.appendFileSync(store, JSON.stringify({ id: 'mem-9999', type: 'finding', title: 'forged', body: 'x', status: 'active', confidence: 1, cites: [], expiry: null, supersedes: null, parties: null, winner: null, resolution: null, lane: null, at: 't', verified_at: null, history: [] }) + '\n');
+  const bad = aegis(dir, ['resume']);
+  assert.equal(bad.status, 6, bad.stderr);
+  assert.match(bad.stderr, /MODIFIED: brain[\\/]memory[\\/]records\.jsonl/);
+});
+
+test('memory migrates the pre-0.9 gitignored store forward once', (t) => {
+  const dir = scratch(t);
+  addFinding(dir);
+  // Simulate a pre-0.9 install: truth under .aegis, nothing committed.
+  const legacy = path.join(dir, '.aegis', 'memory');
+  fs.mkdirSync(legacy, { recursive: true });
+  fs.copyFileSync(path.join(dir, 'brain', 'memory', 'records.jsonl'), path.join(legacy, 'records.jsonl'));
+  fs.rmSync(path.join(dir, 'brain', 'memory', 'records.jsonl'));
+  const r = mem(dir, ['list']);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /mem-0001/);
+  assert.ok(fs.existsSync(path.join(dir, 'brain', 'memory', 'records.jsonl')), 'migrated into the committed store');
+  assert.ok(!fs.existsSync(path.join(legacy, 'records.jsonl')), 'legacy copy removed');
+});
