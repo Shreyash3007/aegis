@@ -4,7 +4,7 @@ import { AEGIS_DIR, die, readJ, writeJ, noStateMsg } from './util.js';
 
 export const SCHEMA_VERSION = 1;
 
-export interface GateRecord { status: 'approved'; at: string; by: string }
+export interface GateRecord { status: 'approved'; at: string; by: string; evidence?: string; demo_sha?: string | null }
 export interface FixRecord {
   kind: 'fix' | 'chore'; desc: string; opened_at: string;
   closed_at?: string; validation?: string; abandoned_reason?: string;

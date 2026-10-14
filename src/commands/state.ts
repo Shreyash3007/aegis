@@ -3,6 +3,7 @@ import path from 'node:path';
 import { AEGIS_DIR, REPO, die, git, gitTry, ok, readJ, writeJ } from '../lib/util.js';
 import { loadState, loadStateFrom, loadTransitions, loadConfig, contractsPath, declaredApps, appStatePath, resolveState, commitState, acquireState, stateP, State, Transitions, Edge } from '../lib/state.js';
 import { memorySummary } from './memory.js';
+import { demoSha, demoStaleness } from './demo.js';
 
 /** v0.6.0 machinery at a glance (conductor visibility): quarantine, clean
  *  cycles, demo record. Conditional lines only - empty machinery prints
@@ -14,7 +15,7 @@ function machineryLines(s: State): string[] {
   for (const [b, rec] of Object.entries(s.clean ?? {}))
     L.push(`clean FAILING: ${b} (cycle ${rec.cycles}/3: ${rec.last_class})`);
   if (s.demo)
-    L.push(`demo: ${s.demo.kind} [${s.demo.files.join(', ')}]`);
+    L.push(`demo: ${s.demo.kind} [${s.demo.files.join(', ')}]${demoStaleness(s) ? ' (approval STALE - re-approve)' : ''}`);
   const mem = memorySummary();
   if (mem) L.push(mem);
   return L;
@@ -23,6 +24,16 @@ function machineryLines(s: State): string[] {
 function blockers(s: State, t: Transitions, e: Edge): string[] {
   const b: string[] = [];
   if (e.gate && s.gates[e.gate]?.status !== 'approved') b.push(`gate ${e.gate} (${t.gates[e.gate]}) OPEN`);
+  if (e.gate === 'DEMO' && s.gates.DEMO?.status === 'approved') {
+    // Approval binds the artifact, not just the moment: an unrecorded or
+    // swapped demo re-locks every 04a entry until re-approval. Pre-0.9
+    // approvals carry no pin and must be re-taken once, audited.
+    if (!s.demo) b.push('no demo recorded - pin the artifact first: aegis demo record --kind <ui|contract> --file <path>');
+    else {
+      const stale = demoStaleness(s);
+      if (stale) b.push(`DEMO approval stale: ${stale}`);
+    }
+  }
   if (e.requiresContracts && !s.contracts_merged) b.push('contracts UNMERGED');
   const loop = s.loop_counters[`${e.from}->${e.to}`] || 0;
   if (loop >= t.max_loop) b.push(`edge loop limit ${loop}/${t.max_loop}`);
@@ -159,7 +170,7 @@ function ttyPrompt(question: string): string {
 export function gate(args: string[]): void {
   if (!args.includes('--approve')) die(7, 'gate requires --approve (a human action)');
   const name = args[0];
-  if (!name) die(7, 'usage: aegis gate <name> --approve');
+  if (!name) die(7, 'usage: aegis gate <name> --approve [--evidence <ref>] [--app <name>]');
   const t = loadTransitions();
   if (!t.gates[name])
     die(7, `unknown gate: ${name} (known: ${Object.keys(t.gates).join(', ')})`);
@@ -186,9 +197,16 @@ export function gate(args: string[]): void {
   }
   const ctx = resolveState(args, true);
   const s = ctx.s;
-  s.gates[name] = { status: 'approved', at: new Date().toISOString(), by };
+  const ei = args.indexOf('--evidence');
+  const evidence = ei >= 0 ? args[ei + 1] : undefined;
+  if (ei >= 0 && !evidence) die(2, 'usage: aegis gate <name> --approve [--evidence <ref>]');
+  // DEMO approval pins the recorded artifact's content hash: swapping the
+  // demo afterwards invalidates this approval (see blockers + demoStaleness).
+  // Pre-existing approvals without a demo record pin nothing (pin: null).
+  const demo_sha = name === 'DEMO' && (s as any).demo ? demoSha((s as any).demo) : null;
+  s.gates[name] = { status: 'approved', at: new Date().toISOString(), by, ...(evidence ? { evidence } : {}), ...(name === 'DEMO' ? { demo_sha } : {}) };
   commitState(ctx.p, s);
-  ok(`gate ${name} approved and recorded${ctx.app ? ` (app ${ctx.app})` : ''}`);
+  ok(`gate ${name} approved and recorded${ctx.app ? ` (app ${ctx.app})` : ''}${evidence ? ` (evidence: ${evidence})` : ''}${name === 'DEMO' ? (demo_sha ? ' (artifact pinned)' : ' (no demo recorded - approval pins nothing yet)') : ''}`);
 }
 
 export function transition(args: string[]): void {

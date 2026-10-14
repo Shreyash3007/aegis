@@ -27,7 +27,7 @@ Phase 0 (this build):
                                (multi-app: summary without --app, detail with)
                                (--markdown also writes a portable brain/handoff.md)
   next                         recommended next legal skill (lists all legal edges)
-  gate <name> --approve [--app <name>]   record human gate approval
+  gate <name> --approve [--evidence <ref>] [--app <name>]   record human gate approval (+ evidence pointer; DEMO pins the artifact)
   transition <skill> [--reason t] [--app <name>]  record a validated transition
   contracts                    verify contracts merged to base branch (unlocks 04a)
   loops reset --reason <t>     zero loop/cycle counters after human review (audited)

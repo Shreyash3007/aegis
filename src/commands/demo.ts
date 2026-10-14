@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { REPO, die, ok } from '../lib/util.js';
+import { REPO, die, ok, sha } from '../lib/util.js';
 import { resolveState, commitState } from '../lib/state.js';
 
 /** Demo-approval gate (SPEC §10, CONSTRAINTS §6): the prototype track made
@@ -14,6 +14,27 @@ import { resolveState, commitState } from '../lib/state.js';
  *  App-scoped in multi-app repos (--app, like all pipeline mutations). */
 
 export interface DemoRecord { kind: 'ui' | 'contract'; files: string[]; at: string }
+
+/** Content pin of the recorded artifact (kind + sorted files + their bytes).
+ *  Null when any file is missing/unreadable - an unpinnable demo can be
+ *  recorded but never approved-pinned. Stored on the DEMO approval; the
+ *  04a-entry blockers re-check it, so swapping the artifact after approval
+ *  re-locks the lanes instead of silently inheriting a stale sign-off. */
+export function demoSha(d: { kind: string; files: string[] }): string | null {
+  try {
+    const files = [...d.files].sort();
+    return sha([d.kind, ...files.map((f) => fs.readFileSync(path.resolve(REPO, f), 'utf8'))].join('\n'));
+  } catch { return null; }
+}
+
+/** Demo-vs-approval consistency for status lines and edge blockers. */
+export function demoStaleness(s: any): string | null {
+  if (!s.demo) return null;
+  const pin = s.gates?.DEMO?.demo_sha;
+  if (s.gates?.DEMO?.status !== 'approved') return null;
+  if (!pin) return 'approved before artifact pinning - re-approve to pin the current demo';
+  return demoSha(s.demo) === pin ? null : 'artifact changed since approval - re-approve: aegis gate DEMO --approve';
+}
 
 function filesOf(args: string[]): string[] {
   const out: string[] = [];
@@ -54,6 +75,9 @@ export function demo(args: string[]): void {
     if (s.demo) console.log(`demo: ${s.demo.kind} [${s.demo.files.join(', ')}] (recorded ${s.demo.at})`);
     else console.log('demo: none recorded (aegis demo record --kind <ui|contract> --file <path>)');
     console.log(`gate DEMO: ${gate?.status === 'approved' ? `approved (${gate.at}, by ${gate.by})` : 'OPEN - production lanes stay shut'}`);
+    const stale = demoStaleness(s);
+    if (stale) console.log(`demo approval: STALE - ${stale}`);
+    else if (s.demo && gate?.status === 'approved') console.log('demo approval: pinned to the recorded artifact');
     return;
   }
   die(2, 'usage: aegis demo <record|status> [--app <name>]');
