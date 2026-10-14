@@ -159,13 +159,32 @@ function acquireLock(p: string): void {
       return;
     } catch (e: any) {
       if (e?.code !== 'EEXIST') throw e;
-      let steal = false;
-      try {
-        const j = JSON.parse(fs.readFileSync(lock, 'utf8'));
+      // Read the holder with retries: on Windows the file can be opened
+      // mid-creation (permissive sharing lets a reader in while the writer's
+      // bytes are still landing), which parses as garbage. Treating that as
+      // a dead lock STEALS a live holder's lock -> two writers -> lost
+      // updates (the v0.4.1 class in a new location; CI caught 6/8 events).
+      // A creating writer finishes in ms; a truly corrupt lock never parses.
+      let holder: { pid?: unknown; at?: unknown } | null = null;
+      for (let i = 0; i < 6 && holder === null; i++) {
+        try {
+          const j: unknown = JSON.parse(fs.readFileSync(lock, 'utf8'));
+          if (j && typeof j === 'object' &&
+            typeof (j as Record<string, unknown>).pid === 'number' &&
+            typeof (j as Record<string, unknown>).at === 'number') holder = j as { pid: number; at: number };
+          else if (i === 5) break; // well-formed JSON, wrong shape: genuinely corrupt
+          else sleep(20);
+        } catch {
+          if (i === 5) break; // still unreadable after ~120ms: genuinely corrupt
+          sleep(20);
+        }
+      }
+      let steal = holder === null;
+      if (holder) {
         let alive = true;
-        try { process.kill(j.pid, 0); } catch { alive = false; }
-        steal = !alive || Date.now() - j.at > 60_000;
-      } catch { steal = true; } // unparseable lock
+        try { process.kill(holder.pid as number, 0); } catch { alive = false; }
+        steal = !alive || Date.now() - (holder.at as number) > 60_000;
+      }
       if (steal) { fs.rmSync(lock, { force: true }); continue; }
       if (Date.now() > deadline)
         die(4, `state locked by another aegis process (waited 10s) - retry, or remove ${path.basename(lock)} if that process is gone`);

@@ -48,6 +48,11 @@ changes (`memory` cite strictness precedent), and this release adds several.
 
 - Merge oracle self-sufficient git identity (CI runners ship none) -
   the cause of the red CI shipped through v0.6-0.8.
+- State-lock mid-write read on Windows: permissive file sharing lets a
+  contender read the lockfile while its bytes are still landing; the
+  "unparseable lock, must be dead" shortcut then stole a LIVE holder's
+  lock and two writers lost updates (CI: 6/8 chore events). Holder reads
+  now retry to a shape-validated parse before any steal decision.
 - CI matrix: ubuntu(20,22) + windows(22); audit harness runs in CI.
 - 8.3 short-path test assertion; jev stub `-e` template backslash hazard.
 - Stale install URLs, footer link/text mismatch, "60 edges" caption.
