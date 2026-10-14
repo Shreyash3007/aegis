@@ -36,10 +36,13 @@ function sh(bin, args, opts = {}) {
   return { code: r.error ? -1 : (r.status ?? 1), out: (r.stdout ?? '') + (r.stderr ?? '') };
 }
 
-// 1. suite
+// 1. suite (mirrors `npm test` exactly: node --test over the file glob.
+// NOTE: `node --test test/` (bare dir) does NOT work - node treats it as a
+// module path and crashes (found when the ritual always reported FAIL).
+// The glob form below is what package.json runs on every platform.)
 {
   console.log('release-check: local suite (this takes a few minutes)...');
-  const r = sh(process.execPath, ['--test', 'test/'], { timeout: 600_000 });
+  const r = sh(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['test'], { timeout: 600_000 });
   // node --test summary tail looks like "ℹ tests 178 / ℹ pass 178 / ℹ fail 0"
   // (ANSI glyphs, no '#' prefix): take the LAST pass/fail pair in the output.
   const passes = [...r.out.matchAll(/pass (\d+)/g)].map((m) => m[1]);
