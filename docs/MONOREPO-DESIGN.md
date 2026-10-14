@@ -16,6 +16,16 @@ separate deploys and gates.
   global lanes); `--app <name>` gives full detail.
 - Gates and the fix/chore fast lane are per-app. Lanes stay global on the
   root state (RAM is a machine resource, not an app resource).
+- v0.9 scoping table (every post-0.4 subsystem placed, no drift):
+
+  | Subsystem | Scope | Rule |
+  |---|---|---|
+  | pipeline state, gates, fix/chore | per-app | `--app` required in multi-app repos, never guessed |
+  | lanes, slices, worktrees | root-global | RAM + worktrees are machine resources |
+  | clean cycles, quarantine | root-global | branches are repo-global, like lanes |
+  | demo record, DEMO approval | per-app | follows the pipeline state it unlocks |
+  | memory records | per-record `app` field | `add --app <name>`, `list --app` filters; default list shows all; resume summary stays repo-wide |
+  | brain/, skills/, transitions.json | shared | one truth, all apps |
 - Checkpoints record every app's position and hash every app state —
   hand-editing an app's state.json is caught by `aegis resume` (exit 6).
 - App states removed from the `apps` list are kept on disk (recorded history

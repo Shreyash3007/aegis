@@ -90,6 +90,22 @@ test('memory stale: expired + low-confidence surface for re-verification', (t) =
   assert.doesNotMatch(mem(dir, ['list', '--stale']).stdout, /mem-0003/);
 });
 
+test('memory --app: per-record tags filter lists; unknown apps refused where declared', (t) => {
+  const dir = scratch(t);
+  fs.writeFileSync(path.join(dir, 'ev.ts'), 'export const e = 1\n');
+  assert.equal(mem(dir, ['add', '--type', 'finding', '--title', 'web finding', '--body', 'b', '--cites', 'ev.ts:1', '--app', 'web']).status, 0);
+  assert.equal(mem(dir, ['add', '--type', 'finding', '--title', 'untagged', '--body', 'b', '--cites', 'ev.ts:1']).status, 0);
+  assert.match(mem(dir, ['list', '--app', 'web']).stdout, /web finding/);
+  assert.doesNotMatch(mem(dir, ['list', '--app', 'web']).stdout, /untagged/);
+  assert.match(mem(dir, ['list', '--app', 'api']).stdout, /no memory records match/);
+  assert.match(mem(dir, ['list']).stdout, /untagged/, 'default list shows all scopes');
+  assert.match(mem(dir, ['list']).stdout, /@app:web/, 'app tag visible');
+  assert.equal(aegis(dir, ['config', 'set', 'apps', 'web,api']).status, 0);
+  const bad = mem(dir, ['add', '--type', 'finding', '--title', 'x', '--body', 'b', '--app', 'nope']);
+  assert.equal(bad.status, 2, bad.stderr);
+  assert.match(bad.stderr, /unknown app 'nope'/);
+});
+
 test('memory lanes: sealed by default, promoted through the merge-gate path', (t) => {
   const dir = scratch(t);
   addFinding(dir);

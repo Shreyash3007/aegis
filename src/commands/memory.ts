@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { AEGIS_DIR, REPO, die, ok, noStateMsg } from '../lib/util.js';
+import { declaredApps } from '../lib/state.js';
 
 /** Record memory beside brain/ (SPEC §8): typed decision/contract/finding/
  *  assumption records with status, confidence, citations, expiry and
@@ -36,7 +37,8 @@ export interface MemRecord {
   status: string; confidence: number; cites: string[];
   expiry: string | null; supersedes: string | null;
   parties: string[] | null; winner: string | null; resolution: string | null;
-  lane: string | null; at: string; verified_at: string | null;
+  lane: string | null; app: string | null;
+  at: string; verified_at: string | null;
   history: { at: string; event: string }[];
 }
 
@@ -256,7 +258,8 @@ function line(r: MemRecord): string {
   const ev = r.cites.length ? `cites:${r.cites.length}` : 'UNEVIDENCED';
   const st = isStale(r) ? ` STALE(${r.expiry && Date.parse(r.expiry) < Date.now() ? 'expired' : 'lowconf'})` : '';
   const lane = r.lane ? ` @lane:${r.lane}` : '';
-  return `${r.id} [${r.type}/${r.status}/${r.confidence}] ${r.title} (${ev})${st}${lane}`;
+  const app = r.app ? ` @app:${r.app}` : '';
+  return `${r.id} [${r.type}/${r.status}/${r.confidence}] ${r.title} (${ev})${st}${lane}${app}`;
 }
 
 // ---- commands ----
@@ -285,6 +288,14 @@ function cmdAdd(opt: Record<string, string>): void {
   }
   const lane = opt.lane || null;
   if (lane && !/^[a-z0-9-]+$/.test(lane)) die(2, `lane must match [a-z0-9-], got '${lane}'`);
+  // Per-record app tag (MONOREPO scope table): free text in single-app
+  // repos, restricted to declared apps where apps exist (typo protection).
+  const app = opt.app || null;
+  if (app) {
+    const declared = declaredApps();
+    if (declared.length && !declared.includes(app))
+      die(2, `unknown app '${app}' - declared apps: ${declared.join(', ')}`);
+  }
   const at = new Date().toISOString();
   const file = lane ? LANE(lane) : MAIN();
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -292,7 +303,7 @@ function cmdAdd(opt: Record<string, string>): void {
   const rec: MemRecord = {
     id: nextId(), type, title, body, status, confidence, cites, expiry,
     supersedes: null, parties: null, winner: null, resolution: null,
-    lane, at, verified_at: null, history: [{ at, event: 'created' }],
+    lane, app, at, verified_at: null, history: [{ at, event: 'created' }],
   };
   const extra: string[] = [];
 
@@ -318,7 +329,9 @@ function cmdAdd(opt: Record<string, string>): void {
       body: `Contradiction between ${rec.id} ("${rec.title}") and ${hit.rec.id} ("${hit.rec.title}"). Resolve with evidence; never silently overwrite.`,
       status: 'open', confidence: 0.5, cites: [], expiry: null, supersedes: null,
       parties: [rec.id, hit.rec.id], winner: null, resolution: null,
-      lane, at: tat, verified_at: null, history: [{ at: tat, event: `opened by contradiction (${rec.id} vs ${hit.rec.id})` }],
+      // Reconcile tasks stay app-scoped null: they link records that may
+      // span apps, and scoping them could hide cross-app contradictions.
+      lane, app: null, at: tat, verified_at: null, history: [{ at: tat, event: `opened by contradiction (${rec.id} vs ${hit.rec.id})` }],
     };
     fs.appendFileSync(file, JSON.stringify(task) + '\n');
     extra.push(`reconcile ${task.id} opened vs ${opt.contradicts}`);
@@ -335,6 +348,7 @@ function cmdList(opt: Record<string, string>): void {
     recs = recs.filter((r) => r.type === opt.type);
   }
   if (opt.status) recs = recs.filter((r) => r.status === opt.status);
+  if (opt.app) recs = recs.filter((r) => r.app === opt.app);
   if ('stale' in opt) recs = recs.filter((r) => isStale(r));
   if (opt.search) {
     const ids = new Set(searchIds(opt.search, recs));
