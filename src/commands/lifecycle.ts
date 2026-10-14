@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { AEGIS_DIR, REPO, die, ok, writeJ, git, has } from '../lib/util.js';
 import { SCHEMA_VERSION, configP, stateP, transP, freshState, appStatePath } from '../lib/state.js';
@@ -228,5 +229,30 @@ function drift(): string[] {
   } catch {
     notes.push('no .gitignore - the next `git add -A` will absorb .aegis/ machine state into the index');
   }
+  // 4. routed blades must resolve in the skill store (the v0.7 prune archived
+  // 5 routed blades - the declared anti-slop fallbacks among them - and no
+  // gate noticed). Registry: .aegis/skills/routing.json; store paths default
+  // to ~/.agents/skills + ~/.claude/skills, overridable via AEGIS_SKILL_STORES
+  // (path-separator list) for operators and tests.
+  try {
+    const routing = JSON.parse(fs.readFileSync(path.join(AEGIS_DIR, 'skills', 'routing.json'), 'utf8')) as { blades?: { name: string }[] };
+    const stores = (process.env.AEGIS_SKILL_STORES
+      ? process.env.AEGIS_SKILL_STORES.split(path.delimiter)
+      : [path.join(os.homedir(), '.agents', 'skills'), path.join(os.homedir(), '.claude', 'skills')]);
+    const missing = (routing.blades ?? [])
+      .filter((b) => !stores.some((s) => fs.existsSync(path.join(s, b.name))))
+      .map((b) => b.name);
+    if (missing.length)
+      notes.push(`${missing.length} routed blade(s) missing from the skill store: ${missing.join(', ')} - restore from the archive, install them, or deprecate them in skills/routing.json`);
+  } catch { /* no routing.json (minimal profile) - nothing routed, nothing to check */ }
+  // 5. hooks baked for THIS CLI version: the ghost-binary tripwire fires on
+  // every commit once stale, so surface it here before the human does.
+  try {
+    const cli = (JSON.parse(fs.readFileSync(path.join(PKG_ROOT, 'package.json'), 'utf8')) as { version?: string }).version;
+    const hook = fs.readFileSync(path.join(REPO, '.git', 'hooks', 'pre-commit'), 'utf8');
+    const baked = (hook.match(/!= "v?([\d.]+)"/) || [])[1];
+    if (baked && cli && baked !== cli)
+      notes.push(`hooks were baked for v${baked} but the resolved CLI is v${cli} - re-run: aegis hooks (fresh tripwire)`);
+  } catch { /* no hooks installed (minimal profile) - hook-profiles is the authority */ }
   return notes;
 }
