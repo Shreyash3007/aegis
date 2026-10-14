@@ -42,7 +42,12 @@ function sh(bin, args, opts = {}) {
 // The glob form below is what package.json runs on every platform.)
 {
   console.log('release-check: local suite (this takes a few minutes)...');
-  const r = sh(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['test'], { timeout: 600_000 });
+  // npm is a shell shim on Windows (.cmd): spawn it through the shell,
+  // direct spawnSync fails ENOENT there. Everywhere else runs it directly.
+  const npm = process.platform === 'win32'
+    ? sh('cmd', ['/c', 'npm', 'test'], { timeout: 600_000 })
+    : sh('npm', ['test'], { timeout: 600_000 });
+  const r = npm;
   // node --test summary tail looks like "ℹ tests 178 / ℹ pass 178 / ℹ fail 0"
   // (ANSI glyphs, no '#' prefix): take the LAST pass/fail pair in the output.
   const passes = [...r.out.matchAll(/pass (\d+)/g)].map((m) => m[1]);
