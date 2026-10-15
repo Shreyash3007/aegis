@@ -33,19 +33,29 @@ mechanical or it doesn't ship.
       once captured; --require-proof refuses branches without receipts. Legacy
       branches explicitly say TDD UNMEASURED. Human review still verifies the
       reason for RED; arbitrary shell access is outside the trust boundary.
-- [ ] **(3) Superpowers 6-blade routing** (tdd→04a, systematic-debugging→05c,
+- [x] **(3) Superpowers 6-blade routing** (tdd→04a, systematic-debugging→05c,
       brainstorming→01a, requesting-code-review→06b, using-git-worktrees→04a,
       verification-before-completion→05d). No pipeline merge; collisions
       declared in routing entries; version-pinned with trigger re-eval on
       every upstream bump.
-- [ ] **(4) Acceptance-grade 05d.** Observable-outcome checks per acceptance
+      Six immutable source pins, native fallbacks and collision rules are
+      executable via blade resolve. This verifies loaded bytes, not agent
+      compliance. See SUPERPOWERS.md for the upgrade/evaluation protocol.
+- [x] **(4) Acceptance-grade 05d.** Observable-outcome checks per acceptance
       criterion, wired into `validate`; below bar = rewrite (trigger pattern).
-- [ ] **(5) Review routing + spend ceilings.** 06b severity classes route
+- [x] **(5) Review routing + spend ceilings.** 06b severity classes route
       mechanically; `--budget` caps judgments per wave (park with evidence);
       first-failing-gate stops the lane.
-- [ ] **(6) Measurement + frozen evals.** Model/tokens/cost fields on history
+      Implemented: open blocker/major merge refusal, pinned acceptance/review
+      receipts, logical-question reservations and reviewed reset. These bound
+      question counts, not provider billing, and do not prove reviewer adequacy.
+- [x] **(6) Measurement + frozen evals.** Model/tokens/cost fields on history
       events (executor-reported, UNMEASURED when absent); `evidence.json` per
       release; `evals/` task bank frozen BEFORE tuning.
+      Implemented: private-safe aggregate export, explicitly caller-reported
+      usage and UNMEASURED gaps. Study data and claims must retain provenance.
+      The frozen v1 task bank is development calibration, not an independent
+      held-out benchmark or a completed comparative study.
 - Exit bar: suite green both platforms, audit extended (blade-collision
   section), dogfood with blades active, pilot re-run, ritual 7/7, tag.
 
