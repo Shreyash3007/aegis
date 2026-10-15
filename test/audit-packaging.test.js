@@ -130,6 +130,7 @@ test('audit: distribution carries a consumer-honored dependency closure and does
   const pkg = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8'));
   assert.equal(pkg.scripts.prepare, 'npm run build');
   assert.ok(pkg.files.includes('npm-shrinkwrap.json'), 'the consumer lock must be in the distributed file allowlist');
+  assert.deepEqual(pkg.bundleDependencies, ['ts-morph'], 'the published asset must contain its complete installed runtime closure');
   const file = path.join(REPO_ROOT, 'npm-shrinkwrap.json');
   assert.ok(fs.existsSync(file), 'consumer installation must receive the runtime lock');
   const lock = JSON.parse(fs.readFileSync(file, 'utf8'));

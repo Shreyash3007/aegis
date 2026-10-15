@@ -33,6 +33,7 @@ if (fs.existsSync(existing)) throw new Error('artifact exists; use a new output 
 const packed = JSON.parse(npm(['pack', '--ignore-scripts', '--json', '--pack-destination', directory]))[0];
 if (!packed.files.some((f) => f.path === 'npm-shrinkwrap.json') || !packed.files.some((f) => f.path === 'dist/cli.js'))
   throw new Error('package is missing its compiled entrypoint or consumer dependency lock');
+if (!packed.bundled?.includes('ts-morph')) throw new Error('runtime closure was not bundled into the release artifact');
 const tarball = path.join(directory, packed.filename);
 const prefix = path.join(directory, 'installed');
 npm(['install', '--prefix', prefix, '--ignore-scripts', '--offline', '--no-audit', '--no-fund', tarball]);
