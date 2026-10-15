@@ -1,0 +1,26 @@
+{
+  "criteria": [
+    {
+      "id": "JEV-EGRESS-01",
+      "statement": "Loopback wire checks verify redaction of every question text field, refuse secret-bearing identifiers, and retain existing verdict semantics.",
+      "command": ["node", "scripts/check-jev.mjs"]
+    }
+  ],
+  "review_provenance": "Author self-review; not an independent security review.",
+  "findings": [
+    {
+      "id": "EGRESS-01",
+      "summary": "Credential patterns were removed only from state. Text fields are now redacted; identifier credentials refuse provider access before judgment reservation. Synthetic loopback tests reproduce both paths.",
+      "severity": "major",
+      "status": "resolved",
+      "evidence": ["src/lib/jev.ts", "test/jev.test.js"]
+    },
+    {
+      "id": "EGRESS-LIMIT",
+      "summary": "Pattern matching cannot identify arbitrary secrets or establish consent for sharing personal data. Callers must minimize and sanitize provider-bound input.",
+      "severity": "note",
+      "status": "open",
+      "evidence": ["src/lib/jev.ts"]
+    }
+  ]
+}

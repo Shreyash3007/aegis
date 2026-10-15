@@ -66,14 +66,15 @@ class BackendError extends Error {
   constructor(message: string, status?: number) { super(message); this.status = status; }
 }
 
-/** Egress redaction (audit #22): judgment states POST to api.typesafe.ai,
+/** Egress redaction (audit #22): judgment text POSTs to api.typesafe.ai,
  *  so credentials inside them must die before send. Applied on the typesafe
  *  path only (mock/degraded never leave the machine). Patterns mirror
  *  upstream jev-use redact.ts: URL passwords, auth/cookie headers,
  *  -u user:pass, KEY=/TOKEN=/SECRET= assignments, known key shapes.
  *  What the removal costs a verdict is unknowable locally - states carrying
  *  secrets should be rephrased, not just redacted; the shapes below are the
- *  backstop, not the plan. */
+ *  backstop, not the plan. Identifiers that match are refused rather than
+ *  rewritten, since changing choice keys would change answer semantics. */
 export function redactState(state: string): string {
   return state
     .replace(/https?:\/\/[^/\s:@]+:[^/\s@]+@/g, 'https://[redacted]@')
@@ -86,14 +87,16 @@ export function redactState(state: string): string {
 
 function toNativeQuestion(q: JevQuestion & { id: string }): Record<string, unknown> {
   if (q.type === 'noul')
-    return { type: 'noul', instructions: q.question, ...(q.criteria ? { criteria: q.criteria } : {}) };
+    return { type: 'noul', instructions: redactState(q.question), ...(q.criteria ? {
+      criteria: { true: redactState(q.criteria.true), false: redactState(q.criteria.false) },
+    } : {}) };
   if (q.type === 'choice') {
     const entries = Array.isArray(q.options)
       ? q.options.map((l) => [l, l] as [string, string])
       : Object.entries(q.options ?? {});
-    return { type: 'choice', instructions: q.question, criteria: Object.fromEntries(entries.map(([l, m]) => [l, m || l])) };
+    return { type: 'choice', instructions: redactState(q.question), criteria: Object.fromEntries(entries.map(([l, m]) => [l, redactState(m || l)])) };
   }
-  return { type: 'score', instructions: q.question, criteria: q.levels ?? [] };
+  return { type: 'score', instructions: redactState(q.question), criteria: (q.levels ?? []).map(redactState) };
 }
 
 interface RawAnswer { answer: number | string; confidence?: number; distribution?: Record<string, number>; legend?: Record<string, string> }
@@ -218,6 +221,15 @@ export async function judge(
   if (state.length > MAX_STATE_CHARS) {
     const verdicts = preCall('oversized',
       `State is ${state.length} chars (> ~30k tokens) - shrink it to the evidence the questions need, or split into smaller judged states.`, qs);
+    return { verdicts, escalated: true, backend: backend.name, model: backend.model ?? 'none', latencyMs: 0 };
+  }
+  if (backend.name === 'typesafe' && qs.some((q) => {
+    const labels = q.type === 'choice'
+      ? Array.isArray(q.options) ? q.options : Object.keys(q.options ?? {}) : [];
+    return [q.id, ...labels].some((label) => redactState(label) !== label);
+  })) {
+    const verdicts = preCall('unreachable',
+      'Secret-like question IDs or choice labels cannot be sent safely. Replace identifiers locally before retrying; no request was sent.', qs);
     return { verdicts, escalated: true, backend: backend.name, model: backend.model ?? 'none', latencyMs: 0 };
   }
   if (backend.name !== 'degraded') reserveJudgments(qs.length);

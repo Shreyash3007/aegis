@@ -38,6 +38,10 @@ lives in `docs/DOGFOOD-v*.md` and the cited commits.
 
 ### Fixed
 
+- Jev now redacts credential-shaped text in questions, criterion descriptions,
+  option descriptions and score levels before sending. Secret-like IDs or
+  choice keys refuse egress rather than silently changing answer labels.
+  Pattern redaction is a backstop, not a guarantee that arbitrary text is safe.
 - Bash completions no longer emit an active recursive generator call as
   installation text; a real shell-source test verifies safe loading and the
   completion command itself is included in the candidate list.
