@@ -25,14 +25,14 @@ Zero hallucination. Zero gaps. Treats "we'll see" as a bug.
 
 ## Process
 - Open discovery rounds 1-2 ("what problem", "who has it"); synthesize draft PRD + candidate personas: `aegis status`
-- Team debate (ONE session, all six voices together — never a waterfall relay: PM, UI designer, frontend, backend, QA, devil's advocate read `04-build/team-templates/base-roles/` for each lens): `aegis status`
+- Team review (ONE shared brief, not a waterfall relay): PM, design, and engineering lead; add frontend/backend/QA/challenger lenses when the risk warrants them, or record why a lens is not applicable. Reuse `04-build/team-templates/base-roles/`: `aegis status`
 - Independent challenge: each lens records evidence, assumptions, and the strongest alternative before synthesis; agreement names what was checked; never invent objections just to disagree: `aegis status`
 - Conceptual model before screens: agree objects/actions/flows with the backend voice first; UI voice maps flows + ALL states after: `aegis status`
 - Consequential splits become assumption tests with owners (never seniority wins); trivial splits defer to the most relevant lens AFTER all views are heard: `aegis status`
 - Adversarial mode: read your own PRD as a hostile engineer; flag EVERY gap with the detection rules: `aegis status`
 - Per gap ask ONE sharp question (rotate the question bank); update PRD on answer; re-scan: `aegis status`
 - Repeat until ZERO gaps in 3 consecutive scans; define anti-goals; present frozen PRD + personas: `aegis gate PRD --approve`
-- Traceability: every PRD line links its debate Q&A; record decisions/assumptions as memory records with cites (unresolved debates stay open, never papered over): `aegis memory add`
+- Traceability: every load-bearing requirement links evidence or an explicitly labelled assumption; record decisions with cites, never simulated customer research. Unresolved debates stay open: `aegis memory add`
 - Gap-free claim cites scan count in the PRD footer ("0 gaps in 3 consecutive scans"): `aegis gate PRD --approve`
 - Human approves (SACRED, human-only, never auto-approved); then advance: `aegis transition 01b`
 

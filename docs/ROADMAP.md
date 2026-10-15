@@ -1,6 +1,6 @@
 # Aegis Rollout Map — v0.10 → v0.12 (+ parked)
 
-Authority: this file. Updated only by release commits; each version's exit
+Authority: this file. Updated in reviewed development commits; each version's exit
 bar is binding. Standing rules for all three: model-agnostic core (no
 harness-specific logic; model routing deferred until separately requested);
 no parallel skill, no fork; small/free models first; every item gated by
@@ -13,8 +13,9 @@ Goal: correctness first, cost second. Every item makes output quality
 mechanical or it doesn't ship.
 
 - [x] **(0) Team-debate 01a extension.** PM + five lenses (UI/UX, Frontend,
-      Backend, QA, Devil's Advocate) grill together in ONE 01a session —
-      never a waterfall relay. Independent challenge rules (every agreement
+      Backend, QA, Devil's Advocate) available in ONE 01a session. A trio
+      leads; specialist lenses are risk-triggered, not mandatory ceremony.
+      Never a waterfall relay. Independent challenge rules (every agreement
       names evidence and what was checked; no invented objections; consequential
       splits become assumption tests with owners). Conceptual model before
       screens; HTML is an assumption test via the demo track; every PRD line
