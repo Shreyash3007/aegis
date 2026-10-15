@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { AEGIS_DIR, REPO, die, ok, writeJ, git, has } from '../lib/util.js';
+import { AEGIS_DIR, REPO, die, ok, writeJ, git, has, ensureMachineIgnores } from '../lib/util.js';
 import { SCHEMA_VERSION, configP, stateP, transP, freshState, appStatePath } from '../lib/state.js';
 import { defaultTransitions } from '../templates/transitions.js';
 import { doctor } from '../lib/detect.js';
@@ -88,10 +88,7 @@ export async function init(args: string[]): Promise<void> {
   if (!minimal) for (const d of BRAIN_DIRS) fs.mkdirSync(path.join(REPO, 'brain', d), { recursive: true });
 
   // .gitignore: machine state NEVER enters git history (A1.4)
-  const gi = path.join(REPO, '.gitignore');
-  const prev = fs.existsSync(gi) ? fs.readFileSync(gi, 'utf8') : '';
-  if (!prev.split('\n').includes('.aegis/'))
-    fs.writeFileSync(gi, (prev && !prev.endsWith('\n') ? prev + '\n' : prev) + '.aegis/\n');
+  ensureMachineIgnores();
 
   writeJ(transP, defaultTransitions());
 

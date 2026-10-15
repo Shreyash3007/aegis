@@ -31,6 +31,10 @@ function blockers(s: State, t: Transitions, e: Edge): string[] {
   // prefixes); recoveries append after a pipe.
   const b: string[] = [];
   if (e.gate && s.gates[e.gate]?.status !== 'approved') b.push(`gate ${e.gate} (${t.gates[e.gate]}) OPEN | approve: aegis gate ${e.gate} --approve`);
+  if (e.gate === 'G4' && s.gates.G4?.status === 'approved' && s.gates.G4.git_sha !== gitTry(['rev-parse', 'HEAD']))
+    b.push('G4 ship approval stale for this source commit | re-approve: aegis gate G4 --approve');
+  if (e.gate === 'G4' && loadState().lanes.active.length)
+    b.push('active lanes must be safely closed before shipping');
   if (e.gate === 'DEMO' && s.gates.DEMO?.status === 'approved') {
     // Approval binds the artifact, not just the moment: an unrecorded or
     // swapped demo re-locks every 04a entry until re-approval. Pre-0.9
@@ -168,6 +172,12 @@ export function next(args: string[] = []): void {
  *  works even when stdin is piped. Returns '' if no terminal is available. */
 function ttyPrompt(question: string): string {
   try {
+    if (process.platform === 'win32') {
+      if (!process.stdin.isTTY) return '';
+      fs.writeSync(1, question);
+      const buf = Buffer.alloc(1024);
+      return buf.subarray(0, fs.readSync(0, buf, 0, buf.length, null)).toString('utf8').trim();
+    }
     const fd = fs.openSync('/dev/tty', 'r+');
     try {
       fs.writeSync(fd, question);
@@ -185,6 +195,8 @@ export function gate(args: string[]): void {
   const t = loadTransitions();
   if (!t.gates[name])
     die(7, `unknown gate: ${name} (known: ${Object.keys(t.gates).join(', ')})`);
+  const git_sha = name === 'G4' ? gitTry(['rev-parse', 'HEAD']) : undefined;
+  if (name === 'G4' && !git_sha) die(7, 'G4 needs a committed source snapshot before human approval');
   // proof-of-human: passing --approve proves nothing - an agent can pass flags.
   // TTY: the human retypes the gate name to confirm. Non-TTY (agent in a
   // pipe/CI): refuse, unless AEGIS_HUMAN_TOKEN is set - the documented CI
@@ -196,7 +208,7 @@ export function gate(args: string[]): void {
   if (process.env.AEGIS_HUMAN_TOKEN) {
     by = 'human-token';
   } else if (process.stdin.isTTY) {
-    if (ttyPrompt(`gate ${name} (${t.gates[name]}): retype the gate name to confirm: `) !== name)
+    if (ttyPrompt(`gate ${name} (${t.gates[name]})${git_sha ? ` at source ${git_sha}` : ''}: retype the gate name to confirm: `) !== name)
       die(7, `gate ${name} confirmation mismatch - approval refused`);
   } else if (loadConfig().autonomy === 'full' && name !== 'G4') {
     by = 'autonomy-full';
@@ -208,6 +220,7 @@ export function gate(args: string[]): void {
   }
   const ctx = resolveState(args, true);
   const s = ctx.s;
+  if (git_sha && git_sha !== gitTry(['rev-parse', 'HEAD'])) die(7, 'source commit changed during human approval - review and approve again');
   const ei = args.indexOf('--evidence');
   const evidence = ei >= 0 ? args[ei + 1] : undefined;
   if (ei >= 0 && !evidence) die(2, 'usage: aegis gate <name> --approve [--evidence <ref>]');
@@ -215,7 +228,7 @@ export function gate(args: string[]): void {
   // demo afterwards invalidates this approval (see blockers + demoStaleness).
   // Pre-existing approvals without a demo record pin nothing (pin: null).
   const demo_sha = name === 'DEMO' && (s as any).demo ? demoSha((s as any).demo) : null;
-  s.gates[name] = { status: 'approved', at: new Date().toISOString(), by, ...(evidence ? { evidence } : {}), ...(name === 'DEMO' ? { demo_sha } : {}) };
+  s.gates[name] = { status: 'approved', at: new Date().toISOString(), by, ...(evidence ? { evidence } : {}), ...(git_sha ? { git_sha } : {}), ...(name === 'DEMO' ? { demo_sha } : {}) };
   commitState(ctx.p, s);
   ok(`gate ${name} approved and recorded${ctx.app ? ` (app ${ctx.app})` : ''}${evidence ? ` (evidence: ${evidence})` : ''}${name === 'DEMO' ? (demo_sha ? ' (artifact pinned)' : ' (no demo recorded - approval pins nothing yet)') : ''}`);
 }

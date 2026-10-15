@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { AEGIS_DIR, REPO, ok, die, readJ, writeJ } from '../lib/util.js';
+import { ownedPath } from '../lib/owned-path.js';
+import { AEGIS_DIR, REPO, ok, die, readJ, writeJ, ensureMachineIgnores } from '../lib/util.js';
 import { loadState, loadConfig, loadTransitions, Transitions, transP } from '../lib/state.js';
 import { defaultTransitions } from '../templates/transitions.js';
 
@@ -76,14 +77,17 @@ function refreshTransitions(): string {
 
 export function sync(args: string[] = []): void {
   if (args.some((a) => a !== '--refresh-skills')) die(2, 'usage: aegis sync [--refresh-skills]');
+  const s = loadState();
+  const cfg = loadConfig();
+  ensureMachineIgnores();
   if (args.includes('--refresh-skills')) {
     // An explicit, non-destructive upgrade of the CLI-owned installed copy.
     // Preserve the old snapshot and never reinitialize state, brain or hooks.
     const source = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'skills');
-    const installed = path.join(AEGIS_DIR, 'skills');
+    const installed = ownedPath(AEGIS_DIR, path.join(AEGIS_DIR, 'skills'));
     const id = crypto.randomUUID();
-    const staged = path.join(AEGIS_DIR, `skills-staged-${id}`);
-    const history = path.join(AEGIS_DIR, 'skills-history');
+    const staged = ownedPath(AEGIS_DIR, path.join(AEGIS_DIR, `skills-staged-${id}`));
+    const history = ownedPath(AEGIS_DIR, path.join(AEGIS_DIR, 'skills-history'));
     fs.cpSync(source, staged, { recursive: true });
     fs.mkdirSync(history, { recursive: true });
     const previous = path.join(history, id);
@@ -92,10 +96,8 @@ export function sync(args: string[] = []): void {
     catch (e) { if (fs.existsSync(previous)) fs.renameSync(previous, installed); throw e; }
     ok('installed skills refreshed; prior snapshot preserved under .aegis/skills-history/');
   }
-  const ctxP = path.join(REPO, 'brain', 'context-window.md');
+  const ctxP = ownedPath(REPO, path.join(REPO, 'brain', 'context-window.md'));
   const ctx = fs.existsSync(ctxP) ? fs.readFileSync(ctxP, 'utf8') : '# Context Window\n';
-  const s = loadState();
-  const cfg = loadConfig();
   const block = [
     BEGIN,
     '# Project Context (AEGIS)',
@@ -109,7 +111,7 @@ export function sync(args: string[] = []): void {
     END,
   ].join('\n');
   for (const name of ['AGENTS.md', 'CLAUDE.md']) {
-    const p = path.join(REPO, name);
+    const p = ownedPath(REPO, path.join(REPO, name));
     const existing = fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null;
     fs.writeFileSync(p, mergeBlock(existing, block));
   }
@@ -119,11 +121,11 @@ export function sync(args: string[] = []): void {
 /** Phase 2: aegis gc - checkpoint retention (O8: 20 sessions or 30 days) +
  *  archive resolved quality logs older than 90 days. */
 export function gc(): void {
-  const dir = path.join(AEGIS_DIR, 'checkpoints');
+  const dir = ownedPath(REPO, path.join(AEGIS_DIR, 'checkpoints'));
   const RETAIN_COUNT = 20;
   const RETAIN_MS = 30 * 24 * 3600 * 1000;
   if (!fs.existsSync(dir)) { ok('nothing to collect'); return; }
-  const files = fs.readdirSync(dir).filter((f) => f.startsWith('cp-')).sort();
+  const files = fs.readdirSync(dir).filter((f) => /^cp-\d+\.json$/.test(f)).sort();
   const now = Date.now();
   const toDelete = files.filter((f, i) => {
     const ts = parseInt(f.replace('cp-', '').replace('.json', ''), 10);
@@ -131,6 +133,6 @@ export function gc(): void {
     const beyondCount = i < files.length - RETAIN_COUNT;
     return tooOld || beyondCount;
   });
-  for (const f of toDelete) fs.unlinkSync(path.join(dir, f));
+  for (const f of toDelete) fs.unlinkSync(ownedPath(REPO, path.join(dir, f)));
   ok(`gc: ${toDelete.length} checkpoints archived/deleted, ${files.length - toDelete.length} retained (20/30-day policy)`);
 }

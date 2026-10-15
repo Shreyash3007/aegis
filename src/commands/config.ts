@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { die, ok, readJ, writeJ, noStateMsg } from '../lib/util.js';
-import { Config, configP, freshState, appStatePath, acquireState, commitState, stateP } from '../lib/state.js';
+import { Config, configP, freshState, appStatePath, acquireState, commitState, stateP, loadConfig } from '../lib/state.js';
 
 type Cfg = Record<string, unknown>;
 /** Settable keys = the 00b interview's canonical keys (src/lib/interview.ts)
@@ -64,7 +64,8 @@ const SETTABLE: Record<string, (cfg: Cfg, v: string) => void> = {
  *    validator, runnable via `aegis validate <name>` (value '-' removes it) */
 export function config(args: string[]): void {
   if (!fs.existsSync(configP)) die(2, noStateMsg('no config', ' first'));
-  const cfg = readJ<Record<string, unknown>>(configP);
+  const cfg = loadConfig() as unknown as Record<string, unknown>;
+  if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg)) die(2, 'config must be an object');
   if (args[0] === 'set') {
     const [key, value] = [args[1], args[2]];
     if (!key || value === undefined)

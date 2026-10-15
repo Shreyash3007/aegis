@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { AEGIS_DIR, REPO, die, ok, readJ } from '../lib/util.js';
-import { MARKER } from '../lib/hooks.js';
+import { AEGIS_DIR, REPO, die, ok, readJ, MACHINE_IGNORES } from '../lib/util.js';
+import { MARKER, hooksDir as effectiveHooksDir } from '../lib/hooks.js';
 import { withFileLock, lifecyclePath } from '../lib/lock.js';
 import { ownedPath } from '../lib/owned-path.js';
 
@@ -40,7 +40,7 @@ function uninstall(): void {
     die(4, 'pending memory transaction - preserve .aegis and recover with aegis memory sync before uninstall');
 
   // 1. hooks: drop files WE manage, restore moved-aside foreign hooks.
-  const hooksDir = ownedPath(REPO, path.join(REPO, '.git', 'hooks'));
+  const hooksDir = ownedPath(REPO, effectiveHooksDir());
   const restored: string[] = [];
   const dropped: string[] = [];
   const kept: string[] = [];
@@ -67,7 +67,7 @@ function uninstall(): void {
   // 2. .gitignore: drop exactly our line; delete the file only if init wrote it.
   const gi = ownedPath(REPO, path.join(REPO, '.gitignore'));
   if (fs.existsSync(gi)) {
-    const kept2 = fs.readFileSync(gi, 'utf8').split('\n').filter((l) => l.trim() !== '.aegis/');
+    const kept2 = fs.readFileSync(gi, 'utf8').split('\n').filter((l) => !MACHINE_IGNORES.includes(l.trim()));
     if (!kept2.join('').trim()) fs.rmSync(gi);
     else fs.writeFileSync(gi, kept2.join('\n'));
   }

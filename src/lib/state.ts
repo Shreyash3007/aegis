@@ -6,7 +6,7 @@ import { ownedPath } from './owned-path.js';
 
 export const SCHEMA_VERSION = 1;
 
-export interface GateRecord { status: 'approved'; at: string; by: string; evidence?: string; demo_sha?: string | null }
+export interface GateRecord { status: 'approved'; at: string; by: string; evidence?: string; demo_sha?: string | null; git_sha?: string }
 export interface FixRecord {
   kind: 'fix' | 'chore'; desc: string; opened_at: string;
   autonomy?: 'L0' | 'L1' | 'L2';
@@ -179,6 +179,7 @@ export function commitState(p: string, s: State): void {
 export function resolveState(args: string[], mutate: boolean): StateCtx {
   const apps = declaredApps();
   if (!apps.length) {
+    if (args.includes('--app')) die(2, 'no apps are declared in this repository - omit --app or declare the app first');
     const s = mutate ? acquireState(stateP) : loadState();
     return { s, p: stateP, app: null };
   }

@@ -65,16 +65,24 @@ export function fix(args: string[]): void | Promise<void> {
 }
 
 async function done(args: string[]): Promise<void> {
-  const ctx = resolveState(args, true);
-  const s = ctx.s;
-  if (!s.fix?.active) die(4, 'no open fix - start one: aegis fix start <desc>');
-  const rec = s.fix.active;
+  const before = resolveState(args, true);
+  if (!before.s.fix?.active) die(4, 'no open fix - start one: aegis fix start <desc>');
+  const active = JSON.stringify(before.s.fix.active);
+  const completed = before.s.fix.log.filter((r) => r.kind === 'fix').length;
+  // Tests may legitimately invoke Aegis. Release before running them, then
+  // revalidate the same active fix rather than closing a replacement record.
+  commitState(before.p, before.s);
   // The one gate the fast lane keeps: the test suite must not be red.
   // UNMEASURED (no test script) closes honestly and says so in the record.
   const r = await runSuite('tests');
   const verdict = r ? `${r.status} (${r.command})` : 'UNMEASURED (tests suite unavailable)';
   if (r?.status === 'FAIL')
     die(9, `fix NOT closed - tests FAIL: ${r.summary}\n  fix stays open; repair, then aegis fix done again`);
+  const ctx = resolveState(args, true);
+  const s = ctx.s;
+  if (!s.fix?.active || JSON.stringify(s.fix.active) !== active || s.fix.log.filter((item) => item.kind === 'fix').length !== completed)
+    die(4, 'active fix changed during validation - no fix closed; review and rerun');
+  const rec = s.fix.active;
   rec.closed_at = new Date().toISOString();
   rec.validation = verdict;
   s.fix!.log.push(rec);

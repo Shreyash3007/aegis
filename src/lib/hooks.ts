@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { REPO, git, die } from './util.js';
+import { ownedPath } from './owned-path.js';
 
 export const hooksDir = (): string => git(['rev-parse', '--path-format=absolute', '--git-path', 'hooks']);
 
@@ -123,6 +124,7 @@ export function installHooks(profile: HookProfile = 'standard'): string[] {
   const common = path.resolve(git(['rev-parse', '--path-format=absolute', '--git-common-dir']));
   const inside = (root: string): boolean => { const r = path.relative(root, dir); return r !== '..' && !r.startsWith(`..${path.sep}`) && !path.isAbsolute(r); };
   if (!inside(REPO) && !inside(common)) die(4, 'effective hooks directory is outside this repo - integrate Aegis into the owner-managed hooks explicitly');
+  ownedPath(inside(REPO) ? REPO : common, dir);
   fs.mkdirSync(dir, { recursive: true });
   const cliPath = process.argv[1] ? path.resolve(process.argv[1]) : '';
   // Bake the installing CLI's version into the hooks (ghost-binary tripwire).

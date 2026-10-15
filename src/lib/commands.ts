@@ -27,6 +27,7 @@ import { tdd } from '../commands/tdd.js';
 import { blade } from '../commands/blade.js';
 import { quality } from '../commands/quality.js';
 import { evidence } from '../commands/evidence.js';
+import { lockFile, lifecyclePath } from './lock.js';
 
 /** The dispatch table - single source of truth for the command set. COMMANDS
  *  is derived from its keys, so cli.ts and eval.ts can never drift. */
@@ -49,6 +50,10 @@ setKnownCommands([...COMMANDS, 'completions']);
 export async function run(cmd: string, args: string[]): Promise<boolean> {
   const fn = DISPATCH[cmd];
   if (!fn) return false;
-  await fn(args);
+  // Coordinate control-plane/view writes, never child test/exec/provider runs.
+  const coordinated = ['init', 'config', 'sync', 'gc', 'hooks', 'migrate', 'ast', 'wave', 'evidence', 'demo'].includes(cmd)
+    || (cmd === 'status' && args.includes('--markdown')) || (cmd === 'monitor' && args[0] === 'target');
+  const release = coordinated ? lockFile(lifecyclePath) : undefined;
+  try { await fn(args); } finally { release?.(); }
   return true;
 }

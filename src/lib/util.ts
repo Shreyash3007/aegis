@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { execFileSync, execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 
 export function die(code: number, msg: string): never {
   console.error(`FAIL ${msg}`);
@@ -62,9 +62,9 @@ export const readJ = <T>(p: string): T => JSON.parse(fs.readFileSync(p, 'utf8'))
  *  shared tree, hooks firing mid-command) must never observe a torn
  *  state.json - rename is atomic on POSIX, so readers see old or new, never
  *  half-written. */
-export const writeJ = (p: string, o: unknown): void => {
+export const writeTextAtomic = (p: string, text: string): void => {
   const tmp = `${p}.tmp-${crypto.randomUUID()}`;
-  fs.writeFileSync(tmp, JSON.stringify(o, null, 2) + '\n', { flag: 'wx' });
+  fs.writeFileSync(tmp, text, { flag: 'wx' });
   // Windows denies rename-over-open (a concurrent lock-free read holds the
   // target): retry transient lock errors, then let the last one surface.
   for (let i = 0; ; i++) {
@@ -76,6 +76,17 @@ export const writeJ = (p: string, o: unknown): void => {
     }
   }
 };
+export const writeJ = (p: string, o: unknown): void => writeTextAtomic(p, JSON.stringify(o, null, 2) + '\n');
+
+export const MACHINE_IGNORES = ['.aegis/', '.aegis-lifecycle.lock', '.aegis-lifecycle.lock.reclaim'];
+export function ensureMachineIgnores(): void {
+  const file = path.join(REPO, '.gitignore');
+  if (fs.existsSync(file) && fs.lstatSync(file).isSymbolicLink()) die(4, 'refusing to update a linked .gitignore');
+  const previous = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+  const lines = new Set(previous.split(/\r?\n/));
+  const missing = MACHINE_IGNORES.filter((line) => !lines.has(line));
+  if (missing.length) writeTextAtomic(file, `${previous}${previous && !previous.endsWith('\n') ? '\n' : ''}${missing.join('\n')}\n`);
+}
 
 /** git helper - argv array, NO shell: branch/slice names are user input and
  *  must never be interpolated into a shell string. Trims output.

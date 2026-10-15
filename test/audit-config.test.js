@@ -18,3 +18,10 @@ test('audit: contract paths reject Windows absolute paths on every platform', (t
   assert.equal(aegis(dir, ['config', 'set', 'apps', 'web']).status, 0);
   assert.equal(aegis(dir, ['config', 'set', 'contracts_path.web', '\\\\server\\share\\contracts']).status, 2);
 });
+
+test('audit: a single-app repository never silently accepts an unknown app scope', (t) => {
+  const dir = scratch(t);
+  assert.equal(aegis(dir, ['status', '--app', 'ghost']).status, 2);
+  assert.equal(aegis(dir, ['transition', '00b', '--app', 'ghost']).status, 2);
+  assert.equal(readState(dir).current_skill, '00a');
+});
