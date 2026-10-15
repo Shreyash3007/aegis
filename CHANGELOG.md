@@ -4,6 +4,58 @@ All notable changes to Aegis. Format follows [Keep a Changelog](https://keepacha
 versioning follows [SemVer](https://semver.org/). Evidence for every claim
 lives in `docs/DOGFOOD-v*.md` and the cited commits.
 
+## [Unreleased] — v0.10 "Grade"
+
+### Added
+
+- Product discovery uses a shared brief and evidence-based product/design/
+  engineering review, with additional specialist lenses only when relevant.
+  Agreement must be justified; manufactured disagreements and simulated
+  customer research are not validation.
+- Sensitive-work tripwires refuse the fix/chore fast lane. Phase defaults
+  are recorded on transitions; G4 shipping no longer self-approves merely
+  because `autonomy=full`. This is not a sandbox around unrestricted shell.
+- `tdd red|green|status` captures actual committed-test outcomes and hashes.
+  `clean --require-proof` requires them; the oracle reruns the runner against
+  the merged tree. Changed tests, stale GREEN, timeouts and startup failures
+  do not qualify. Reviewing why RED failed is still required.
+- Six selective Superpowers craft routes pinned to v6.4.2 commit and Git blob
+  IDs. `blade resolve` verifies source bytes or names a native fallback. No
+  global installer, second pipeline, new runtime dependency, or model routing.
+- `quality acceptance|review|status` records executable criteria and review
+  inputs. Open blocker/major findings refuse merge; new commits stale the
+  receipts. `--require-quality` makes evidence mandatory, including ship entry.
+- Logical-question ceilings on `wave --budget`, atomic reservations, and
+  reviewed resets. These count Jev questions, not dollars or transport retries.
+- Usage capture and immutable aggregate evidence exports distinguish
+  executor-reported values from UNMEASURED gaps and omit raw private state.
+- Explicit `sync --refresh-skills` upgrades installed procedures without
+  reinitializing state; the previous snapshot is preserved locally.
+- Frozen development calibration bank and a disposable self-conformance
+  exercise covering a real test-first feature, review refusal, strict merge,
+  strict ship entry, budget exhaustion and recovery. Synthetic approvals
+  remain labelled as test fixtures, not independent product sign-off.
+
+### Fixed
+
+- Bash completions no longer emit an active recursive generator call as
+  installation text; a real shell-source test verifies safe loading and the
+  completion command itself is included in the candidate list.
+- The audit's supposedly twenty-way concurrent stress loop was sequential
+  (`spawnSync` in a loop). It now actually overlaps processes. Prior audit
+  numbers are not twenty-way concurrency proof; separate ten-writer tests
+  remain valid.
+- State-visit warning now correctly says one permitted entry remains at 2/3,
+  rather than claiming the immediately next entry is refused.
+
+### Release status
+
+Work is implemented but not yet released. Latest local full suite: 197/197;
+skill corpus: 71 files. Conformance exercise: 61/61 expected outcomes with
+six pinned source resolutions. Remote CI and the full release ritual still
+must pass on the final release commit. No comparative study or real
+small-executor effectiveness claim is made.
+
 ## [0.9.0] - 2026-10-14
 
 Integrity release: every structural finding from the read-only v0.8.0 audit
