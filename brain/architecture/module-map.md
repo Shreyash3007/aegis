@@ -11,6 +11,11 @@
 - imports: ../lib/astgraph.js, ../lib/util.js, node:fs, node:path
 - depends on: src\lib\astgraph.ts, src\lib\util.ts
 
+## src\commands\blade.ts
+- exports: blade(args: string[]): void
+- imports: ../lib/blade-source.js, ../lib/util.js, node:fs, node:os, node:path, node:url
+- depends on: src\lib\blade-source.ts, src\lib\util.ts
+
 ## src\commands\clean.ts
 - exports: clean(args: string[]): void | quarantine(args: string[]): void | quarantineHit(s: any, branch: string): any | quarantineMatch(r: { branch: string; target: string; }, branch: string): boolean
 - imports: ../lib/state.js, ../lib/util.js, node:child_process
@@ -22,7 +27,7 @@
 - depends on: src\lib\state.ts, src\lib\util.ts
 
 ## src\commands\demo.ts
-- exports: DemoRecord { at: string; files: string[]; kind: "ui" | "contract" } | demo(args: string[]): void
+- exports: DemoRecord { at: string; files: string[]; kind: "ui" | "contract" } | demo(args: string[]): void | demoSha(d: { kind: string; files: string[]; }): string | null | demoStaleness(s: any): string | null
 - imports: ../lib/state.js, ../lib/util.js, node:fs, node:path
 - depends on: src\lib\state.ts, src\lib\util.ts
 
@@ -31,6 +36,11 @@
 - imports: ../lib/http.js, ../lib/jev.js, ../lib/skill-lint.js, ../lib/util.js, node:fs, node:path
 - depends on: src\lib\http.ts, src\lib\jev.ts, src\lib\skill-lint.ts, src\lib\util.ts
 
+## src\commands\evidence.ts
+- exports: evidence(args: string[]): void
+- imports: ../lib/state.js, ../lib/util.js, node:fs, node:path
+- depends on: src\lib\state.ts, src\lib\util.ts
+
 ## src\commands\exec.ts
 - exports: exec(args: string[]): void
 - imports: ../lib/state.js, ../lib/util.js, ./persist.js, node:child_process
@@ -38,8 +48,8 @@
 
 ## src\commands\fix.ts
 - exports: chore(args: string[]): void | fix(args: string[]): void | Promise<void>
-- imports: ../lib/state.js, ../lib/util.js, ./persist.js, ./validate.js
-- depends on: src\commands\persist.ts, src\commands\validate.ts, src\lib\state.ts, src\lib\util.ts
+- imports: ../lib/autonomy.js, ../lib/state.js, ../lib/util.js, ./persist.js, ./validate.js
+- depends on: src\commands\persist.ts, src\commands\validate.ts, src\lib\autonomy.ts, src\lib\state.ts, src\lib\util.ts
 
 ## src\commands\hooks.ts
 - exports: hooks(args: string[]): void
@@ -53,13 +63,13 @@
 
 ## src\commands\jev.ts
 - exports: jev(args: string[]): Promise<void>
-- imports: ../lib/jev.js, ../lib/util.js, node:fs
-- depends on: src\lib\jev.ts, src\lib\util.ts
+- imports: ../lib/autonomy.js, ../lib/jev.js, ../lib/util.js, node:fs
+- depends on: src\lib\autonomy.ts, src\lib\jev.ts, src\lib\util.ts
 
 ## src\commands\lifecycle.ts
 - exports: doctorCmd(args: string[]): void | init(args: string[]): Promise<void>
-- imports: ../lib/detect.js, ../lib/hooks.js, ../lib/interview.js, ../lib/state.js, ../lib/util.js, ../templates/transitions.js, node:fs, node:path, node:url
-- depends on: src\lib\detect.ts, src\lib\hooks.ts, src\lib\interview.ts, src\lib\state.ts, src\lib\util.ts, src\templates\transitions.ts
+- imports: ../lib/blade-source.js, ../lib/detect.js, ../lib/hooks.js, ../lib/interview.js, ../lib/state.js, ../lib/util.js, ../templates/transitions.js, node:fs, node:os, node:path, node:url
+- depends on: src\lib\blade-source.ts, src\lib\detect.ts, src\lib\hooks.ts, src\lib\interview.ts, src\lib\state.ts, src\lib\util.ts, src\templates\transitions.ts
 
 ## src\commands\lint-skills.ts
 - exports: lintSkills(args: string[], knownCommands: string[]): Promise<void>
@@ -67,14 +77,14 @@
 - depends on: src\lib\skill-lint.ts, src\lib\util.ts
 
 ## src\commands\memory.ts
-- exports: MemRecord { at: string; body: string; cites: string[]; confidence: number; expiry: string | null; history: { at: string; event: string; }[]; id: string; lane: string | null; parties: string[] | null; resolution: string | null; status: string; supersedes: string | null; title: string; type: string; verified_at: string | null; winner: string | null } | TYPES: readonly ["decision", "contract", "finding", "assumption", "reconcile"] | allRecords(): import("D:/Projects/aegis/src/commands/memory").MemRecord[] | isStale(r: import("D:/Projects/aegis/src/commands/memory").MemRecord, now: number): boolean | memory(args: string[]): void | memorySummary(): string | null | syncStore(): void
-- imports: ../lib/util.js, node:fs, node:module, node:path
-- depends on: src\lib\util.ts
+- exports: MemRecord { app: string | null; at: string; body: string; cites: string[]; confidence: number; expiry: string | null; history: { at: string; event: string; }[]; id: string; lane: string | null; parties: string[] | null; resolution: string | null; status: string; supersedes: string | null; title: string; type: string; verified_at: string | null; winner: string | null } | TYPES: readonly ["decision", "contract", "finding", "assumption", "reconcile"] | allRecords(): import("D:/Projects/aegis/src/commands/memory").MemRecord[] | isStale(r: import("D:/Projects/aegis/src/commands/memory").MemRecord, now: number): boolean | memory(args: string[]): void | memorySummary(): string | null | syncStore(): void
+- imports: ../lib/state.js, ../lib/util.js, node:fs, node:module, node:path
+- depends on: src\lib\state.ts, src\lib\util.ts
 
 ## src\commands\merge.ts
 - exports: merge(args: string[]): void
-- imports: ../lib/oracles.js, ../lib/state.js, ../lib/util.js, ./clean.js, node:child_process, node:fs, node:os, node:path
-- depends on: src\commands\clean.ts, src\lib\oracles.ts, src\lib\state.ts, src\lib\util.ts
+- imports: ../lib/oracles.js, ../lib/quality-evidence.js, ../lib/state.js, ../lib/tdd-proof.js, ../lib/util.js, ./clean.js, node:child_process, node:fs, node:os, node:path
+- depends on: src\commands\clean.ts, src\lib\oracles.ts, src\lib\quality-evidence.ts, src\lib\state.ts, src\lib\tdd-proof.ts, src\lib\util.ts
 
 ## src\commands\migrate.ts
 - exports: migrate(): void
@@ -83,13 +93,23 @@
 
 ## src\commands\monitor.ts
 - exports: monitor(args: string[]): Promise<void>
-- imports: ../lib/util.js, node:fs, node:path
-- depends on: src\lib\util.ts
+- imports: ../lib/http.js, ../lib/util.js, node:fs, node:path
+- depends on: src\lib\http.ts, src\lib\util.ts
 
 ## src\commands\persist.ts
 - exports: checkpoint(args: string[]): void | resume(): void
 - imports: ../lib/hashes.js, ../lib/state.js, ../lib/util.js, ./memory.js, node:fs, node:path
 - depends on: src\commands\memory.ts, src\lib\hashes.ts, src\lib\state.ts, src\lib\util.ts
+
+## src\commands\quality.ts
+- exports: quality(args: string[]): void
+- imports: ../lib/quality-evidence.js, ../lib/state.js, ../lib/tdd-proof.js, ../lib/util.js, node:fs, node:path
+- depends on: src\lib\quality-evidence.ts, src\lib\state.ts, src\lib\tdd-proof.ts, src\lib\util.ts
+
+## src\commands\remove.ts
+- exports: remove(args: string[]): void
+- imports: ../lib/hooks.js, ../lib/util.js, node:fs, node:path
+- depends on: src\lib\hooks.ts, src\lib\util.ts
 
 ## src\commands\slice.ts
 - exports: slice(args: string[]): void
@@ -98,13 +118,18 @@
 
 ## src\commands\state.ts
 - exports: contracts(args: string[]): void | gate(args: string[]): void | lane(args: string[]): void | loops(args: string[]): void | next(args: string[]): void | status(args: string[]): void | transition(args: string[]): void
-- imports: ../lib/state.js, ../lib/util.js, ./memory.js, node:fs, node:path
-- depends on: src\commands\memory.ts, src\lib\state.ts, src\lib\util.ts
+- imports: ../lib/autonomy.js, ../lib/quality-evidence.js, ../lib/state.js, ../lib/util.js, ./demo.js, ./memory.js, node:fs, node:path
+- depends on: src\commands\demo.ts, src\commands\memory.ts, src\lib\autonomy.ts, src\lib\quality-evidence.ts, src\lib\state.ts, src\lib\util.ts
 
 ## src\commands\sync.ts
-- exports: gc(): void | sync(): void
-- imports: ../lib/state.js, ../lib/util.js, ../templates/transitions.js, node:fs, node:path
+- exports: gc(): void | sync(args: string[]): void
+- imports: ../lib/state.js, ../lib/util.js, ../templates/transitions.js, node:crypto, node:fs, node:path, node:url
 - depends on: src\lib\state.ts, src\lib\util.ts, src\templates\transitions.ts
+
+## src\commands\tdd.ts
+- exports: tdd(args: string[]): void
+- imports: ../lib/state.js, ../lib/tdd-proof.js, ../lib/util.js, node:child_process, node:crypto, node:fs, node:path
+- depends on: src\lib\state.ts, src\lib\tdd-proof.ts, src\lib\util.ts
 
 ## src\commands\typecheck.ts
 - exports: typecheck(_args: string[]): void
@@ -122,7 +147,7 @@
 - depends on: src\lib\oracles.ts, src\lib\state.ts, src\lib\util.ts
 
 ## src\commands\wave.ts
-- exports: wave(_args: string[]): void
+- exports: wave(args: string[]): void
 - imports: ../lib/state.js, ../lib/util.js, node:fs, node:path
 - depends on: src\lib\state.ts, src\lib\util.ts
 
@@ -136,10 +161,20 @@
 - imports: ./util.js, node:fs, node:path, ts-morph
 - depends on: src\lib\util.ts
 
+## src\lib\autonomy.ts
+- exports: AutonomyVerdict { level: "L0" | "L1" | "L2"; matched: string | undefined; why: string } | L0_PATTERNS: RegExp | L2_PATTERNS: RegExp | classifyAction(action: string): import("D:/Projects/aegis/src/lib/autonomy").AutonomyVerdict | phaseAutonomy(skill: string): "L0" | "L1" | "L2"
+- imports: (none)
+- depends on: (none)
+
+## src\lib\blade-source.ts
+- exports: BladePin { collisions: string[]; fallback: string; git_blob: string; name: string; path: string; phase: string } | SourceLock { commit: string; repository: string; schema_version: number; skills: import("D:/Projects/aegis/src/lib/blade-source").BladePin[]; tag: string } | gitBlob(data: Buffer): string | readSourceLock(file: string): import("D:/Projects/aegis/src/lib/blade-source").SourceLock | verifiedSource(file: string, expectedBlob: string): boolean
+- imports: node:crypto, node:fs, node:path
+- depends on: (none)
+
 ## src\lib\commands.ts
 - exports: COMMANDS: string[] | run(cmd: string, args: string[]): Promise<boolean>
-- imports: ../commands/ast.js, ../commands/clean.js, ../commands/config.js, ../commands/demo.js, ../commands/eval.js, ../commands/exec.js, ../commands/fix.js, ../commands/hooks.js, ../commands/import.js, ../commands/jev.js, ../commands/lifecycle.js, ../commands/lint-skills.js, ../commands/memory.js, ../commands/merge.js, ../commands/migrate.js, ../commands/monitor.js, ../commands/persist.js, ../commands/slice.js, ../commands/state.js, ../commands/sync.js, ../commands/typecheck.js, ../commands/update.js, ../commands/validate.js, ../commands/wave.js
-- depends on: src\commands\ast.ts, src\commands\clean.ts, src\commands\config.ts, src\commands\demo.ts, src\commands\eval.ts, src\commands\exec.ts, src\commands\fix.ts, src\commands\hooks.ts, src\commands\import.ts, src\commands\jev.ts, src\commands\lifecycle.ts, src\commands\lint-skills.ts, src\commands\memory.ts, src\commands\merge.ts, src\commands\migrate.ts, src\commands\monitor.ts, src\commands\persist.ts, src\commands\slice.ts, src\commands\state.ts, src\commands\sync.ts, src\commands\typecheck.ts, src\commands\update.ts, src\commands\validate.ts, src\commands\wave.ts
+- imports: ../commands/ast.js, ../commands/blade.js, ../commands/clean.js, ../commands/config.js, ../commands/demo.js, ../commands/eval.js, ../commands/evidence.js, ../commands/exec.js, ../commands/fix.js, ../commands/hooks.js, ../commands/import.js, ../commands/jev.js, ../commands/lifecycle.js, ../commands/lint-skills.js, ../commands/memory.js, ../commands/merge.js, ../commands/migrate.js, ../commands/monitor.js, ../commands/persist.js, ../commands/quality.js, ../commands/remove.js, ../commands/slice.js, ../commands/state.js, ../commands/sync.js, ../commands/tdd.js, ../commands/typecheck.js, ../commands/update.js, ../commands/validate.js, ../commands/wave.js
+- depends on: src\commands\ast.ts, src\commands\blade.ts, src\commands\clean.ts, src\commands\config.ts, src\commands\demo.ts, src\commands\eval.ts, src\commands\evidence.ts, src\commands\exec.ts, src\commands\fix.ts, src\commands\hooks.ts, src\commands\import.ts, src\commands\jev.ts, src\commands\lifecycle.ts, src\commands\lint-skills.ts, src\commands\memory.ts, src\commands\merge.ts, src\commands\migrate.ts, src\commands\monitor.ts, src\commands\persist.ts, src\commands\quality.ts, src\commands\remove.ts, src\commands\slice.ts, src\commands\state.ts, src\commands\sync.ts, src\commands\tdd.ts, src\commands\typecheck.ts, src\commands\update.ts, src\commands\validate.ts, src\commands\wave.ts
 
 ## src\lib\detect.ts
 - exports: DoctorReport { cpu_cores: number; environment_level: "L0" | "L1" | "L2"; git: string; in_ci: boolean; node: string; platform_hint: string; project_type_hint: "greenfield" | "brownfield"; ram_free_mb: number; ram_total_mb: number; shell_access: boolean; tools: Record<string, boolean>; worktrees_pruned: boolean } | doctor(): import("D:/Projects/aegis/src/lib/detect").DoctorReport
@@ -152,12 +187,12 @@
 - depends on: src\lib\util.ts
 
 ## src\lib\hooks.ts
-- exports: HookProfile = import("D:/Projects/aegis/src/lib/hooks").HookProfile | installHooks(profile: import("D:/Projects/aegis/src/lib/hooks").HookProfile): string[] | managedHookNames(): string[]
+- exports: HookProfile = import("D:/Projects/aegis/src/lib/hooks").HookProfile | MARKER: "# AEGIS" | installHooks(profile: import("D:/Projects/aegis/src/lib/hooks").HookProfile): string[] | managedHookNames(): string[]
 - imports: ./util.js, node:fs, node:path
 - depends on: src\lib\util.ts
 
 ## src\lib\http.ts
-- exports: HttpError { status: number | undefined } | PostOptions { maxRetries: number | undefined; timeoutMs: number | undefined } | postJson(url: string, headers: Record<string, string>, body: unknown, opts: import("D:/Projects/aegis/src/lib/http").PostOptions): Promise<unknown>
+- exports: HttpError { status: number | undefined } | PostOptions { maxRetries: number | undefined; timeoutMs: number | undefined } | postJson(url: string, headers: Record<string, string>, body: unknown, opts: import("D:/Projects/aegis/src/lib/http").PostOptions): Promise<unknown> | probeUrl(url: string, timeoutMs: number): Promise<{ status: string | number; latency_ms: number; }>
 - imports: node:http, node:https
 - depends on: (none)
 
@@ -167,14 +202,24 @@
 - depends on: src\lib\detect.ts, src\lib\state.ts
 
 ## src\lib\jev.ts
-- exports: JEV_DEFAULT_MODEL: "jev-latest" | JevBackend { baseUrl: string | undefined; key: string | undefined; model: string | undefined; name: "typesafe" | "mock" | "degraded" } | JevQuestion { criteria: { true: string; false: string; } | undefined; id: string | undefined; levels: string[] | undefined; options: string[] | Record<string, string> | undefined; question: string; type: "noul" | "choice" | "score" } | JevResult { backend: "typesafe" | "mock" | "degraded"; escalated: boolean; latencyMs: number; model: string; verdicts: import("D:/Projects/aegis/src/lib/jev").JevVerdict[] } | JevVerdict { answer: string | number; confidence: number; confidenceFrom: "reported" | "estimated"; distribution: Record<string, number> | undefined; escalate: boolean; hint: string | undefined; id: string; legend: Record<string, string> | undefined; reason: string | undefined; type: string } | TYPESAFE_BASE: "https://api.typesafe.ai" | judge(state: string, questions: import("D:/Projects/aegis/src/lib/jev").JevQuestion[], opts: { threshold?: number | undefined; }): Promise<import("D:/Projects/aegis/src/lib/jev").JevResult> | resolveBackend(): import("D:/Projects/aegis/src/lib/jev").JevBackend
-- imports: ./http.js
-- depends on: src\lib\http.ts
+- exports: JEV_DEFAULT_MODEL: "jev-latest" | JevBackend { baseUrl: string | undefined; key: string | undefined; model: string | undefined; name: "typesafe" | "mock" | "degraded" } | JevQuestion { criteria: { true: string; false: string; } | undefined; id: string | undefined; levels: string[] | undefined; options: string[] | Record<string, string> | undefined; question: string; type: "noul" | "choice" | "score" } | JevResult { backend: "typesafe" | "mock" | "degraded"; escalated: boolean; latencyMs: number; model: string; verdicts: import("D:/Projects/aegis/src/lib/jev").JevVerdict[] } | JevVerdict { answer: string | number; confidence: number; confidenceFrom: "reported" | "estimated"; distribution: Record<string, number> | undefined; escalate: boolean; hint: string | undefined; id: string; legend: Record<string, string> | undefined; reason: string | undefined; type: string } | TYPESAFE_BASE: "https://api.typesafe.ai" | judge(state: string, questions: import("D:/Projects/aegis/src/lib/jev").JevQuestion[], opts: { threshold?: number | undefined; }): Promise<import("D:/Projects/aegis/src/lib/jev").JevResult> | redactState(state: string): string | resolveBackend(): import("D:/Projects/aegis/src/lib/jev").JevBackend
+- imports: ./http.js, ./judgment-budget.js
+- depends on: src\lib\http.ts, src\lib\judgment-budget.ts
+
+## src\lib\judgment-budget.ts
+- exports: reserveJudgments(count: number): void
+- imports: ./state.js, ./util.js, node:fs
+- depends on: src\lib\state.ts, src\lib\util.ts
 
 ## src\lib\oracles.ts
 - exports: Stack = import("D:/Projects/aegis/src/lib/oracles").Stack | detectStack(cwd: string): import("D:/Projects/aegis/src/lib/oracles").Stack | typecheckCommand(cwd: string): string | null
 - imports: ./util.js, node:fs, node:path
 - depends on: src\lib\util.ts
+
+## src\lib\quality-evidence.ts
+- exports: Criterion { command: string[]; id: string; statement: string } | Finding { evidence: string[]; id: string; severity: "blocker" | "major" | "minor" | "note"; status: "open" | "resolved"; summary: string } | Outcome { exit: number | null; id: string; output_sha256: string; reason: string | undefined; status: "PASS" | "FAIL" } | QualityReceipt { at: string; branch: string; commit: string; criteria: import("D:/Projects/aegis/src/lib/quality-evidence").Criterion[] | undefined; findings: import("D:/Projects/aegis/src/lib/quality-evidence").Finding[] | undefined; kind: "acceptance" | "review"; results: import("D:/Projects/aegis/src/lib/quality-evidence").Outcome[] | undefined; source: string; source_sha256: string; version: 1 } | qualityPath: (branch: string, kind: string) => string | qualityProblem(branch: string, tip: string, strict: boolean): string | null | readQuality(branch: string, kind: "acceptance" | "review"): import("D:/Projects/aegis/src/lib/quality-evidence").QualityReceipt | null | runCriteria(criteria: import("D:/Projects/aegis/src/lib/quality-evidence").Criterion[], cwd: string): import("D:/Projects/aegis/src/lib/quality-evidence").Outcome[]
+- imports: ./tdd-proof.js, ./util.js, node:child_process, node:fs, node:path
+- depends on: src\lib\tdd-proof.ts, src\lib\util.ts
 
 ## src\lib\skill-lint.ts
 - exports: BODY_ORDER: string[] | FRONTMATTER_KEYS: string[] | LintCheck { detail: string | undefined; name: string; pass: boolean } | LintResult { checks: import("D:/Projects/aegis/src/lib/skill-lint").LintCheck[]; file: string; pass: boolean } | MASTER_BUDGET: 80 | REFERENCE_BUDGET: 200 | SUBSKILL_BUDGET: 120 | buildTriggerMap(skillFiles: string[], bladeTriggers: { trigger: string; owner: string; }[]): Map<string, string> | frontmatterOrder(fm: Record<string, string>): string[] | isMaster(file: string): boolean | isReference(file: string): boolean | lintSkillFile(file: string, knownCommands: string[], claimedTriggers: Map<string, string> | undefined): import("D:/Projects/aegis/src/lib/skill-lint").LintResult | parseFrontmatter(content: string): Record<string, string> | null | splitList(v: string): string[]
@@ -182,8 +227,13 @@
 - depends on: (none)
 
 ## src\lib\state.ts
-- exports: CleanRecord { cycles: number; last_class: string; last_sha: string } | Config { apps: string[] | undefined; autonomy: "assisted" | "semi" | "full"; contracts_path: string | undefined; contracts_path_apps: Record<string, string> | undefined; environment_level: "L0" | "L1" | "L2"; hooks_profile: "minimal" | "standard" | "strict" | undefined; human_lane_cap: number; lane_costs_mb: { browser_e2e: number; dev_server: number; codegen: number; }; mode: "runtime" | "manual"; model_tiers: { strong: string; standard: string; light: string; }; pii_logs: boolean; platform: string; profile: "minimal" | "standard" | "full" | undefined; project_type: "greenfield" | "brownfield"; ram_mb: number; schema_version: number; ship_profile: "prototype" | "production"; stack: string | undefined; team: "solo" | "small-team" | undefined; token_budget: number | undefined; validate_suites: Record<string, string> | undefined } | Edge { backward: boolean | undefined; from: string; gate: string | undefined; requiresContracts: boolean | undefined; to: string } | FixRecord { abandoned_reason: string | undefined; closed_at: string | undefined; desc: string; kind: "fix" | "chore"; opened_at: string; validation: string | undefined } | GateRecord { at: string; by: string; status: "approved" } | HistoryEntry { at: string; cleared: string[] | undefined; event: string | undefined; reason: string | undefined; skill: string } | QuarantineRecord { at: string; branch: string; reason: string; target: string } | SCHEMA_VERSION: 1 | State { clean: Record<string, import("D:/Projects/aegis/src/lib/state").CleanRecord> | undefined; contracts_merged: boolean; current_skill: string; demo: { kind: "ui" | "contract"; files: string[]; at: string; } | null | undefined; fix: { active: import("D:/Projects/aegis/src/lib/state").FixRecord | null; log: import("D:/Projects/aegis/src/lib/state").FixRecord[]; } | undefined; gates: Record<string, import("D:/Projects/aegis/src/lib/state").GateRecord>; history: import("D:/Projects/aegis/src/lib/state").HistoryEntry[]; lanes: { max: number; active: string[]; }; loop_counters: Record<string, number>; quarantine: import("D:/Projects/aegis/src/lib/state").QuarantineRecord[] | undefined; schema_version: number; state_visits: Record<string, number> } | StateCtx { app: string | null; p: string; s: import("D:/Projects/aegis/src/lib/state").State } | Transitions { edges: import("D:/Projects/aegis/src/lib/state").Edge[]; gates: Record<string, string>; max_loop: number } | acquireState(p: string): import("D:/Projects/aegis/src/lib/state").State | appStatePath: (name: string) => string | commitState(p: string, s: import("D:/Projects/aegis/src/lib/state").State): void | configP: any | contractsPath(app: string | null | undefined): string | declaredApps(): string[] | freshState(laneMax: number): import("D:/Projects/aegis/src/lib/state").State | loadConfig: () => import("D:/Projects/aegis/src/lib/state").Config | loadState(): import("D:/Projects/aegis/src/lib/state").State | loadStateFrom(p: string): import("D:/Projects/aegis/src/lib/state").State | loadTransitions: () => import("D:/Projects/aegis/src/lib/state").Transitions | resolveState(args: string[], mutate: boolean): import("D:/Projects/aegis/src/lib/state").StateCtx | stateP: any | stripAppArg(args: string[]): string[] | transP: any
+- exports: CleanRecord { cycles: number; last_class: string; last_sha: string } | Config { apps: string[] | undefined; autonomy: "assisted" | "semi" | "full"; contracts_path: string | undefined; contracts_path_apps: Record<string, string> | undefined; environment_level: "L0" | "L1" | "L2"; hooks_profile: "minimal" | "standard" | "strict" | undefined; human_lane_cap: number; lane_costs_mb: { browser_e2e: number; dev_server: number; codegen: number; }; mode: "runtime" | "manual"; model_tiers: { strong: string; standard: string; light: string; }; pii_logs: boolean; platform: string; profile: "minimal" | "standard" | "full" | undefined; project_type: "greenfield" | "brownfield"; ram_mb: number; schema_version: number; ship_profile: "prototype" | "production"; stack: string | undefined; team: "solo" | "small-team" | undefined; token_budget: number | undefined; validate_suites: Record<string, string> | undefined } | Edge { backward: boolean | undefined; from: string; gate: string | undefined; requiresContracts: boolean | undefined; to: string } | FixRecord { abandoned_reason: string | undefined; autonomy: "L0" | "L1" | "L2" | undefined; closed_at: string | undefined; desc: string; kind: "fix" | "chore"; opened_at: string; validation: string | undefined } | GateRecord { at: string; by: string; demo_sha: string | null | undefined; evidence: string | undefined; status: "approved" } | HistoryEntry { at: string; autonomy: "L0" | "L1" | "L2" | undefined; cleared: string[] | undefined; event: string | undefined; reason: string | undefined; skill: string } | QuarantineRecord { at: string; branch: string; reason: string; target: string } | SCHEMA_VERSION: 1 | State { clean: Record<string, import("D:/Projects/aegis/src/lib/state").CleanRecord> | undefined; contracts_merged: boolean; current_skill: string; demo: { kind: "ui" | "contract"; files: string[]; at: string; } | null | undefined; fix: { active: import("D:/Projects/aegis/src/lib/state").FixRecord | null; log: import("D:/Projects/aegis/src/lib/state").FixRecord[]; } | undefined; gates: Record<string, import("D:/Projects/aegis/src/lib/state").GateRecord>; history: import("D:/Projects/aegis/src/lib/state").HistoryEntry[]; judgment_budget: { limit: number; used: number; } | undefined; lanes: { max: number; active: string[]; }; loop_counters: Record<string, number>; quarantine: import("D:/Projects/aegis/src/lib/state").QuarantineRecord[] | undefined; schema_version: number; state_visits: Record<string, number>; usage_reports: { model: string | null; tokens_in: number | null; tokens_out: number | null; cost_usd: number | null; at: string; }[] | undefined } | StateCtx { app: string | null; p: string; s: import("D:/Projects/aegis/src/lib/state").State } | Transitions { edges: import("D:/Projects/aegis/src/lib/state").Edge[]; gates: Record<string, string>; max_loop: number } | acquireState(p: string): import("D:/Projects/aegis/src/lib/state").State | appStatePath: (name: string) => string | commitState(p: string, s: import("D:/Projects/aegis/src/lib/state").State): void | configP: any | contractsPath(app: string | null | undefined): string | declaredApps(): string[] | freshState(laneMax: number): import("D:/Projects/aegis/src/lib/state").State | loadConfig: () => import("D:/Projects/aegis/src/lib/state").Config | loadState(): import("D:/Projects/aegis/src/lib/state").State | loadStateFrom(p: string): import("D:/Projects/aegis/src/lib/state").State | loadTransitions: () => import("D:/Projects/aegis/src/lib/state").Transitions | resolveState(args: string[], mutate: boolean): import("D:/Projects/aegis/src/lib/state").StateCtx | stateP: any | stripAppArg(args: string[]): string[] | transP: any
 - imports: ./util.js, node:fs, node:path
+- depends on: src\lib\util.ts
+
+## src\lib\tdd-proof.ts
+- exports: TddProof { branch: string; command: string[]; green: import("D:/Projects/aegis/src/lib/tdd-proof").TestRun | undefined; red: import("D:/Projects/aegis/src/lib/tdd-proof").TestRun; tests: { file: string; sha256: string; }[]; version: 1 } | TestRun { at: string; commit: string; exit: number; output: string; output_sha256: string } | branchWorktree(branch: string): string | null | digest: (s: any) => string | gitFile: (commit: string, file: string) => Buffer | localBranch(branch: string): string | null | proofPath: (branch: string) => string | proofProblem(branch: string, tip: string): string | null | readProof(branch: string): import("D:/Projects/aegis/src/lib/tdd-proof").TddProof | null
+- imports: ./util.js, node:child_process, node:crypto, node:fs, node:path
 - depends on: src\lib\util.ts
 
 ## src\lib\util.ts
