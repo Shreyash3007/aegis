@@ -2,6 +2,14 @@ import { die, git, gitTry, ok, writeJ } from '../lib/util.js';
 import { resolveState, stripAppArg, commitState, FixRecord, StateCtx } from '../lib/state.js';
 import { checkpoint } from './persist.js';
 import { runSuite } from './validate.js';
+import { classifyAction } from '../lib/autonomy.js';
+
+function fastLaneLevel(kind: 'fix' | 'chore', desc: string): 'L1' | 'L2' {
+  const verdict = classifyAction(`${kind}: ${desc}`);
+  if (verdict.level === 'L0')
+    die(4, `L0 work (${verdict.matched}) cannot use the fast lane - use the pipeline and its human gates; see: aegis status`);
+  return verdict.level;
+}
 
 /** Fast lane (v0.3): the pipeline has exactly one change size (PRD -> gates ->
  *  contracts -> slices -> ship), which prices a typo fix the same as a new
@@ -30,7 +38,8 @@ export function fix(args: string[]): void | Promise<void> {
   if (sub === 'start') {
     const desc = a.slice(1).join(' ').trim();
     if (!desc) die(2, 'usage: aegis fix start <description> [--app <name>]');
-    open(resolveState(args, true), { kind: 'fix', desc, opened_at: new Date().toISOString() });
+    const autonomy = fastLaneLevel('fix', desc);
+    open(resolveState(args, true), { kind: 'fix', desc, autonomy, opened_at: new Date().toISOString() });
     return;
   }
   if (sub === 'done') return done(args);
@@ -90,10 +99,11 @@ async function done(args: string[]): Promise<void> {
 export function chore(args: string[]): void {
   const desc = stripAppArg(args).join(' ').trim();
   if (!desc) die(2, 'usage: aegis chore <description> [--app <name>]');
+  const autonomy = fastLaneLevel('chore', desc);
   const ctx = resolveState(args, true);
   const s = ctx.s;
   const at = new Date().toISOString();
-  const rec: FixRecord = { kind: 'chore', desc, opened_at: at, closed_at: at, validation: 'not required (chore class)' };
+  const rec: FixRecord = { kind: 'chore', desc, autonomy, opened_at: at, closed_at: at, validation: 'not required (chore class)' };
   s.fix ??= { active: null, log: [] };
   s.fix.log.push(rec);
   s.history.push({ skill: s.current_skill, at, event: `chore: ${desc}` });

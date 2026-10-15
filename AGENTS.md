@@ -69,6 +69,7 @@ Run `aegis doctor` to see the detected environment level (L0/L1/L2).
 | PRD freeze | scope work | `aegis gate PRD --approve` (human) |
 | G1 arch-freeze | database design | `aegis gate G1 --approve` |
 | G2 security | planning | `aegis gate G2 --approve` |
+| DEMO prototype | production lanes | `aegis gate DEMO --approve` (pins the recorded artifact) |
 | G3 integration | validation | `aegis gate G3 --approve` |
 | G4 ship | shipping | `aegis gate G4 --approve` |
 
@@ -76,8 +77,10 @@ Only the human approves gates. Present the artifact, recommend, wait. The CLI
 enforces proof-of-human: interactive use prompts to retype the gate name;
 non-interactive (CI) use requires `AEGIS_HUMAN_TOKEN=1` (recorded as
 `by: human-token`). If the repo owner has set `autonomy: full`, non-TTY
-approval is accepted and recorded as `by: autonomy-full` — never set this
-yourself; it is the owner's posture choice. Unknown gate names are refused
+approval of non-ship gates is accepted and recorded as `by: autonomy-full`.
+G4 shipping still requires a human or an explicitly provisioned CI approval
+token. Never set approval credentials or autonomy yourself to unblock a gate;
+it is the owner's posture choice. Unknown gate names are refused
 (exit 7).
 
 ## 6. Build Rules (the 5 non-negotiables)
@@ -126,7 +129,10 @@ yourself; it is the owner's posture choice. Unknown gate names are refused
 | `aegis typecheck` | multi-stack typecheck oracle (tsc/cargo/go vet/compileall; honest UNMEASURED) |
 | `aegis hooks [--profile]` | hook strictness: minimal / standard / strict (4=invalid) |
 
-Fast-lane scope: `fix`/`chore` are for genuinely small, single-session
+Fast-lane scope: `fix`/`chore` reject descriptions matching sensitive-work
+patterns (L0), before acquiring state or writing a checkpoint. These patterns
+are a conservative tripwire, not proof that arbitrary text or code is safe.
+They are for genuinely small, single-session
 changes (typos, copy, config, isolated one-file fixes). Anything touching
 contracts, schema, security, or more than a handful of files belongs in the
 pipeline. The fix log is auditable — misclassifying work to dodge gates is

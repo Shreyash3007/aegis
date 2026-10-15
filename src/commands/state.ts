@@ -4,6 +4,7 @@ import { AEGIS_DIR, REPO, die, git, gitTry, ok, readJ, writeJ } from '../lib/uti
 import { loadState, loadStateFrom, loadTransitions, loadConfig, contractsPath, declaredApps, appStatePath, resolveState, commitState, acquireState, stateP, State, Transitions, Edge } from '../lib/state.js';
 import { memorySummary } from './memory.js';
 import { demoSha, demoStaleness } from './demo.js';
+import { phaseAutonomy } from '../lib/autonomy.js';
 
 /** v0.6.0 machinery at a glance (conductor visibility): quarantine, clean
  *  cycles, demo record. Conditional lines only - empty machinery prints
@@ -137,6 +138,7 @@ export function status(args: string[] = []): void {
   const { s, app } = resolveState(args, false);
   const t = loadTransitions();
   console.log(`${app ? `app: ${app} | ` : ''}state: ${s.current_skill} | lanes: ${s.lanes.active.length}/${s.lanes.max} [${s.lanes.active.join(', ')}]`);
+  console.log(`autonomy: ${phaseAutonomy(s.current_skill)} (phase default; not authorization to bypass gates)`);
   if (s.fix?.active) console.log(`fix OPEN: "${s.fix.active.desc}" (since ${s.fix.active.opened_at}) - close: aegis fix done`);
   for (const l of machineryLines(s)) console.log(l);
   const tb = loadConfig().token_budget;
@@ -191,13 +193,13 @@ export function gate(args: string[]): void {
   } else if (process.stdin.isTTY) {
     if (ttyPrompt(`gate ${name} (${t.gates[name]}): retype the gate name to confirm: `) !== name)
       die(7, `gate ${name} confirmation mismatch - approval refused`);
-  } else if (loadConfig().autonomy === 'full') {
+  } else if (loadConfig().autonomy === 'full' && name !== 'G4') {
     by = 'autonomy-full';
     console.log(`note: gate ${name} approved under autonomy=full (non-TTY, recorded as autonomy-full)`);
   } else {
-    die(7, `gate ${name} --approve needs a human on a TTY (retype-to-confirm); ` +
-      'non-interactive use requires AEGIS_HUMAN_TOKEN=1 (CI escape hatch) ' +
-      'or `aegis config set autonomy full` (trust-then-verify posture)');
+    die(7, `${name === 'G4' ? 'L0 ship approval: ' : ''}gate ${name} --approve needs a human on a TTY (retype-to-confirm); ` +
+       'non-interactive use requires AEGIS_HUMAN_TOKEN=1 (CI escape hatch) ' +
+       (name === 'G4' ? '- autonomy=full cannot approve shipping' : 'or `aegis config set autonomy full` (trust-then-verify posture)'));
   }
   const ctx = resolveState(args, true);
   const s = ctx.s;
@@ -240,7 +242,7 @@ export function transition(args: string[]): void {
   // cycle guard (A1.3): per-edge counters miss ping-pong across DIFFERENT edges
   s.state_visits[to] = (s.state_visits[to] || 0) + 1;
 
-  s.history.push({ skill: s.current_skill, at: new Date().toISOString() });
+  s.history.push({ skill: s.current_skill, at: new Date().toISOString(), autonomy: phaseAutonomy(to) });
   s.current_skill = to;
   commitState(ctx.p, s);
   ok(`transition ${e.from} -> ${to} recorded${ctx.app ? ` (app ${ctx.app})` : ''} (edge ${s.loop_counters[key]}/${t.max_loop}, state-visits ${s.state_visits[to]}/${t.max_loop})`);

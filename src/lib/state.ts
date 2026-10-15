@@ -7,12 +7,14 @@ export const SCHEMA_VERSION = 1;
 export interface GateRecord { status: 'approved'; at: string; by: string; evidence?: string; demo_sha?: string | null }
 export interface FixRecord {
   kind: 'fix' | 'chore'; desc: string; opened_at: string;
+  autonomy?: 'L0' | 'L1' | 'L2';
   closed_at?: string; validation?: string; abandoned_reason?: string;
 }
 export interface CleanRecord { cycles: number; last_sha: string; last_class: string }
 export interface QuarantineRecord { target: string; branch: string; reason: string; at: string }
 export interface HistoryEntry {
   skill: string; at: string;
+  autonomy?: 'L0' | 'L1' | 'L2';
   event?: string; reason?: string; cleared?: string[]; // loops-reset audit fields
 }
 export interface State {

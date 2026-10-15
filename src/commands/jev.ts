@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { classifyAction } from '../lib/autonomy.js';
 import { die, ok } from '../lib/util.js';
 import { judge, type JevQuestion, type JevResult } from '../lib/jev.js';
 
@@ -112,20 +113,11 @@ async function cmdScore(file: string, threshold?: number): Promise<void> {
   ok(`scored ${r.verdicts.length} item(s)`);
 }
 
-const L0_PATTERNS = /prod|auth|payment|credential|secret|token|password|key|ship|deploy|release|publish|migration|external-send|legal|pii|rm -rf|drop table|delete from/i;
-const L2_PATTERNS = /^(fix|chore|docs?|typo|rename|format|comment|lint)[\s:]/i;
-
-function patternClassify(action: string): { level: string; why: string } {
-  if (L0_PATTERNS.test(action)) return { level: 'L0', why: 'matches a human-only pattern (CONSTRAINTS §1)' };
-  if (L2_PATTERNS.test(action)) return { level: 'L2', why: 'fix/chore-class change (fast lane)' };
-  return { level: 'L1', why: 'default-deny: unclassifiable work floors at supervised' };
-}
-
 async function cmdClassify(file: string, threshold?: number): Promise<void> {
   const req = readJson(file);
   if (typeof req.action !== 'string' || !req.action.trim()) die(2, 'classify needs a non-empty string "action"');
   const state = checkState(req.state ?? `Proposed agent action: ${req.action}`);
-  const pattern = patternClassify(req.action);
+  const pattern = classifyAction(req.action);
   const r = await judge(state, [{
     id: 'autonomy', type: 'choice', question: `Which autonomy level fits this action? ${req.action}`,
     options: {
