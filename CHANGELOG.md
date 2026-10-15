@@ -44,6 +44,9 @@ lives in `docs/DOGFOOD-v*.md` and the cited commits.
 
 ### Fixed
 
+- Dogfood and scripted-smoke reruns write unique local reports (or a new
+  `--output` path) and refuse to overwrite an existing observation. The smoke
+  report now identifies its actual executor: a deterministic script, not a model.
 - Update the transitive `brace-expansion` dependency within its declared range
   to address resource-exhaustion advisories. A regression reproduces nested
   brace stack exhaustion on 5.0.7 and passes against the patched dependency.

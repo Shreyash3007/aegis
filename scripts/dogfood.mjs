@@ -3,13 +3,14 @@
 // repos with real git, deterministic backends (JEV_BACKEND=mock) and recorded
 // exit codes. Every step asserts its expected exit code; on mismatch the run
 // is a failure and the report carries the failure. Writes
-// docs/DOGFOOD-v0.6.md; run with `npm run dogfood` (or: node scripts/dogfood.mjs).
+// a unique local report (or --output <new-path>); historical reports are immutable.
 
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { writeReport as writeImmutableReport } from './lib/report-output.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CLI = path.join(REPO_ROOT, 'dist', 'cli.js');
@@ -324,7 +325,7 @@ function writeReport() {
   const total = events.length;
   const bad = events.filter((e) => !e.match).length;
   const doc = [
-    `# DOGFOOD v0.6.0 — Aegis drives itself through the god-skill machinery`,
+    `# DOGFOOD v${VERSION} — scripted conformance scenarios`,
     '',
     `Date: ${now}. Operator: OpenCode agent (runtime). Version: aegis ${VERSION}.`,
     `Runs were recorded against three throwaway git repos under os.tmpdir();`,
@@ -353,17 +354,16 @@ function writeReport() {
     section('C', 'brownfield + UI demo + sync invariant',
       'UI demo needs html, iterate loop supersedes cleanly, memory lane sealing and promotion, sync merges the DEMO gate into an old transitions.json.'),
   ].join('\n');
-  const out = path.join(REPO_ROOT, 'docs', 'DOGFOOD-v0.6.md');
-  fs.writeFileSync(out, doc);
+  const out = writeImmutableReport(REPO_ROOT, 'dogfood', VERSION, doc);
   return out;
 }
 
 const t0 = Date.now();
-console.log('dogfood v0.6.0: scenario A');
+console.log(`dogfood v${VERSION}: scenario A`);
 scenarioA();
-console.log('dogfood v0.6.0: scenario B');
+console.log(`dogfood v${VERSION}: scenario B`);
 scenarioB();
-console.log('dogfood v0.6.0: scenario C');
+console.log(`dogfood v${VERSION}: scenario C`);
 scenarioC();
 const out = writeReport();
 const total = events.length;

@@ -1,20 +1,21 @@
-// Small-model pilot, honest edition (SPEC §14.1, v0.9 remediation):
+// Scripted pipeline smoke (not a small-model executor pilot):
 // walk a scratch repo 00a -> 08b shipping a tiny feature with NO provider
 // credentials in the environment and no network calls in any role.
 // Judgment roles run JEV_BACKEND=mock (free path, deterministic); the
-// residual variable is stated, not hidden: the EXECUTOR here is a
-// frontier-class agent, so this proves the pipeline needs no frontier in
-// any gate/judge/verify role - executor-model variance is untested and
-// recorded as such. Writes docs/PILOT-v0.9.md; exit 0 = shipped.
+// executor is a deterministic Node script. No model follows skills here.
+// This does not establish small-model quality, effectiveness, or cost.
+// Writes a unique local report, or --output <new-path>.
 
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { writeReport } from './lib/report-output.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CLI = path.join(REPO_ROOT, 'dist', 'cli.js');
+const VERSION = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8')).version;
 const GIT_ID = ['-c', 'user.email=aegis-pilot@example.com', '-c', 'user.name=aegis-pilot'];
 const TOKEN = { AEGIS_HUMAN_TOKEN: '1' };
 
@@ -55,7 +56,7 @@ git(dir, ['commit', '-q', '--allow-empty', '-m', 'init']);
 step('bootstrap', dir, ['init', '--yes'], 0);
 // N1: the tiny feature's contract, committed to main
 write(dir, 'src/contracts/greet.ts', 'export function greet(name: string): string { return `hello ${name}`; }\n');
-git(dir, ['add', '-A']);
+git(dir, ['add', '.gitignore', 'brain', 'src/contracts/greet.ts']);
 git(dir, ['commit', '-q', '-m', 'N1: greet contract']);
 step('contracts merged', dir, ['contracts'], 0);
 // discover -> architect -> plan
@@ -75,7 +76,7 @@ step('lanes open', dir, ['transition', '04a'], 0);
 step('spawn lane', dir, ['slice', 'create', 'greet'], 0);
 const wt = path.join(path.dirname(dir), `${path.basename(dir)}-worktrees`, 'greet');
 write(wt, 'src/greet-impl.ts', "import { greet } from './contracts/greet.js';\nexport const out = greet('world');\n");
-git(wt, ['add', '-A']);
+git(wt, ['add', 'src/greet-impl.ts']);
 git(wt, ['commit', '-q', '-m', 'slice: greet impl']);
 step('clean PASS', dir, ['clean', 'aegis/slice-greet'], 0);
 step('04b', dir, ['transition', '04b'], 0);
@@ -91,9 +92,9 @@ const resume = step('resume verifies', dir, ['resume'], 0);
 
 const bad = steps.filter((s) => !s.ok);
 const doc = [
-  '# Pilot v0.9.0 - pipeline walked with zero provider credentials',
+  `# Scripted smoke v${VERSION} - pipeline walked with zero provider credentials`,
   '',
-  `Date: ${new Date().toISOString()}. Repo: throwaway git under os.tmpdir(). Executor: frontier-class agent (residual variable, stated).`,
+  `Date: ${new Date().toISOString()}. Repo: throwaway git under os.tmpdir(). Executor: deterministic Node script, not a model-driven feature delivery.`,
   'Environment: TYPESAFE_API_KEY, AEGIS_JUDGE_*, OPENROUTER_API_KEY, AI_GATEWAY_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY all deleted; JEV_BACKEND=mock. No step in this walk can reach a frontier model - judgments ran the deterministic mock, gates ran human-token approvals, verification ran local tools.',
   '',
   `**Result: ${steps.length - bad.length}/${steps.length} steps as expected${bad.length ? ' - PILOT FAILED, see below.' : ' - shipped 08b.'}**`,
@@ -104,10 +105,10 @@ const doc = [
   '',
   '## What this proves (and does not)',
   '',
-  '- Proves: the full 00a-08b pipeline, all six gates, N1 contracts, demo gate, slice lane, clean oracle PASS, checkpoint/resume - with no frontier in any gate, judge, or verify role and no network.',
+  '- Proves: the script observed expected exits for the 00a-08b state walk, synthetic gate approvals, contract/demo records, slice lane, clean oracle and checkpoint/resume. It does not prove gate-review quality or actual feature behavior.',
   '- Does NOT prove: executor-model variance. A small/free executor may fumble skill-following where a frontier model compensates. That trial needs a small model driving; it is explicitly unrun.',
 ].join('\n');
-fs.writeFileSync(path.join(REPO_ROOT, 'docs', 'PILOT-v0.9.md'), doc);
-console.log(`pilot: ${steps.length - bad.length}/${steps.length} as expected -> docs/PILOT-v0.9.md`);
+const out = writeReport(REPO_ROOT, 'scripted-smoke', VERSION, doc);
+console.log(`scripted smoke: ${steps.length - bad.length}/${steps.length} as expected -> ${out}`);
 for (const b of bad) console.log(`UNEXPECTED: ${b.cmd} -> ${b.got} (wanted ${b.want}): ${b.out.split('\n')[0]}`);
 process.exit(bad.length ? 1 : 0);
