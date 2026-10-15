@@ -49,8 +49,10 @@ nothing required.
 ## 3. Governing principles
 
 1. Prompts are ignorable; the CLI is not. Authority lives in code.
-2. Smallest capable runner: Jev micro-judge → small model → frontier →
-   human. Each rung fires only if the cheaper is inconclusive.
+2. Use the owner's selected executor. Automatic model/effort routing is
+   deferred and must not be implemented by adapters or craft skills. Jev is
+   optional typed judgment; unavailable judgment requires direct verification
+   or explicit escalation, never an automatic substitute model.
 3. Autonomy is earned by pattern match, never assumed. Unclassifiable
    floors at L1 (default-deny).
 4. No evidence, no pass. Claims cite file:line/tool output or are stamped
@@ -118,8 +120,9 @@ nothing required.
   tunable without re-inference.
 - Boundaries: typed output guarantees interface, not truth — calibrate on
   repo data; Jev never replaces fresh-context doubt or human L0 gates.
-- Prerequisite: TypeSafe API credential (server-side). Until set, gates
-  run in degraded mode (frontier/small-model judges) and say so.
+- Prerequisite: TypeSafe API credential (server-side). Without it, Jev reports
+  unavailable/escalated verdicts, or uses an explicitly selected deterministic
+  mock for tests. No frontier/small-model fallback is selected automatically.
 
 ## 8. Memory (better than brain/)
 
@@ -195,9 +198,9 @@ nothing required.
 so criterion 2 now measures its enforceable proxies)
 
 1. Free/small-model pilot ships a small feature on start/approve/ship
-   alone — STATUS: planned (pilot harness: `scripts/dogfood.mjs` scenario D
-   runs the pipeline with JEV_BACKEND=mock + small-model executor; recorded
-   in the DOGFOOD doc when run).
+   alone — STATUS: planned in v0.11. `scripts/pilot.mjs` is a deterministic
+   smoke, not a model executor, and dogfood has no implemented scenario D.
+   A real owner-selected executor must produce the diff and evidence.
 2. Trigger evals pass; skill line budgets hold and wave token-budgets are
    declared (tokens-budget is advisory metadata, never metered — metering
    would need provider billing hooks that don't exist; the measurable proxy

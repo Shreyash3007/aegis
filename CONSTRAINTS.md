@@ -2,6 +2,15 @@
 
 Weakening any threshold below is a contract change: it needs a reason recorded in history, not a silent edit. Agents do not lower the bar to reach green.
 
+Implementation-status correction from the v0.10 audit: this draft mixes
+enforced predicates with intended product requirements. Skill line budgets,
+declared judge thresholds, loop caps and enrolled receipt checks remain
+binding. Universal file-to-blueprint mapping, automatic autonomy graduation,
+semantic proof that a reviewer did the work, and the simulation tiers in §7
+are not implemented guarantees. They are not counted as completed by a green
+test run. The release verdict and revised roadmap must disclose this scope;
+strict-profile expansion needs a separate accepted contract.
+
 ## 1. Autonomy ladder (mechanical classification)
 
 Patterns match in the CLI first; Jev Choice is second opinion only, logged (wired as `aegis jev classify`). No match or low confidence floors at L1.
@@ -9,7 +18,8 @@ Patterns match in the CLI first; Jev Choice is second opinion only, logged (wire
 - **L0 human-only:** `prod|auth|payment|credential|ship|migration|external-send|legal|PII-export`. Sacred gates, TTY retype-to-confirm. No flag skips.
 - **L1 supervised (default):** crosses a module boundary, unverifiable by compiler, or irreversible blast radius. Agent acts; doubt cycle + fresh review required; human approves the gate.
 - **L2 autonomous:** mechanical, reversible, in-budget (tokens + lines + files, §3). Checklist + suite verify; batched log for async human review.
-- **Fast lane:** fix/chore side track. Skips the funnel, never skips the suite.
+- **Fast lane:** fix/chore side track. `fix done` checks tests; metadata/docs
+  chores record their class without a suite. Neither grants merge approval.
 - **Graduation:** L1→L2 only on measured clean runs. Unclassifiable work floors at L1 (default-deny).
 
 Per-phase defaults: 00/01/02/03 = L1; 04 = L2; 05 = L1; 06 = L1; 07 = L2 (chores) else L1; 08 = L0.
@@ -33,7 +43,9 @@ Zero gate passes without evidence. Every file maps slice → contract → eviden
 - Trigger precision (`aegis eval trigger`): default threshold 0.8; below = rewrite the missed skills' triggers.
 - Actionability Score per review cycle: all-noise cycles = doubt theater → escalate, never silent-pass.
 - Citation-check Noul: claim without supporting evidence fails the gate.
-- Degraded mode (no `TYPESAFE_API_KEY`): small-model/frontier judges, and the output says so verbatim (`aegis jev` prints DEGRADED on its first line).
+- Degraded mode (no `TYPESAFE_API_KEY`): no judgment is made; verdicts visibly
+  escalate as unavailable. A mock is explicit test data, not a fallback model.
+  Automatic model routing/selection remains deferred.
 
 ## 5. Drafting checklist (mechanical fail, never taste)
 

@@ -4,7 +4,7 @@ All notable changes to Aegis. Format follows [Keep a Changelog](https://keepacha
 versioning follows [SemVer](https://semver.org/). Evidence for every claim
 lives in `docs/DOGFOOD-v*.md` and the cited commits.
 
-## [Unreleased] — v0.10 "Grade"
+## [0.10.0] — Grade
 
 ### Compatibility
 
@@ -41,9 +41,36 @@ lives in `docs/DOGFOOD-v*.md` and the cited commits.
   exercise covering a real test-first feature, review refusal, strict merge,
   strict ship entry, budget exhaustion and recovery. Synthetic approvals
   remain labelled as test fixtures, not independent product sign-off.
+- A finding-level audit ledger, scoped release contract and explicit v0.11
+  acceptance slices. The planned adapters, real small-executor trial and
+  independent comparative study are not represented as delivered features.
 
 ### Fixed
 
+- Owned state/lifecycle locks release on refusals, reclaim only proven-dead
+  owners and protect checkpoint/state consistency. Memory mutations are
+  serialized, journaled and recoverable; conflicting legacy truth is preserved.
+- Safe slice removal preserves dirty, untracked, ignored and locked work.
+  Failed removal retains registration; verified-absent stale worktrees can
+  release only their stale lane. Init/uninstall preserve owner brain/legacy data.
+- Canonical ref identity, explicit quarantine matching, immutable merge SHAs,
+  strict flag parsing and round-trip-safe retry hints close evidence bypasses.
+- Stored receipts validate schema, committed plans, outcome IDs and actual
+  source identity. Concurrent replacement cannot upgrade an invocation's
+  observed failure or change the RED acquisition it completed.
+- Invalid provider values and malformed requests no longer become confident
+  judgments; unavailable reviews no longer become all-noise conclusions.
+- Operational audit errors, invalid thresholds, empty monitoring, declared-only
+  tools and missing Windows shim handling no longer masquerade as verification.
+- Total HTTP deadlines/response caps, literal exec argv, owned descendant
+  cancellation and wrapper/model-egress redaction close unsafe execution paths.
+- Fresh builds precede release checks. Local preflight no longer announces tag
+  clearance. Bundled built assets include the consumer lock and are verified
+  by script-free offline installation; the updater now selects those assets.
+- G4 approves a specific source commit and ship entry requires safely closed
+  lanes. It cannot reuse a v0.9 approval or auto-approve through autonomy=full.
+- Static re-export cycles and source folders merely containing the text
+  node_modules are included in the TypeScript graph instead of disappearing.
 - Preserve npm launcher symlinks in the dependency-oracle test fixture.
   Ubuntu Node 20 exposed that dereferencing `.bin/tsc` made its relative
   imports invalid. The test retains its oracle and dependency-isolation checks.
@@ -70,16 +97,15 @@ lives in `docs/DOGFOOD-v*.md` and the cited commits.
 - State-visit warning now correctly says one permitted entry remains at 2/3,
   rather than claiming the immediately next entry is refused.
 
-### Release status
+### Verification and publication
 
-Not released. Source snapshot `9f6231c` passed 205/205 tests, skill lint
-71/71, audit 153 checks/0 findings, scripted dogfood 71/71 and the disposable
-self-cycle 61/61. The native dependency audit reported 0 vulnerabilities.
-The earlier `9a06dbb` passed Ubuntu Node 20/22 and Windows Node 22 CI; that
-does not establish CI for later commits. Exact-final-HEAD CI, the release
-ritual and v0.10-specific human approval are still required. The existing
-G4 record cites v0.9 and is not reused as v0.10 approval. No comparative
-study, independent security review or real small-executor trial is claimed.
+Final source SHA, CI results, test counts, package checksum and installed
+dependency evidence belong to the immutable release sidecars. Source gate
+definitions do not invent their own future CI result. Earlier snapshots under
+`docs/evidence/` remain historical; they are not reused as final verification.
+Publication requires exact-HEAD CI, the full ritual, actual artifact verification
+and fresh human G4. No comparative quality/cost advantage, professional security
+certification or genuine small-executor trial is claimed by the scripted smoke.
 
 ## [0.9.0] - 2026-10-14
 

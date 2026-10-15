@@ -1,11 +1,15 @@
 # v0.10 state/filesystem repair contract
 
+Archived slice contract and initial handback, not current orchestration
+instructions or final release evidence. Subsequent review repairs and final
+observations are tracked by `AUDIT.json` and the release evidence sidecar.
+
 Aegis conductor owns this task. This is one isolated slice, not a second
 orchestrator. Do not change root pipeline state or approve gates.
 
 ## Artifact and authority
 
-- Read-only findings: `C:/Users/sakha/AppData/Local/Temp/opencode/aegis-v010-state-fs-review.md`.
+- Read-only findings: locally retained `aegis-v010-state-fs-review.md`.
 - Preserve user work; no forced worktree removal, unsafe path traversal,
   silent legacy-record deletion, or claims beyond reproduced evidence.
 - Reproduce before fixing. Associated tests must remain intact. Append new
@@ -57,11 +61,11 @@ checks/results, remaining caveats and exact report paths to the conductor.
   the exclusive file list. Public state helper signatures are unchanged.
 - Regression-first baseline: `node scripts/check-state-audit.mjs --new-only`
   reproduced failures before source edits. Evidence:
-  `C:/Users/sakha/AppData/Local/Temp/opencode/aegis-state-audit-TDVe13/tests.log`.
+  locally retained `aegis-state-audit-TDVe13/tests.log`.
 - Final verification: `node scripts/check-state-audit.mjs` built successfully
   and passed 103 tests, with no failures or skips. Build/test logs:
-  `C:/Users/sakha/AppData/Local/Temp/opencode/aegis-state-audit-IHYH5N/build.log`
-  and `C:/Users/sakha/AppData/Local/Temp/opencode/aegis-state-audit-IHYH5N/tests.log`.
+  locally retained `aegis-state-audit-IHYH5N/build.log`
+  and `aegis-state-audit-IHYH5N/tests.log`.
 - Additional reproduced edge cases cover ignored local slice files, dangling
   reconcile parties, cross-store legacy ID conflicts, pending transactions,
   journal replay/conflicts and raw-lock reclamation independent of lifecycle.

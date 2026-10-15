@@ -16,17 +16,17 @@ Aegis separates the two things an AI workflow needs:
 
 - **Enforcement lives in code** — a small runtime CLI (`dist/cli.js`) that
   owns deterministic truth: pipeline state, human gates, transitions,
-  checkpoints, merge validation. The agent *cannot* bypass it, because it
-  isn't prose.
-- **Judgment lives in skills** — 68 markdown skill files that tell the agent
+  checkpoints, merge validation. CLI operations refuse violations of their
+  own invariants; this is not a sandbox around an agent with shell access.
+- **Judgment lives in skills** — markdown procedures that tell the agent
   *how* to think at each stage (adversarial PRD review, contract-first
-  design, bug hunting, ship verdicts). The agent reads them; the CLI verifies
-  it acted.
+  design, bug hunting, ship verdicts). Recorded checks establish process
+  outcomes, not that every procedure was followed or the work is adequate.
 
 ```
 you / your agent  ──►  aegis CLI  ──►  .aegis/ (machine state, hash-verified)
                             │          brain/   (committed docs, the "why")
-                            └────►  .aegis/skills/ (68 judgment files)
+                            └────►  .aegis/skills/ (judgment procedures)
 ```
 
 ## What it actually does
@@ -36,13 +36,14 @@ you / your agent  ──►  aegis CLI  ──►  .aegis/ (machine state, hash-
   data (`transitions.json`). Illegal jumps are refused (exit 4). Loops and
   ping-pong cycles escalate to a human (exit 5) instead of burning tokens.
 - **Sacred human gates** — PRD freeze, architecture, security, integration,
-  ship. Approvals require a human (TTY retype-to-confirm, a CI token, or an
-  explicit `autonomy: full` posture) and are recorded with who/what approved.
+  ship. Human approvals use TTY confirmation or an owner-provisioned CI token.
+  `autonomy: full` permits eligible non-ship gates only; G4 remains human and
+  approves a specific source commit, not every future release.
 - **A fast lane for small work** — `aegis fix start/done` and `aegis chore`:
   typo-to-one-file changes skip the full funnel on an audited side track, but
   `fix done` still requires the test suite to pass.
 - **Contract-first parallel builds** — contracts merged to the base branch
-  before slices (N1), one git worktree per slice (N2), and a compiler-backed
+  before production build (N1), one git worktree per slice (N2), and a compiler-backed
   merge oracle (N3) that runs the real merge + `tsc` + contract-drift diff
   before anything lands. Works with TS contracts *and* markdown contracts
   (doc contracts gate on substance + code citations).
@@ -65,15 +66,15 @@ you / your agent  ──►  aegis CLI  ──►  .aegis/ (machine state, hash-
   `AGENTS.md`/`CLAUDE.md` (marker-block sync), and the 00d skill imports your
   existing docs into the brain with citations instead of re-deriving them.
 
-## Proven, not just tested
+## Evidence and its limits
 
-- **101 integration tests** replaying every enforcement scenario (node:test,
-  zero extra deps, ~15s), CI on node 20/22.
-- **Two independent production trials** drove four releases: a 4-app monorepo
-  team (rating went 8.5 → 9 → 9.5/10, "the must-fix list is now empty") and
-  a brownfield wave-dispatch project (4 → 6.5 → 8 → 7.5 → 8.5/10 as real bugs
-  were found and fixed). Every gap they named either shipped with a
-  regression test or is documented as a deliberate boundary.
+- **Executable regressions and CI:** `npm test`, deterministic skill lint,
+  the adversarial harness and the release ritual cover specific assertions.
+  Version-bound observations live under `docs/evidence/`; a green run is not
+  an exhaustive correctness or security proof.
+- **Historical field feedback:** earlier production trials supplied useful
+  bug reports and subjective ratings. They were not blinded comparisons and
+  do not establish a quality/cost advantage or general small-model performance.
 - **It dogfoods itself** — this repo runs Aegis on Aegis: hooks installed,
   brain docs drafted by its own 00d import bridge (`aegis import check` 4/4),
   and `aegis ast build` once caught a real circular dependency in our own
@@ -88,16 +89,18 @@ aegis init --yes && aegis ast build   # one trial found 2 real circular deps thi
 ## Install
 
 Requires Node 20 or 22+ and git. GitHub-only distribution (never on npm registry).
+Choose a published asset from GitHub Releases. The command below targets
+v0.10.0 and becomes available when that release is published.
 
 ```bash
-npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.9.0.tar.gz
-# already have v0.3.0+? just: aegis update
+npm install -g --ignore-scripts https://github.com/Shreyash3007/aegis/releases/download/v0.10.0/aegis-0.10.0.tgz
 ```
 
-`npm 11` note: `npm install -g github:Shreyash3007/aegis` hits an npm client
-bug (global git installs symlink to a deleted cache dir) — use the tarball
-URL above or add `--install-links`. From source:
-`git clone … && npm install && npm run build && npm link`.
+Use the built release asset, not GitHub's generated source archive. It
+contains the compiled CLI, bundled runtime dependencies and consumer lock;
+the release includes a SHA256 sidecar and isolated-install evidence. Source
+development uses `npm ci --ignore-scripts && npm run build` and `npm link`.
+Older updaters may use source archives; upgrade to this asset explicitly.
 
 ## Quickstart
 
@@ -108,10 +111,10 @@ aegis status             # where you are, what's legal next
 aegis next               # the one recommended next step
 ```
 
-**Know nothing about any of this?** Just tell your AI agent: *"walk me
-through Aegis."* The `00f aegis-guide` skill takes over — it does the setup
-for you, explains every step in plain language, and only asks you when a
-real decision is needed (like your autonomy posture). No manual required.
+After project initialization, point an agent with shell/file access at
+`.aegis/skills/00-foundation/00f-aegis-guide.md` and ask it to walk you through
+Aegis. The guide explains setup and owner decisions. Automatic host/plugin
+registration is separate planned v0.11 adapter work, not an installed feature.
 
 Small change? Fast lane:
 
@@ -124,16 +127,17 @@ aegis fix done           # closes only if your tests pass
 Feature work? The pipeline:
 
 ```bash
-aegis transition 01a     # PRD (skill file in .aegis/skills/ guides the agent)
-aegis gate PRD --approve # human freezes scope
-aegis contracts          # verify contracts merged (N1)
-aegis slice create auth  # worktree per slice (N2)
-aegis merge check auth   # merge oracle before it lands (N3)
+# Follow `aegis next`, its skill, and human gates to reach the build phase.
+aegis contracts                         # verify merged contracts (N1)
+aegis slice create service              # registered worktree (N2)
+# Commit RED, fix, GREEN, acceptance and review evidence in that worktree.
+aegis clean aegis/slice-service --require-proof --require-quality
 ```
 
 Then point your AI agent at `AGENTS.md` (the agent handbook Aegis maintains
 in your repo) and the current skill file in `.aegis/skills/` — the CLI
-enforces the rules mechanically whichever agent you use.
+enforces its CLI predicates whichever agent you use. The agent still owns
+following procedures, and humans own consequential approvals.
 
 ## How the pieces fit
 
@@ -141,7 +145,7 @@ enforces the rules mechanically whichever agent you use.
 |---|---|---|
 | `.aegis/` | Machine state: state.json, checkpoints, per-app states. Gitignored, hash-verified, **never hand-edited** | the CLI |
 | `brain/` | Committed docs: architecture, quality log, context. The human-readable "why" | skills draft, humans confirm |
-| `.aegis/skills/` | 68 skill files: the judgment layer (persona, steps, self-critique, exit conditions per state) | the agent reads them |
+| `.aegis/skills/` | Judgment procedures, references, self-critique and exit conditions | the agent reads them |
 | git hooks | pre-commit (checkpoint + typecheck), post-commit (checkpoint), pre-push (contract validation) — chained onto any hooks you already have | the CLI |
 | `AGENTS.md` / `CLAUDE.md` | Your agent's entry point; Aegis owns only a marked block inside them | you + `aegis sync` |
 
@@ -159,12 +163,12 @@ process outcomes, not test adequacy; semantic review remains required.
 | `aegis doctor [--save]` | Environment report, stale-worktree prune, state-vs-git drift notes | 0 |
 | `aegis status [--app n] [--markdown]` / `next` | State, legal transitions, lanes / recommended next skill; --markdown writes a deterministic brain/handoff.md | 0 / 2 / 3 |
 | `aegis transition <s> [--reason t] [--app n]` | Record a validated move (illegal refused; loops escalate) | 0 / 2 / 4 / 5 |
-| `aegis gate <name> --approve [--evidence r] [--app n]` | Human gate approval with evidence pointer; DEMO pins the artifact hash (TTY confirm / CI token / autonomy=full) | 0 / 2 / 7 |
+| `aegis gate <name> --approve [--evidence r] [--app n]` | Attributed approval; DEMO pins its artifact, G4 pins source and cannot self-approve via autonomy=full | 0 / 2 / 7 |
 | `aegis contracts [--app n]` | Verify contracts merged to base branch (N1) | 0 / 4 |
 | `aegis fix start\|done\|abandon` / `chore` | Fast lane for small changes; `done` requires tests | 0 / 2 / 4 / 9 |
 | `aegis slice create\|list\|remove` | Worktree-per-slice + lane caps (N2/N5) | 0 / 2 / 4 |
 | `aegis merge check <branch>` | Merge oracle: real merge + tsc + contract drift (N3) | 0 / 2 / 9 / 13 |
-| `aegis validate <suite>` | contracts (tsc or contracts_doc) / tests (auto-detects npm/yarn/pnpm/bun) / deps / perf / e2e + your custom suites | 0 / 2 / 9 |
+| `aegis validate <suite>` | contracts / tests / deps / perf / e2e + custom suites; `acceptance <branch> --file <plan>` uses canonical quality receipts | 0 / 2 / 9 |
 | `aegis typecheck` | Multi-stack typecheck oracle: tsc / cargo check / go vet / py_compile, or honest UNMEASURED | 0 / 9 |
 | `aegis checkpoint` / `resume` | Snapshot / hash-verified recovery | 0 / 2 / 6 |
 | `aegis ast build` / `diff` | Deterministic module graph, circular deps / impact analysis | 0 / 8 / 2 |
@@ -222,15 +226,18 @@ start, never mid-walk.
 - External executors (opencode/GLM) comply via prompts + `aegis exec`;
   enforcement there is visibility (drift detection, recorded runs), not a
   wall.
-- Single maintainer, young project. The mitigation is the trial culture:
-  every release has survived independent adversarial re-testing within hours.
+- The v1 task bank is development calibration, not an independent held-out
+  benchmark. A genuine small-executor delivery trial is planned for v0.11;
+  the scripted smoke and mock judgments do not substitute for it.
+- The TypeScript graph covers static import/re-export dependencies, not a
+  complete polyglot or dynamic-import graph. Missing toolchains remain visible.
 
 ## Development
 
 ```bash
-npm install && npm run build   # strict tsc, dist/ is committed
-npm test                       # 153 integration tests (npm install only, no extra services)
-aegis eval --all               # 68/68 skill files conform
+npm ci --ignore-scripts && npm run build  # locked source build; dist/ is not committed
+npm test                                 # executable regressions; no live provider required
+node dist/cli.js lint-skills --all         # complete deterministic corpus check
 ```
 
 This repo runs Aegis on itself — hooks, brain docs, import check included.
@@ -239,6 +246,10 @@ code second) and [SECURITY.md](SECURITY.md) for responsible disclosure.
 
 ## Release history
 
+v0.10.0 Grade: recorded test/acceptance/review evidence, owned state and memory
+transactions, source-bound release checks, pinned optional craft and verified
+bundled distribution. See the release assets and [roadmap](docs/ROADMAP.md)
+for measured evidence, limitations and the queued v0.11 plan. ·
 v0.9.0 integrity release: audit-finding closures with regression tests,
 evidence-bound approvals, committed memory truth, release ritual
 (see [CHANGELOG.md](CHANGELOG.md)) ·

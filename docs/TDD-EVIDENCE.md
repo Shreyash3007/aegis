@@ -11,7 +11,9 @@ in its slice worktree; the runner executes there. No second init is needed.
 5. Run `aegis clean feature --require-proof` before merging.
 
 Repeated `--test-file` flags pin multiple files. The default capture timeout
-is 60 seconds; `--timeout-ms` accepts 1 through 120000. Use executable argv,
+is 60 seconds; an explicit `--timeout-ms` accepts 1 through 600000 for large
+audited suites. The receipt pins the selected deadline and merged verification
+uses it too; no loop automatically raises it. Use executable argv,
 not shell syntax; for an npm script invoke Node with npm's CLI script path.
 Credential-free output is stored under `.aegis/tdd/` and checkpoint-hashed.
 

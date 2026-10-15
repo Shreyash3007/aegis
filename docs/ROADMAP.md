@@ -9,8 +9,9 @@ self-walk + fix loop) before any release.
 
 ## v0.10 "Grade" — highest-quality output, efficiently [ACTIVE]
 
-Goal: correctness first, cost second. Every item makes output quality
-mechanical or it doesn't ship.
+Goal: a verified CLI quality floor, not a claim of superior product output.
+Deterministic checks enforce their declared predicates; craft quality,
+customer validation and model effectiveness still need separate evidence.
 
 - [x] **(0) Team-debate 01a extension.** PM + five lenses (UI/UX, Frontend,
       Backend, QA, Devil's Advocate) available in ONE 01a session. A trio
@@ -20,7 +21,8 @@ mechanical or it doesn't ship.
       splits become assumption tests with owners). Conceptual model before
       screens; HTML is an assumption test via the demo track; every PRD line
       traces to debate Q&A in memory records. Reuses 04-build team-templates
-      as voices. Skill-format work, zero CLI risk.
+      as voices. These are review lenses, not fabricated customers or a
+      requirement to dispatch six agents for every question.
 - [x] **(1) A9 ladder enforcement.** L0-pattern refusal in CLI, L2 fast-lane
       detection, per-phase defaults at transition time. The load-bearing
       brick: everything below plugs into rigidity, not prose.
@@ -51,8 +53,8 @@ mechanical or it doesn't ship.
       receipts, logical-question reservations and reviewed reset. These bound
       question counts, not provider billing, and do not prove reviewer adequacy.
 - [x] **(6) Measurement + frozen evals.** Model/tokens/cost fields on history
-      events (executor-reported, UNMEASURED when absent); `evidence.json` per
-      release; `evals/` task bank frozen BEFORE tuning.
+      reports (executor-reported, UNMEASURED when absent); aggregate evidence
+      per release; a frozen development calibration bank under `evals/`.
       Implemented: private-safe aggregate export, explicitly caller-reported
       usage and UNMEASURED gaps. Study data and claims must retain provenance.
       The frozen v1 task bank is development calibration, not an independent
@@ -60,10 +62,14 @@ mechanical or it doesn't ship.
 - Exit bar: suite green both platforms, audit extended (blade-collision
   section), dogfood with blades active, pilot re-run, ritual 7/7, tag.
 
-### Release acceptance — not complete
+### Release acceptance — final audit in progress
 
-The implementation checkboxes above are not release acceptance or proof of
-effectiveness. The original exit bar remains binding.
+Implementation checkboxes are not release acceptance or effectiveness
+evidence. `GATES.md` is the current acceptance checklist. The final release
+must pass fresh-source build, all tests, skill lint, dependency audit,
+adversarial audit, full self-cycle, exact-commit cross-platform CI and the
+full seven-check ritual. The actual bundled package must pass an isolated,
+script-free offline install; G4 must approve that source commit before tag.
 
 - Local source snapshot `9f6231c`: tests 205/205, skill lint 71/71, audit
   153 checks/0 findings, scripted dogfood 71/71, self-cycle 61/61, native
@@ -71,28 +77,78 @@ effectiveness. The original exit bar remains binding.
   provider-bound credential disclosure, brace-parser stack exhaustion and
   stale dependencies in the merge oracle before their fixes.
 - Cross-platform CI passed at `9a06dbb`; final-HEAD CI must pass separately.
-- Six pinned source resolutions are verified. This is not yet a measured
-  executor following all six craft procedures. The realistic discovery
-  exercise and blade-procedure dogfood remain unproven.
-- Acceptance is exposed through `quality acceptance` and merge/ship checks;
-  the planned `validate` entrypoint integration has not been delivered.
-- The pilot rerun is a 42-step deterministic smoke, not a small-model trial.
+- Six pinned sources are verified. Manual procedure-use evidence is separate
+  from byte verification; neither establishes comparative effectiveness.
+- `validate acceptance <branch> --file <plan>` now delegates to the same
+  canonical acceptance checks as `quality acceptance`.
+- The repaired pilot is a 43-step deterministic smoke, not a small-model trial.
   Frozen calibration tasks are not an independent held-out study.
 - Final release ritual and a v0.10-specific human G4 approval remain open.
   The stored v0.9 approval must not be represented as new release approval.
 - v0.11/v0.12 stay queued until v0.10 clears the release bar. Model routing
   remains deferred. Do not silently relax these gaps to create a tag.
 
-## v0.11 "Reach" — packaging + external proof [QUEUED]
+The owner's current scope is to audit/fix/release the implemented v0.10,
+then approve an updated v0.11. A genuine small-executor trial and independent
+held-out effectiveness study are explicitly not reclassified as completed
+by the scripted pilot: they remain v0.11/v0.12 acceptance work below. This
+scope clarification must be visible in the final human release verdict.
 
-- Claude Code plugin (skills + hooks + review procedures), OpenCode + Cursor
-  adapters. All use the user's chosen model. Core stays harness-free;
-  adapters only. No harness-specific logic in CLI (02a DAG rule guards).
-- `evidence.json` publisher (machine-readable per-release evidence).
-- Superpowers pin process as standing routine (bump → re-eval → record).
-- Small-executor pilot run and published (executor-model variance addressed).
-- Capability declarations per harness: supported hooks, captured evidence,
-  unsupported guarantees, and safe fallback behavior. No model switching.
+## v0.11 "Reach" — verified adapters and real executor evidence [QUEUED]
+
+No implementation starts before v0.10 is released and the owner accepts
+this revised plan. All commands/artifacts below are planned work, not
+existing capability claims. Each slice gets an Aegis contract and worktree;
+only its evidence-passing result can unblock dependent slices.
+
+1. **R1: opt-in strict-project quality profile and migration.** Define the
+   new-project vs legacy policy before changing defaults. Fixture acceptance:
+   absent RED/GREEN, acceptance or review evidence refuses strict merge;
+   stale/corrupt evidence refuses under both profiles; an explicitly labelled
+   legacy exception never prints a quality PASS. Preserve existing state and
+   user settings on migration, with rerun/idempotence and failure-path tests.
+2. **R2: host capability contracts.** Inspect current official documentation
+   for each host before picking any hook format. Artifacts: versioned host
+   capability declarations and install fixtures. Assertions: supported event
+   invokes the existing CLI once; unsupported event is explicitly unsupported;
+   missing shell selects manual guidance, not a new scheduler or fallback
+   model. A documentation claim is not an observed host integration.
+3. **R3a/R3b/R3c: thin Claude Code, OpenCode and Cursor adapters.** Separate
+   slices after R2. Planned adapter test files exercise clean install, repeat
+   install, foreign hook/settings preservation, paths with spaces, denied
+   permissions and uninstall. Compare model/provider/effort fields before
+   and after: they must be unchanged. A fixture must fail if an adapter owns
+   pipeline state, dispatches agents recursively or adds model routing.
+   Release each host's capability only after a real versioned-host event
+   smoke; fixture-only results remain fixture-only.
+4. **R4: immutable per-release evidence publisher.** Extend the existing
+   aggregate exporter, not the runtime. Validate a versioned schema binding
+   source SHA, CI run, command results, artifact hash and known limitations.
+   Negative fixtures: missing/stale observations, overwritten destinations,
+   raw prompts/credentials/private paths and caller-reported cost disguised
+   as measured billing all refuse publication. Re-running cannot replace an
+   earlier release observation. Human study narrative stays on the site.
+5. **R5: owner-selected small/free-executor delivery trial.** Owner chooses
+   and authorizes the executor and any spend; the framework does not select
+   or switch models. Freeze task and assertions before the run. The executor
+   must produce the actual feature diff, RED/GREEN, acceptance, review,
+   integrated merge and fresh-context recovery evidence through Aegis.
+   Record corrective interventions, failures, tool/host versions and actual
+   usage provenance. A script or mock cannot satisfy this slice. Missing
+   credentials or host access is BLOCKED, not successful keyless validation.
+6. **R6: pinned craft upgrade and adverse-scenario regression.** Commit an
+   immutable upstream revision only after collision review, source checks,
+   positive/negative trigger fixtures and selected real procedure exercises.
+   Add independent holdout cases before evaluating future tuning; do not
+   rename the development calibration bank into a benchmark. Include hostile
+   repository instructions, missing tools, concurrent writers, interrupted
+   recovery and owner-work preservation.
+
+v0.11 exit: slice-specific assertions plus full build/tests/lint/audit,
+installed package verification, exact-HEAD CI, real host capability evidence
+for every advertised adapter, R5 delivery evidence and new human G4 approval.
+If a host or executor is unavailable, reduce the advertised scope only with
+an explicit owner decision; never silently mark the planned slice complete.
 
 ## v0.12 "Ecosystem" — study + community [QUEUED]
 
@@ -112,7 +168,8 @@ effectiveness. The original exit bar remains binding.
 - Polyglot AST graph (TS-only labeled; oracles stay multi-stack).
 - Token metering (advisory-only by design; proxy is budget conformance).
 - Chaos/mutation simulation tiers beyond `--load` replay (if 05d needs it).
-- Per-cycle gate re-approval as mechanical rule (human process owns it).
+- General artifact-scoped re-approval for PRD/G1/G2/G3. G4 source-commit
+  freshness is part of the v0.10 audit repair, not parked with these gates.
 
 ## Open findings ledger (audit leftovers to watch, not block)
 

@@ -4,6 +4,10 @@ OWNS: src/**, test/**, scripts/**, docs/**, skills/**, brain/**, GATES.md, READM
 
 Scope: Audit the implemented CLI, its claims and forward roadmap; repair reproducible defects; verify and release v0.10. Aegis remains the only pipeline authority. This ledger is an acceptance checklist, not another orchestrator.
 
+These are source-versioned gate definitions. Final evaluated observations are
+published in the release evidence sidecar; a source commit cannot contain its
+own future CI/publication result. Pending boxes do not invent that result.
+
 - [ ] G1: Regression checks cover repaired refusal, integrity, filesystem and verification defects.
   CHECK: node scripts/check-audit.mjs
   EXPECT: AUDIT REGRESSIONS PASSED
@@ -43,4 +47,9 @@ Scope: Audit the implemented CLI, its claims and forward roadmap; repair reprodu
   EVIDENCE: pending
 
 - [ ] G9: The v0.10-specific human ship gate is recorded, the immutable version tag is published, and release/site claims match its evidence.
+  EVIDENCE: pending
+
+- [ ] G10: The actual built asset installs offline without scripts and has the expected runtime versions, CLI behavior and digest.
+  CHECK: node scripts/package-check.mjs
+  EXPECT: PACKAGE VERIFIED
   EVIDENCE: pending

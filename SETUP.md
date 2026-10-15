@@ -3,27 +3,27 @@
 ## Install (pick one)
 
 ```bash
-# From GitHub (recommended once the repo is published):
-npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.9.0.tar.gz
+# Built release asset (compiled CLI + bundled locked runtime):
+npm install -g --ignore-scripts https://github.com/Shreyash3007/aegis/releases/download/v0.10.0/aegis-0.10.0.tgz
 
-# Already installed? `aegis update` self-updates to the latest tag (same tarball path).
+# Older updaters use source archives; use the asset command above to upgrade.
 
 # npm install -g github:Shreyash3007/aegis also works on npm <= 10; on npm 11 it hits
 # a client bug (global git installs symlink to a deleted cache dir) — if you
 # use it, add --install-links.
 
-# From a local copy / tarball:
-tar -xzf aegis-cli.tar.gz && cd aegis-cli
-npm install && npm run build && npm link
+# From a source checkout:
+npm ci --ignore-scripts && npm run build && npm link
 ```
 
 Requirements: Node 20 or 22+, git. TypeScript in the target project for full
 enforcement (without it Aegis degrades honestly and tells you).
 
 **Don't want to read this guide?** You don't have to — after install, tell
-your AI agent: *"walk me through Aegis."* The `00f aegis-guide` skill does
-the setup with you, explaining every step and asking only when a decision
-is genuinely yours. This file is the reference; the skill is the tour.
+your agent with file access to read the installed
+`.aegis/skills/00-foundation/00f-aegis-guide.md` and walk you through Aegis.
+It explains each step and owner decision. Host auto-registration is not
+included in the CLI-only release; this file remains the setup reference.
 
 ## Set up any project
 
@@ -34,7 +34,7 @@ aegis init               # interactive interview
 ```
 
 `init` creates: `.aegis/` (machine state, auto-gitignored), `brain/`
-(committed docs), git hooks, `.aegis/skills/` (66 skill files),
+(committed docs), git hooks, `.aegis/skills/` (phase procedures and references),
 `brain/_templates/`, and runs the setup interview.
 
 ## Daily use
@@ -115,10 +115,11 @@ Executor waves (opencode/GLM/fork agents): wrap runs so they're recorded:
 aegis exec -- node scripts/verify-sync-wave.mjs   # recorded + checkpointed, exit code passes through
 ```
 
-Concurrent agents on one shared tree: all aegis commands are
-concurrency-safe (v0.4.1 state lockfile; measured 10/10 events under 10
-concurrent writers — docs/PLATFORM-MATRIX.md). Event order is
-timing-dependent; the audit trail is complete. Generate the executor prompt
+Concurrent state and memory writes use owned resource/lifecycle locks.
+Settings, generated views and external filesystem writers must participate
+in the same coordination or remain conductor-serialized; this is not an OS
+sandbox. Historical writer measurements are in docs/PLATFORM-MATRIX.md,
+not a guarantee about every arbitrary command. Generate the executor prompt
 block for wave prompts with `aegis wave` (writes brain/wave-prompt.md).
 
 Ghost binaries: hooks bake the CLI version at install time and warn (never
@@ -131,12 +132,13 @@ confirm). In CI/non-interactive runs, set `AEGIS_HUMAN_TOKEN=1` — approvals
 are then recorded as `by: human-token`. Keep that variable out of
 agent-reachable environments; it is the proof-of-human escape hatch. If you
 deliberately run a trust-then-verify workflow (agent implements fully,
-human reviews the verified result), `aegis config set autonomy full` lets
-gates approve non-TTY, recorded as `by: autonomy-full` — the audit trail
-remains, the TTY ritual does not.
+human reviews the verified result), an owner may set `autonomy full` for
+eligible non-ship gates, recorded as `by: autonomy-full`. G4 still requires
+a human or an owner-provisioned approval token and applies to its source
+commit only. Agents must not change credentials or autonomy to unblock it.
 
-Planning AFK/autonomous sessions: gate approval is solved by `autonomy full`,
-but **loop/cycle escalation (exit 5) still stops for a human — by design.**
+Planning AFK/autonomous sessions: `autonomy full` does not solve human ship
+approval. **G4 and loop/cycle escalation (exit 5) still stop for a human.**
 An agent ping-ponging between states is exactly the failure you want a human
 paged for. Before going AFK, run `aegis doctor` — its **attention report**
 lists everything that will park a run: OPEN gates on your forward edges,
@@ -155,8 +157,8 @@ AEGIS_JUDGE_API_KEY=... aegis eval --all   # opt-in model judge (strict on fail)
 ## Hacking on Aegis itself
 
 ```bash
-npm install && npm run build   # strict tsc, dist/ is committed
-npm test                       # 72 integration tests (~15s, no extra deps)
+npm ci --ignore-scripts && npm run build   # strict tsc; dist/ is not committed
+npm test                                  # full current regression suite
 ```
 
 CI (`.github/workflows/ci.yml`) runs build + tests + smoke on node 20/22.

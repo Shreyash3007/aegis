@@ -166,14 +166,15 @@
     <div class="kicker">How it works</div>
     <h2>Rules in code. Judgment in skills.<br>Proof on record.</h2>
     <p class="lead">A prompt is text the agent is free to ignore. Aegis splits the job: a small CLI
-      enforces mechanically, 68 skill files guide the agent's thinking — and every claim is cited or honestly labeled.</p>
+      enforces its own state and verification checks; skill procedures guide the agent's thinking.
+      Recorded outcomes are evidence, not a sandbox or proof of adequate work.</p>
     <div class="steps">
       <div class="step"><div class="n">01</div><h3>Enforcement, in code</h3>
-        <p>A state machine for the work itself. Illegal jumps refused. Six human gates pause for a human.
-           Hand-edit the record and resume refuses.</p></div>
+        <p>A state machine for the work itself. Illegal jumps refused. Six review gates, with human-controlled shipping.
+           Checkpoint integrity checks recorded inputs; unrestricted shell access is outside this boundary.</p></div>
       <div class="step"><div class="n">02</div><h3>Judgment, in skills</h3>
-        <p>68 eval-tested skill files: adversarial PRD review, contract-first design, security checklists,
-           bug hunting. The agent reads them; the CLI verifies it acted.</p></div>
+        <p>Phase procedures cover discovery, contract-first design, security and bug hunting.
+           Deterministic lint checks their format; it does not prove an agent followed them.</p></div>
       <div class="step"><div class="n">03</div><h3>A repo that remembers</h3>
         <p>brain/ is committed — the permanent second brain. Monday's agent wakes up knowing what Friday's knew.
            Not because the model remembered — because the repo did.</p></div>
@@ -228,15 +229,15 @@
         <span class="mono">aegis validate &lt;suite&gt;</span></div>
       <div class="card"><h3>Loop-until-clean</h3><p>Every lane re-verifies through the merge oracle. Three failed cycles escalate with an evidence pack — re-running unchanged code is doubt theater, also escalated.</p>
         <span class="mono">aegis clean &lt;branch&gt;</span></div>
-      <div class="card"><h3>Quarantine</h3><p>Park a failing lane with a reason. The oracle refuses it until a human clears it; siblings keep moving on last-good.</p>
+      <div class="card"><h3>Quarantine</h3><p>Park a failing lane. The oracle refuses it until an audited clear with a reason. Human review remains the owner's responsibility.</p>
         <span class="mono">aegis quarantine freeze · clear · list</span></div>
       <div class="card"><h3>Record memory</h3><p>Typed decisions with confidence, citations, and expiry. Contradictions open reconcile tasks — never silent overwrites. Lane scratch stays sealed until promoted.</p>
         <span class="mono">aegis memory add · reconcile · promote</span></div>
       <div class="card"><h3>Judgment ring</h3><p>Batched yes/no, pick-one, and score judgments over direct TypeSafe HTTPS. No key means a degraded mode that says so — never a silent guess.</p>
         <span class="mono">aegis jev triage · score · classify · cite</span></div>
-      <div class="card"><h3>Demo approval</h3><p>UI work locks visual direction in an HTML prototype; non-UI work pins contracts plus a trace. No production lane opens before a human approves.</p>
+      <div class="card"><h3>Demo approval</h3><p>UI work records an HTML prototype; non-UI work records contracts and a trace. Entry to build phase 04a checks the approval. Creating a worktree is not itself approval to build.</p>
         <span class="mono">aegis demo record · gate DEMO --approve</span></div>
-      <div class="card"><h3>Trigger precision</h3><p>Every skill's triggers are eval-tested against the judgment ring. Below threshold means rewrite the skill — measured 43/43 on the stock set.</p>
+      <div class="card"><h3>Trigger calibration</h3><p>An optional judgment-ring evaluation checks declared cases. A historical stock-set run scored 43/43; live results vary and are not a held-out benchmark.</p>
         <span class="mono">aegis eval trigger</span></div>
     </div>
   </div>
@@ -246,18 +247,18 @@
   <div class="wrap">
     <div class="kicker">Flagging</div>
     <h2>Aegis says no. In writing, with an exit code.</h2>
-    <p class="lead">Most tools only report success. Aegis refuses — and each refusal names its evidence.
+    <p class="lead">Aegis refuses failed CLI predicates and records the reason.
       These are real CLI behaviors, not aspirations:</p>
     <div class="grid c3">
       <div class="card pain"><h3>exit 4 · illegal jump</h3>
         <p>Skipping pipeline stages is refused: <span class="mono">ILLEGAL transition 03b -&gt; 05a (no such edge)</span></p></div>
       <div class="card pain"><h3>exit 4 · open gate</h3>
-        <p>Lanes stay shut until a human approves: <span class="mono">gate DEMO (demo-approval) OPEN - CLI refuses</span></p></div>
+        <p>Build-phase entry checks DEMO: <span class="mono">gate DEMO (demo-approval) OPEN - CLI refuses</span></p></div>
       <div class="card pain"><h3>exit 9 · quarantined merge</h3>
         <p>Frozen lanes are refused until cleared: <span class="mono">QUARANTINED … - oracle refuses until a human clears</span></p></div>
       <div class="card pain"><h3>exit 5 · doubt theater</h3>
         <p>Re-verifying unchanged code escalates: <span class="mono">re-verified 380beb84 with no new changes</span></p></div>
-      <div class="card pain"><h3>exit 4 · phantom citation</h3>
+      <div class="card pain"><h3>exit 2 · phantom citation</h3>
         <p>Memory cites must resolve to repo files: <span class="mono">cite target not found … (cites must resolve)</span></p></div>
       <div class="card pain"><h3>exit 13 · nothing to merge</h3>
         <p>An empty slice is never a pass: <span class="mono">NOTHING TO MERGE … This is NOT a pass</span></p></div>
@@ -277,19 +278,21 @@
 
 <section class="alt" id="proof">
   <div class="wrap">
-    <div class="kicker">Proof, not promises</div>
-    <h2>Tested. Trialed on production repos.<br>Run on itself.</h2>
+    <div class="kicker">Historical evidence</div>
+    <h2>Recorded checks.<br>Not a comparative effectiveness study.</h2>
+    <p class="lead">These figures belong to the historical snapshots named below, not automatically to the latest source.
+      Current release acceptance is tracked separately in the repository and release artifacts.</p>
     <div class="numbers">
-      <div class="num"><div class="v">178</div><div class="k">integration tests,<br>CI on ubuntu + windows</div></div>
-      <div class="num"><div class="v">9.5/10</div><div class="k">real monorepo trial —<br>“must-fix list is empty”</div></div>
-      <div class="num"><div class="v">68/68</div><div class="k">skill files pass<br>deterministic eval</div></div>
+      <div class="num"><div class="v">178</div><div class="k">v0.9 test snapshot,<br>npm test + matrix CI</div></div>
+      <div class="num"><div class="v">9.5/10</div><div class="k">historical user rating,<br>subjective, not a benchmark</div></div>
+      <div class="num"><div class="v">68/68</div><div class="k">v0.9 corpus snapshot,<br>deterministic skill eval</div></div>
       <div class="num"><div class="v">10/10</div><div class="k">events under 10 concurrent<br>writers, measured</div></div>
     </div>
     <div class="numbers">
-      <div class="num"><div class="v">43/43</div><div class="k">trigger precision,<br>measured live</div></div>
+      <div class="num"><div class="v">43/43</div><div class="k">historical stock cases,<br>live results vary</div></div>
       <div class="num"><div class="v">71 · 0</div><div class="k">self-dogfood steps ·<br>unexpected exits</div></div>
       <div class="num"><div class="v">6</div><div class="k">human gates<br>(PRD·G1·G2·G3·G4·DEMO)</div></div>
-      <div class="num"><div class="v">37</div><div class="k">CLI commands,<br>one surface</div></div>
+      <div class="num"><div class="v">37</div><div class="k">v0.9 command surface,<br>historical snapshot</div></div>
     </div>
     <div class="term"><span class="dim"># real session transcript — the v0.7.0 self-cycle, abridged</span>
 <span class="p">$</span> <span class="c">aegis transition 04a</span>
@@ -304,16 +307,11 @@
 <span class="fail">FAIL clean FAIL aegis/slice-poison: CONTRACT-DRIFT @ 380beb84 (cycle 1/3)</span>
 <span class="p">$</span> <span class="c">aegis quarantine freeze aegis/slice-poison --reason "contract ownership dispute"</span>
 <span class="ok">OK quarantine frozen: aegis/slice-poison (-&gt; aegis/slice-poison) - oracle refuses until: …</span></div>
-    <p class="lead" style="margin-top:36px">Every release survives independent adversarial re-testing on real repos —
-      and Aegis runs on its own repo, hooks and all. v0.6.0: judgment ring live-verified
-      against TypeSafe, trigger precision measured at 43/43, and a 71-step self-dogfood
-      with zero unexpected exits. v0.7.0 walked the whole pipeline on itself — 00a to 08b,
-      every gate refused then approved — and shipped conductor visibility plus enforced
-      citations through a slice merged by the oracle. v0.9.0 closed every finding
-      from a read-only deep audit — evidence-bound approvals, committed memory
-      truth, a 148-check adversarial harness in CI — and fixed the red CI the
-      previous three releases shipped on. The honesty contract is the product:
-      cited or UNMEASURED, never fabricated.</p>
+    <p class="lead" style="margin-top:36px">Aegis runs on its own repository and in disposable conformance fixtures.
+      Earlier versions recorded live judgment calibration, synthetic pipeline walks and real field feedback.
+      Later audits found further defects, so earlier green checks must not be described as proof that everything was closed.
+      The v0.10 audit adds regression evidence, safer state and memory handling, exact-source verification and an installed-package check.
+      Comparative quality, cost advantage and general small-model effectiveness remain unmeasured; the roadmap does not count scripts as model-driven trials.</p>
     <p class="lead">Read the evidence: <a href="https://github.com/Shreyash3007/aegis/blob/main/CHANGELOG.md">CHANGELOG</a> ·
       <a href="https://github.com/Shreyash3007/aegis/blob/main/docs/DOGFOOD-v0.6.md">DOGFOOD-v0.6</a> ·
       <a href="https://github.com/Shreyash3007/aegis/blob/main/docs/GODSKILL-SPEC.md">god-skill spec</a> ·
