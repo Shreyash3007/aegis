@@ -120,7 +120,16 @@ test('merge oracle: dependency changes use a matching slice installation, never 
   gitIn(dir, ['switch', 'main']);
   const wt = path.join(dir, 'upgrade-wt');
   gitIn(dir, ['worktree', 'add', wt, 'upgraded']);
-  fs.cpSync(path.join(dir, 'node_modules'), path.join(wt, 'node_modules'), { recursive: true, dereference: true });
+  // Keep npm's relative .bin launcher link. Dereferencing it copies the tsc
+  // script into .bin, where Node 20 cannot resolve its ../lib/tsc.js import.
+  fs.cpSync(path.join(dir, 'node_modules'), path.join(wt, 'node_modules'), {
+    recursive: true, dereference: false, verbatimSymlinks: true,
+  });
+  if (process.platform !== 'win32') {
+    const launcher = path.join(wt, 'node_modules', '.bin', 'tsc');
+    assert.ok(fs.lstatSync(launcher).isSymbolicLink(), 'preserve the launcher, not a misplaced copy of the script');
+    assert.equal(fs.readlinkSync(launcher), path.join('..', 'typescript', 'bin', 'tsc'));
+  }
   fs.writeFileSync(path.join(wt, 'node_modules', 'is-number', 'index.d.ts'), 'export declare function newApi(): number;\n');
   const r = aegis(dir, ['merge', 'check', 'upgraded']);
   assert.equal(r.status, 0, r.stderr + r.stdout);
