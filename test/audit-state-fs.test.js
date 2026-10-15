@@ -322,3 +322,45 @@ test('audit: migration detects conflicting record IDs across main and lane store
   assert.equal(fs.readFileSync(legacy, 'utf8'), before);
   assert.equal(JSON.parse(fs.readFileSync(main, 'utf8')).title, 'new main');
 });
+
+for (const link of ['symlink', 'hardlink']) {
+  test(`audit cycle 2: journal publication preserves a preplanted ${link} sentinel`, async t => {
+    const d = scratch(t);
+    const sentinel = path.join(path.dirname(d), `${path.basename(d)}-${link}-sentinel.txt`);
+    const bytes = 'irreplaceable outside content\n'; fs.writeFileSync(sentinel, bytes);
+    t.after(() => fs.rmSync(sentinel, { force: true }));
+    const r = await worker(t, d, `import fs from 'node:fs';import path from 'node:path';
+fs.mkdirSync('.aegis/memory',{recursive:true});
+const temporary=path.resolve('.aegis/memory/transaction.json.tmp-'+process.pid);
+fs.${link === 'symlink' ? 'symlinkSync' : 'linkSync'}(${JSON.stringify(sentinel)},temporary);
+(await import(${url('commands/memory.js')})).memory(['add','--type','finding','--title','test','--body','evidence']);
+if(!fs.lstatSync(temporary))process.exit(8);`);
+    assert.equal(fs.readFileSync(sentinel, 'utf8'), bytes);
+    check(r);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(d, 'brain/memory/records.jsonl'), 'utf8')).title, 'test');
+    assert.ok(!fs.existsSync(path.join(d, '.aegis/memory/transaction.json')));
+  });
+}
+
+test('audit cycle 2: verified-absent worktree and Git registry release only the stale Aegis lane', t => {
+  const d = scratch(t); check(aegis(d, ['slice', 'create', 'stale']));
+  const meta = readState(d).slices.stale;
+  gitIn(d, ['worktree', 'remove', meta.dir]);
+  assert.ok(!fs.existsSync(meta.dir));
+  check(aegis(d, ['slice', 'remove', 'stale']));
+  assert.ok(!readState(d).slices.stale); assert.ok(!readState(d).lanes.active.includes('stale'));
+  assert.equal(gitIn(d, ['rev-parse', '--verify', meta.branch]).length, 40, 'retained branch is not discarded');
+  assert.ok(!fs.existsSync(path.join(d, '.aegis/state.json.lock')));
+});
+
+for (const locked of [false, true]) {
+  test(`audit cycle 2: absent ${locked ? 'locked' : 'registered'} worktree retains its Aegis registration while Git still knows it`, t => {
+    const d = scratch(t); check(aegis(d, ['slice', 'create', 'uncertain']));
+    const meta = readState(d).slices.uncertain;
+    if (locked) gitIn(d, ['worktree', 'lock', meta.dir]);
+    fs.renameSync(meta.dir, `${meta.dir}-moved`);
+    const r = aegis(d, ['slice', 'remove', 'uncertain']);
+    assert.equal(r.status, 4); assert.ok(readState(d).slices.uncertain);
+    assert.ok(readState(d).lanes.active.includes('uncertain')); assert.ok(fs.existsSync(`${meta.dir}-moved`));
+  });
+}
