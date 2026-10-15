@@ -13,6 +13,8 @@ test('audit: validate acceptance delegates to real committed quality checks and 
   const pass = aegis(dir, ['validate', 'acceptance', 'main', '--file', 'acceptance.json']);
   assert.equal(pass.status, 0, pass.stderr + pass.stdout);
   assert.match(pass.stdout, /1\/1 acceptance checks passed/);
+  assert.equal(aegis(dir, ['validate', 'acceptance', 'main', '--file', 'acceptance.json', '--app', 'ghost']).status, 2,
+    'branch-level evidence must not pretend to accept an app scope');
   fs.writeFileSync(path.join(dir, 'acceptance.json'), plan(1));
   gitIn(dir, ['add', 'acceptance.json']); gitIn(dir, ['commit', '-m', 'failing outcome']);
   assert.equal(aegis(dir, ['validate', 'acceptance', 'main', '--file', 'acceptance.json']).status, 9);

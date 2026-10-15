@@ -12,6 +12,8 @@ export function quality(args: string[]): void {
   const [kind, branch] = args;
   if (!['acceptance', 'review', 'status'].includes(kind) || !branch)
     die(2, 'usage: aegis quality <acceptance|review|status> <branch> [--file <committed-plan.json>]');
+  if (kind === 'status' ? args.length !== 2 : args.length !== 4 || args[2] !== '--file' || !args[3])
+    die(2, 'quality evidence is branch-scoped: use <acceptance|review> <branch> --file <plan>, or status <branch>; no app or extra options');
   loadState();
   const tip = localBranch(branch);
   if (!tip) die(2, `unknown local branch: ${branch}`);
@@ -66,6 +68,9 @@ export function quality(args: string[]): void {
   writeJ(qualityPath(branch, kind), receipt);
   s.history.push({ skill: s.current_skill, at: receipt.at, event: `quality-${kind}: ${branch} ${tip} plan-sha256=${receipt.source_sha256}` });
   commitState(stateP, s);
+  const own = { acceptance: kind === 'acceptance' ? receipt : null, review: kind === 'review' ? receipt : null };
+  const ownProblem = qualityProblem(branch, tip, false, own);
+  if (ownProblem) die(9, ownProblem);
   const problem = qualityProblem(branch, tip);
   if (problem) die(9, problem);
   if (kind === 'acceptance') ok(`${receipt.results!.filter((r) => r.status === 'PASS').length}/${receipt.results!.length} acceptance checks passed (criterion adequacy remains a review responsibility)`);

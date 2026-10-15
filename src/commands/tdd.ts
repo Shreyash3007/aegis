@@ -83,7 +83,7 @@ export function tdd(args: string[]): void {
   let current: TddProof | null;
   try { current = readProof(branch); }
   catch { commitState(stateP, s); die(9, 'TDD receipt changed during capture'); }
-  if ((current?.red.output_sha256 ?? null) !== (old?.red.output_sha256 ?? null)) {
+  if (JSON.stringify(current?.red ?? null) !== JSON.stringify(old?.red ?? null)) {
     commitState(stateP, s);
     die(9, 'TDD RED evidence changed concurrently; no proof recorded');
   }
