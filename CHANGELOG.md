@@ -47,6 +47,9 @@ lives in `docs/DOGFOOD-v*.md` and the cited commits.
 - Update the transitive `brace-expansion` dependency within its declared range
   to address resource-exhaustion advisories. A regression reproduces nested
   brace stack exhaustion on 5.0.7 and passes against the patched dependency.
+- Dependency-changing merges no longer run against `main`'s stale installed
+  modules. The oracle requires a slice installation with matching dependency
+  manifests/lockfiles; it does not silently install packages or alter base deps.
 - Jev now redacts credential-shaped text in questions, criterion descriptions,
   option descriptions and score levels before sending. Secret-like IDs or
   choice keys refuse egress rather than silently changing answer labels.

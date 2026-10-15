@@ -105,3 +105,30 @@ test('merge oracle: works with NO global/system git identity (CI-runner parity)'
   assert.equal(r.status, 0, r.stderr + r.stdout);
   assert.match(r.stdout, /merge oracle PASSED good-noid/);
 });
+
+test('merge oracle: dependency changes use a matching slice installation, never old base modules', (t) => {
+  const dir = setupTsProject(t);
+  const lock = (version) => JSON.stringify({ lockfileVersion: 3, packages: { 'node_modules/is-number': { version } } }) + '\n';
+  fs.writeFileSync(path.join(dir, 'package-lock.json'), lock('1.0.0'));
+  gitIn(dir, ['add', 'package-lock.json']);
+  gitIn(dir, ['commit', '-q', '--no-verify', '-m', 'base dependency lock']);
+  gitIn(dir, ['switch', '-c', 'upgraded']);
+  fs.writeFileSync(path.join(dir, 'package-lock.json'), lock('2.0.0'));
+  fs.writeFileSync(path.join(dir, 'src', 'new-api.ts'), "import { newApi } from 'is-number'; export const value = newApi();\n");
+  gitIn(dir, ['add', 'package-lock.json', 'src/new-api.ts']);
+  gitIn(dir, ['commit', '-q', '--no-verify', '-m', 'use upgraded API']);
+  gitIn(dir, ['switch', 'main']);
+  const wt = path.join(dir, 'upgrade-wt');
+  gitIn(dir, ['worktree', 'add', wt, 'upgraded']);
+  fs.cpSync(path.join(dir, 'node_modules'), path.join(wt, 'node_modules'), { recursive: true, dereference: true });
+  fs.writeFileSync(path.join(wt, 'node_modules', 'is-number', 'index.d.ts'), 'export declare function newApi(): number;\n');
+  const r = aegis(dir, ['merge', 'check', 'upgraded']);
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.match(r.stdout, /dependencies: slice installation/);
+  assert.doesNotMatch(fs.readFileSync(path.join(dir, 'node_modules', 'is-number', 'index.d.ts'), 'utf8'), /newApi/,
+    'the oracle must not mutate the base installation');
+  fs.rmSync(path.join(wt, 'node_modules'), { recursive: true, force: true });
+  const missing = aegis(dir, ['merge', 'check', 'upgraded']);
+  assert.equal(missing.status, 9, missing.stderr + missing.stdout);
+  assert.match(missing.stderr, /DEPENDENCIES.*matching slice installation/);
+});
