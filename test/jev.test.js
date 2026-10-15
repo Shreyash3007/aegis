@@ -112,6 +112,48 @@ test('jev judge: credentials in state are redacted before egress', async (t) => 
   assert.match(sent, /\[redacted\]/);
 });
 
+test('jev judge: all question text fields are redacted on the wire, not only state', async (t) => {
+  const dir = scratch(t);
+  const { url, bodies } = await stub(t);
+  const secret = 'sk-fixture-QUESTION123456789';
+  const f = writeReq(dir, 'j.json', { state: 'non-secret evidence', questions: [
+    { id: 'n', type: 'noul', question: `verify ${secret}`, criteria: { true: `accept ${secret}`, false: `reject ${secret}` } },
+    { id: 'c', type: 'choice', question: 'pick safe label', options: { a: `first ${secret}`, b: 'second' } },
+    { id: 's', type: 'score', question: 'score evidence', levels: [`missing ${secret}`, 'present'] },
+  ] });
+  const r = aegis(dir, ['jev', 'judge', '--file', f], { env: live(url) });
+  assert.equal(r.status, 0, r.stderr);
+  let sent = '';
+  for (let i = 0; i < 40 && !sent; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    sent = bodies().join('\n');
+  }
+  assert.ok(sent, 'stub captured the complete question payload');
+  assert.ok(!sent.includes(secret), 'no question, criterion, option description or level leaks the credential');
+  const wire = JSON.parse(sent);
+  assert.equal(wire.questions.c.criteria.a, 'first [redacted]');
+  assert.equal(wire.questions.n.criteria.false, 'reject [redacted]');
+  assert.equal(wire.questions.s.criteria[0], 'missing [redacted]');
+});
+
+test('jev judge: secret-bearing identifiers refuse egress rather than changing choice semantics', async (t) => {
+  const dir = scratch(t);
+  const { url, requests } = await stub(t);
+  const secret = 'sk-fixture-LABEL123456789';
+  for (const q of [
+    { id: secret, type: 'noul', question: 'safe question' },
+    { id: 'choice', type: 'choice', question: 'safe question', options: [secret, 'safe'] },
+    { id: 'choice', type: 'choice', question: 'safe question', options: { [secret]: 'safe description', safe: 'other' } },
+  ]) {
+    const f = writeReq(dir, 'j.json', { state: 'safe evidence', questions: [q] });
+    const r = aegis(dir, ['jev', 'judge', '--file', f], { env: live(url) });
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /ESCALATE\(unreachable\)/);
+  }
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  assert.equal(requests(), 0, 'identifier credentials never reach the provider');
+});
+
 test('jev triage: 0.7 gate maps ACT/DROP/REVERIFY', async (t) => {
   const dir = scratch(t);
   const { url } = await stub(t, {
