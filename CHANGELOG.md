@@ -38,6 +38,9 @@ lives in `docs/DOGFOOD-v*.md` and the cited commits.
 
 ### Fixed
 
+- Dependency-changing merges no longer run against `main`'s stale installed
+  modules. The oracle requires a slice installation with matching dependency
+  manifests/lockfiles; it does not silently install packages or alter base deps.
 - Jev now redacts credential-shaped text in questions, criterion descriptions,
   option descriptions and score levels before sending. Secret-like IDs or
   choice keys refuse egress rather than silently changing answer labels.

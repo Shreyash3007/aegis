@@ -6,7 +6,7 @@ import { REPO, die, git, gitRaw, ok } from '../lib/util.js';
 import { contractsPath, stateP } from '../lib/state.js';
 import { quarantineMatch } from './clean.js';
 import { detectStack, typecheckCommand } from '../lib/oracles.js';
-import { proofPath, proofProblem, readProof } from '../lib/tdd-proof.js';
+import { branchWorktree, proofPath, proofProblem, readProof } from '../lib/tdd-proof.js';
 import { qualityProblem, readQuality, runCriteria } from '../lib/quality-evidence.js';
 
 /** aegis merge check <branch> - the merge oracle (N3, simulation-proven).
@@ -19,6 +19,17 @@ import { qualityProblem, readQuality, runCriteria } from '../lib/quality-evidenc
  *  per-invocation identity: --no-commit creates nothing, repo config is
  *  never touched, and real conflicts behave identically. */
 const ORACLE_ID = ['-c', 'user.email=aegis-oracle@invalid', '-c', 'user.name=aegis-merge-oracle'];
+
+function dependencySnapshot(root: string): string {
+  const files = ['package-lock.json', 'npm-shrinkwrap.json', 'yarn.lock', 'pnpm-lock.yaml'];
+  const locks = files.map((f) => fs.existsSync(path.join(root, f))
+    ? fs.readFileSync(path.join(root, f), 'utf8').replace(/\r\n/g, '\n') : null);
+  const manifest = path.join(root, 'package.json');
+  const pkg = fs.existsSync(manifest) ? JSON.parse(fs.readFileSync(manifest, 'utf8')) : {};
+  const deps = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']
+    .map((key) => Object.entries(pkg[key] ?? {}).sort(([a], [b]) => a.localeCompare(b)));
+  return JSON.stringify([locks, deps]);
+}
 export function merge(args: string[]): void {
   if (args[0] !== 'check' || !args[1]) die(2, 'usage: aegis merge check <branch>');
   const branch = args[1];
@@ -70,9 +81,25 @@ export function merge(args: string[]): void {
 
   const failed: string[] = [];
 
-  // worktrees have no node_modules (gitignored): link the main repo's so the
-  // typecheck oracle resolves real deps instead of false-refusing with TS2307
-  const nm = path.join(REPO, 'node_modules');
+  // Reuse installed modules only from a checkout matching the merged dependency
+  // snapshot. Linking base modules for a changed lock tests the wrong code.
+  let dependencyRoot = REPO;
+  try {
+    const snapshot = dependencySnapshot(tmp);
+    if (dependencySnapshot(REPO) !== snapshot) {
+      const slice = branchWorktree(branch);
+      if (!slice || dependencySnapshot(slice) !== snapshot || !fs.existsSync(path.join(slice, 'node_modules'))) {
+        cleanup();
+        die(9, 'DEPENDENCIES changed: prepare a matching slice installation before running the merge oracle');
+      }
+      dependencyRoot = slice;
+      console.log('dependencies: slice installation (matching dependency snapshot; installation provenance is caller-managed)');
+    }
+  } catch {
+    cleanup();
+    die(9, 'DEPENDENCIES snapshot unreadable - fix the manifest before verification');
+  }
+  const nm = path.join(dependencyRoot, 'node_modules');
   if (fs.existsSync(nm) && !fs.existsSync(path.join(tmp, 'node_modules'))) {
     try { fs.symlinkSync(nm, path.join(tmp, 'node_modules'), 'junction'); }
     catch { /* different layout or fs restriction - oracle degrades honestly below */ }
