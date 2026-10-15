@@ -60,6 +60,29 @@ mechanical or it doesn't ship.
 - Exit bar: suite green both platforms, audit extended (blade-collision
   section), dogfood with blades active, pilot re-run, ritual 7/7, tag.
 
+### Release acceptance — not complete
+
+The implementation checkboxes above are not release acceptance or proof of
+effectiveness. The original exit bar remains binding.
+
+- Local source snapshot `9f6231c`: tests 205/205, skill lint 71/71, audit
+  153 checks/0 findings, scripted dogfood 71/71, self-cycle 61/61, native
+  dependency audit 0 vulnerabilities. Tests added during review reproduced
+  provider-bound credential disclosure, brace-parser stack exhaustion and
+  stale dependencies in the merge oracle before their fixes.
+- Cross-platform CI passed at `9a06dbb`; final-HEAD CI must pass separately.
+- Six pinned source resolutions are verified. This is not yet a measured
+  executor following all six craft procedures. The realistic discovery
+  exercise and blade-procedure dogfood remain unproven.
+- Acceptance is exposed through `quality acceptance` and merge/ship checks;
+  the planned `validate` entrypoint integration has not been delivered.
+- The pilot rerun is a 42-step deterministic smoke, not a small-model trial.
+  Frozen calibration tasks are not an independent held-out study.
+- Final release ritual and a v0.10-specific human G4 approval remain open.
+  The stored v0.9 approval must not be represented as new release approval.
+- v0.11/v0.12 stay queued until v0.10 clears the release bar. Model routing
+  remains deferred. Do not silently relax these gaps to create a tag.
+
 ## v0.11 "Reach" — packaging + external proof [QUEUED]
 
 - Claude Code plugin (skills + hooks + review procedures), OpenCode + Cursor

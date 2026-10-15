@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "commit": "9f6231ce459fd3722ca52e6e28276ce8ed9d0830",
+  "counts": {
+    "history_events": 58,
+    "approved_gates": 6
+  },
+  "usage": {
+    "provenance": "executor-reported (not independently verified)",
+    "reports": 0,
+    "tokens_in": null,
+    "tokens_out": null,
+    "cost_usd": null,
+    "cost_status": "UNMEASURED"
+  },
+  "judgments": {
+    "status": "UNMEASURED"
+  },
+  "test_status": "UNMEASURED - tests must supply a separate run artifact",
+  "privacy": "aggregate only; no raw state, prompts, model names or commands"
+}

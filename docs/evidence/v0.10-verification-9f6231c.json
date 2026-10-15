@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "source_commit": "9f6231ce459fd3722ca52e6e28276ce8ed9d0830",
+  "release_status": "UNRELEASED",
+  "provenance": "Author-recorded local command observations; not independently graded effectiveness evidence.",
+  "checks": [
+    { "command": "npm run build", "exit": 0 },
+    { "command": "npm test", "exit": 0, "tests": 205, "passed": 205, "failed": 0, "skipped": 0 },
+    { "command": "node dist/cli.js lint-skills --all", "exit": 0, "passed": 71, "total": 71 },
+    { "command": "node scripts/audit.mjs", "exit": 0, "checks": 153, "findings": 0 },
+    { "command": "node scripts/dogfood.mjs", "exit": 0, "steps": 71, "unexpected": 0 },
+    { "command": "node scripts/self-cycle.mjs --superpowers-root <discovered pinned checkout>", "exit": 0, "expected_outcomes": 61, "matched_outcomes": 61 },
+    { "command": "npm audit --audit-level=high", "exit": 0, "known_vulnerabilities": 0 }
+  ],
+  "prior_ci": {
+    "commit": "9a06dbb4651dbd42c089a2fb9a34e2bead4766b3",
+    "run_id": 38714470498,
+    "conclusion": "success",
+    "jobs": ["ubuntu-latest Node 20", "ubuntu-latest Node 22", "windows-latest Node 22"],
+    "applies_to_source_commit": false
+  },
+  "limitations": [
+    "Self-cycle approvals are synthetic fixtures, not human product sign-off.",
+    "One self-cycle invocation used an incorrect checkout path and refused source verification; a successor using the discovered checkout passed. The failed receipt remains local.",
+    "Source pins verify file bytes, not skill compliance.",
+    "Independent review, small-executor effectiveness, comparative quality and cost are UNMEASURED.",
+    "Strict evidence flags are optional for legacy branches; not every development commit has a TDD receipt.",
+    "Final-HEAD remote CI, full release ritual and v0.10-specific human approval remain open."
+  ]
+}

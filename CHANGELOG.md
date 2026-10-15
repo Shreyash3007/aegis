@@ -69,11 +69,14 @@ lives in `docs/DOGFOOD-v*.md` and the cited commits.
 
 ### Release status
 
-Work is implemented but not yet released. Latest local full suite: 197/197;
-skill corpus: 71 files. Conformance exercise: 61/61 expected outcomes with
-six pinned source resolutions. Remote CI and the full release ritual still
-must pass on the final release commit. No comparative study or real
-small-executor effectiveness claim is made.
+Not released. Source snapshot `9f6231c` passed 205/205 tests, skill lint
+71/71, audit 153 checks/0 findings, scripted dogfood 71/71 and the disposable
+self-cycle 61/61. The native dependency audit reported 0 vulnerabilities.
+The earlier `9a06dbb` passed Ubuntu Node 20/22 and Windows Node 22 CI; that
+does not establish CI for later commits. Exact-final-HEAD CI, the release
+ritual and v0.10-specific human approval are still required. The existing
+G4 record cites v0.9 and is not reused as v0.10 approval. No comparative
+study, independent security review or real small-executor trial is claimed.
 
 ## [0.9.0] - 2026-10-14
 
