@@ -6,6 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { scratch, aegis, REPO_ROOT } from './helpers.js';
 
 function contractList() {
@@ -50,6 +51,20 @@ test('completions: generated per shell from the live command set', (t) => {
       assert.ok(r.stdout.includes(cmd), `${shell} completions name ${cmd}`);
   }
   assert.equal(aegis(dir, ['completions', 'fish']).status, 2);
+});
+
+test('bash completion loads without invoking aegis recursively and completes the real command set', (t) => {
+  const dir = scratch(t);
+  const script = aegis(dir, ['completions', 'bash']).stdout;
+  const bash = process.platform === 'win32'
+    ? path.join(process.env.ProgramFiles ?? 'C:\\Program Files', 'Git', 'bin', 'bash.exe') : 'bash';
+  const r = spawnSync(bash, ['--noprofile', '--norc', '-c',
+    'aegis() { echo UNEXPECTED_GENERATOR_CALL >&2; return 99; };\n' + script +
+    '\nCOMP_WORDS=(aegis com); COMP_CWORD=1; _aegis_complete; printf "%s\\n" "${COMPREPLY[@]}"'],
+    { encoding: 'utf8', timeout: 10_000 });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(r.stderr, '', 'loading completions must not call the generator or other commands');
+  assert.match(r.stdout, /^completions$/m);
 });
 
 test('contract exit codes AND meanings appear in the runtime exit-code block', (t) => {
