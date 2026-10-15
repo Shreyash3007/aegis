@@ -124,8 +124,10 @@ test('audit: clean accounting uses canonical branch identities and strict-flag t
   const dir = fixture(t);
   assert.equal(aegis(dir, ['tdd', 'red', 'feature', '--test-file', 'check.cjs', '--expect-exit', '1', '--', process.execPath, 'check.cjs']).status, 0);
   gitIn(dir, ['switch', 'main']);
-  assert.equal(aegis(dir, ['clean', 'feature']).status, 9);
-  const again = aegis(dir, ['clean', 'refs/heads/feature']);
+  const first = aegis(dir, ['clean', 'feature', '--require-proof', '--require-quality']);
+  assert.equal(first.status, 9);
+  assert.match(first.stderr, /fix, then: aegis clean refs\/heads\/feature --require-proof --require-quality/);
+  const again = aegis(dir, ['clean', 'refs/heads/feature', '--require-proof', '--require-quality']);
   assert.equal(again.status, 5, again.stderr + again.stdout);
   assert.equal(aegis(dir, ['merge', 'check', 'feature', '--require-qaulity']).status, 2);
   assert.equal(aegis(dir, ['clean', 'feature', '--require-qaulity']).status, 2);
@@ -139,6 +141,9 @@ test('audit cycle 2: non-exact branch case cannot bypass a quarantine on case-in
   assert.equal(aegis(dir, ['merge', 'check', 'AuditLane']).status, 9, 'positive control: the real branch is frozen');
   assert.equal(aegis(dir, ['merge', 'check', 'auditlane']).status, 2);
   assert.equal(aegis(dir, ['clean', 'auditlane']).status, 2);
+  const before = fs.readFileSync(path.join(dir, '.aegis', 'state.json'), 'utf8');
+  assert.equal(aegis(dir, ['quarantine', 'freeze', 'refs/heads/AUDITLANE', '--reason', 'invalid explicit ref']).status, 2);
+  assert.equal(fs.readFileSync(path.join(dir, '.aegis', 'state.json'), 'utf8'), before);
 });
 
 test('audit cycle 2: clean forwards a nested literal branch name unambiguously', (t) => {
@@ -157,7 +162,13 @@ test('audit cycle 2: clean forwards a nested literal branch name unambiguously',
   const r = aegis(dir, ['clean', 'refs/heads/refs/heads/lane']);
   assert.equal(r.status, 9, r.stderr + r.stdout);
   assert.match(r.stderr, /CONTRACT.DRIFT/);
+  assert.match(r.stderr, /fix, then: aegis clean refs\/heads\/refs\/heads\/lane/);
+  assert.equal(aegis(dir, ['clean', 'refs/heads/refs/heads/lane']).status, 5,
+    'the suggested unchanged retry must remain on the failing nested branch, not PASS another one');
   assert.equal(aegis(dir, ['quarantine', 'freeze', 'refs/heads/refs/heads/lane', '--reason', 'nested fixture']).status, 0);
   assert.equal(aegis(dir, ['merge', 'check', 'lane']).status, 0, 'an unrelated literal branch is not the frozen nested branch');
   assert.match(aegis(dir, ['merge', 'check', 'refs/heads/refs/heads/lane']).stderr, /QUARANTINED/);
+  assert.equal(aegis(dir, ['quarantine', 'freeze', 'refs/heads/lane', '--reason', 'ordinary fixture']).status, 0,
+    'raw full-ref syntax must not be treated as a nested short name in duplicate lookup');
+  assert.equal(aegis(dir, ['merge', 'check', 'lane']).status, 9);
 });

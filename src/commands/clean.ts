@@ -32,11 +32,13 @@ function branchSha(branch: string): string {
  *  lane convention aegis/slice-<name> (verified, else guessed for lanes
  *  not yet registered). Never double-prefixes a name like 'slice-x'. */
 function resolveFreezeBranch(target: string): string {
+  const explicit = target.startsWith('refs/heads/');
   target = target.replace(/^refs\/heads\//, '');
   try { git(['check-ref-format', `refs/heads/${target}`]); }
   catch { die(2, `invalid quarantine branch or lane: ${target}`); }
-  if (target.startsWith('aegis/')) return target;
   if (localBranch(target)) return target;
+  if (explicit) die(2, 'explicit quarantine ref must name an existing exactly spelled local branch');
+  if (target.startsWith('aegis/')) return target;
   return `aegis/slice-${target}`;
 }
 
@@ -96,8 +98,16 @@ export function clean(args: string[]): void {
     die(9, `clean REFUSED ${branch}: QUARANTINED (${frozen.reason}) - clear first: aegis quarantine clear ${frozen.target} --reason "<why>"`);
   const sha = branchSha(branch);
   const short = sha.slice(0, 8);
+  const flags = args.filter((a) => ['--require-proof', '--require-quality'].includes(a));
+  const ref = `refs/heads/${branch}`;
+  const safeHint = /^[A-Za-z0-9_./-]+$/.test(ref);
+  const rerun = safeHint ? `aegis clean ${ref}${flags.length ? ` ${flags.join(' ')}` : ''}`
+    : 'invoke clean with the exact ref as one literal argument; no shell command is emitted for this name';
+  const park = safeHint ? `aegis quarantine freeze ${ref}`
+    : 'invoke quarantine freeze with the exact ref as one literal argument';
+  if (!safeHint) console.log(`exact ref (data, not shell syntax): ${JSON.stringify(ref)}`);
 
-  const { code, out } = runOracle(branch, args.filter((a) => ['--require-proof', '--require-quality'].includes(a)));
+  const { code, out } = runOracle(branch, flags);
   const classes = classify(code, out);
   const at = new Date().toISOString();
 
@@ -108,8 +118,9 @@ export function clean(args: string[]): void {
 
   if (classes[0] === 'PASS') {
     delete s.clean[branch];
-    s.history.push({ skill: s.current_skill, at, event: `clean-pass ${branch} (${short})` });
+    s.history.push({ skill: s.current_skill, at, event: `clean-pass ${branch} (${short}; ${flags.join(' ') || 'legacy absent-receipts allowed'})` });
     commitState(stateP, s);
+    for (const line of out.split('\n').filter((line) => /UNMEASURED|UNVERIFIED/.test(line))) console.log(line);
     ok(`clean PASSED ${branch} (${short}, oracle exit 0, cycles reset)`);
     return;
   }
@@ -121,7 +132,7 @@ export function clean(args: string[]): void {
     commitState(stateP, s);
     die(5, `clean ESCALATION ${branch}: doubt theater - re-verified ${short} with no new changes (same failure: ${label})\n` +
       `evidence:\n${evidence(out)}\n` +
-      `recovery: fix the cause (a new SHA re-arms the gate), or park the lane: aegis quarantine freeze ${branch} --reason "<why>"`);
+      `recovery: fix the cause (a new SHA re-arms the gate), or park the lane: ${park} --reason "<why>"`);
   }
 
   rec.cycles += 1;
@@ -133,13 +144,13 @@ export function clean(args: string[]): void {
     commitState(stateP, s);
     die(5, `clean ESCALATION ${branch}: ${rec.cycles}/${MAX_CYCLES} cycles exhausted (${label} @ ${short})\n` +
       `evidence:\n${evidence(out)}\n` +
-      `recovery: a human reviews, then one of: fix + aegis clean ${branch} | aegis quarantine freeze ${branch} --reason "<why>" | aegis loops reset --reason "<why>"`);
+      `recovery: a human reviews, then one of: fix + ${rerun} | ${park} --reason "<why>" | aegis loops reset --reason "<why>"`);
   }
   s.history.push({ skill: s.current_skill, at, event: `clean-fail ${branch} (${label}, cycle ${rec.cycles}/${MAX_CYCLES})` });
   commitState(stateP, s);
   die(9, `clean FAIL ${branch}: ${label} @ ${short} (cycle ${rec.cycles}/${MAX_CYCLES})\n` +
     `${evidence(out)}\n` +
-    `fix, then: aegis clean ${branch} (${MAX_CYCLES - rec.cycles} cycle(s) left; re-running this SHA unchanged escalates as doubt theater)`);
+    `fix, then: ${rerun} (${MAX_CYCLES - rec.cycles} cycle(s) left; re-running this SHA unchanged escalates as doubt theater)`);
 }
 
 export function quarantine(args: string[]): void {
@@ -161,7 +172,7 @@ export function quarantine(args: string[]): void {
   s.quarantine ??= [];
   const at = new Date().toISOString();
   if (op === 'freeze') {
-    if (quarantineHit(s, branch) || quarantineHit(s, target))
+    if (quarantineHit(s, branch))
       die(4, `already quarantined: ${target} (clear first: aegis quarantine clear ${target} --reason "<why>")`);
     s.quarantine.push({ target, branch, canonical_ref: `refs/heads/${branch}`, reason, at });
     s.history.push({ skill: s.current_skill, at, event: `quarantine-freeze ${target}`, reason });
