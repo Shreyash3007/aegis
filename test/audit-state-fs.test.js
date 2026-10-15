@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { scratch, aegis, gitIn, readState, writeState, REPO_ROOT } from './helpers.js';
 
@@ -37,11 +37,15 @@ const release = marker => fs.writeFileSync(marker + '.release', 'go');
 const check = r => assert.equal(r.status, 0, r.stderr || r.err);
 
 test('audit: dirty slice removal preserves edits, untracked files and registration', t => {
-  const d = scratch(t); check(aegis(d, ['slice', 'create', 'dirty']));
+  const d = scratch(t);
+  fs.writeFileSync(path.join(d, 'tracked.txt'), 'base'); gitIn(d, ['add', 'tracked.txt']); gitIn(d, ['commit', '-qm', 'tracked fixture']);
+  check(aegis(d, ['slice', 'create', 'dirty']));
   const w = readState(d).slices.dirty.dir;
+  fs.writeFileSync(path.join(w, 'tracked.txt'), 'user edit');
   fs.writeFileSync(path.join(w, 'user.txt'), 'irreplaceable');
   const r = aegis(d, ['slice', 'remove', 'dirty']);
   assert.equal(r.status, 4, r.stderr); assert.equal(fs.readFileSync(path.join(w, 'user.txt'), 'utf8'), 'irreplaceable');
+  assert.equal(fs.readFileSync(path.join(w, 'tracked.txt'), 'utf8'), 'user edit');
   assert.ok(readState(d).slices.dirty); assert.ok(readState(d).lanes.active.includes('dirty'));
 });
 
@@ -88,7 +92,7 @@ test('audit: every lane operation rejects traversal without deleting outside JSO
   }
 });
 
-test('audit: memory rejects linked stores and linked lane files', t => {
+test('audit: memory rejects linked lane directories', t => {
   const d = scratch(t); const target = path.join(d, 'outside'); fs.mkdirSync(target);
   fs.mkdirSync(path.join(d, 'brain/memory'), { recursive: true });
   fs.symlinkSync(target, path.join(d, 'brain/memory/lanes'), process.platform === 'win32' ? 'junction' : 'dir');
@@ -218,4 +222,103 @@ fs.readFileSync=function(p,...args){const result=read.call(this,p,...args);if(on
   const b = worker(t, d, `(await import(${url('commands/slice.js')})).slice(['create','new']);`);
   await new Promise(r => setTimeout(r, 150)); release(marker); const [ar, br] = await Promise.all([a, b]);
   assert.ok(ar.status !== 0 || br.status !== 0, JSON.stringify([ar, br]));
+});
+
+test('audit: pending memory transaction cannot be discarded by uninstall or checkpointed as complete', t => {
+  const d = scratch(t); check(add(d));
+  const p = path.join(d, '.aegis/memory/transaction.json'); fs.writeFileSync(p, '[]');
+  assert.equal(aegis(d, ['remove']).status, 4); assert.ok(fs.existsSync(p));
+  assert.equal(aegis(d, ['checkpoint']).status, 6); assert.ok(fs.existsSync(p));
+});
+
+test('audit: partial memory promotion replays once without losing or duplicating records', t => {
+  const d = scratch(t); check(add(d)); check(aegis(d, ['memory', 'add', '--type', 'finding', '--title', 'lane', '--body', 'body', '--lane', 'w1']));
+  const main = path.join(d, 'brain/memory/records.jsonl'), lane = path.join(d, 'brain/memory/lanes/w1.jsonl');
+  const before = fs.readFileSync(main, 'utf8'), laneBefore = fs.readFileSync(lane, 'utf8');
+  const promoted = JSON.parse(laneBefore); promoted.lane = null;
+  const after = before + JSON.stringify(promoted) + '\n';
+  fs.writeFileSync(main, after); // crash after destination publication, before source removal
+  fs.writeFileSync(path.join(d, '.aegis/memory/transaction.json'), JSON.stringify([
+    { file: 'records.jsonl', before, after }, { file: 'lanes/w1.jsonl', before: laneBefore, after: null },
+  ]));
+  check(aegis(d, ['memory', 'sync'])); check(aegis(d, ['memory', 'sync']));
+  assert.equal(fs.readFileSync(main, 'utf8'), after); assert.ok(!fs.existsSync(lane));
+});
+
+test('audit: memory journal conflicts retain journal and every changed source', t => {
+  const d = scratch(t); check(add(d));
+  const main = path.join(d, 'brain/memory/records.jsonl'), before = fs.readFileSync(main, 'utf8');
+  const journal = path.join(d, '.aegis/memory/transaction.json');
+  fs.writeFileSync(journal, JSON.stringify([{ file: 'records.jsonl', before: 'different', after: 'replacement' }]));
+  assert.equal(aegis(d, ['memory', 'sync']).status, 4);
+  assert.ok(fs.existsSync(journal)); assert.equal(fs.readFileSync(main, 'utf8'), before);
+});
+
+test('audit: source validation finishes before any JSONL replacement is published', async t => {
+  const d = scratch(t); check(add(d)); const main = path.join(d, 'brain/memory/records.jsonl');
+  const before = fs.readFileSync(main, 'utf8');
+  const r = await worker(t, d, `import fs from 'node:fs'; import path from 'node:path';
+const write=fs.writeFileSync;
+fs.writeFileSync=function(p,...args){if(typeof p==='string'&&p.endsWith(path.join('memory','records.jsonl')))throw Error('in-place JSONL write');return write.call(this,p,...args);};
+(await import(${url('commands/memory.js')})).memory(['verify','mem-0001','--confidence','0.9']);`);
+  check(r); assert.notEqual(fs.readFileSync(main, 'utf8'), before);
+});
+
+test('audit: raw file locks serialize two reclaimers independently of lifecycle locking', async t => {
+  const d = scratch(t); const resource = path.join(d, 'resource');
+  fs.writeFileSync(resource + '.lock', JSON.stringify({ pid: 99999999, at: Date.now() }));
+  const ma = path.join(d, 'raw-reclaimer'), mb = path.join(d, 'raw-owner');
+  const a = worker(t, d, pauseCode + `const rm=fs.rmSync;let once=true;
+fs.rmSync=function(p,...args){if(once&&String(p)===${JSON.stringify(resource + '.lock')}){once=false;pause(${JSON.stringify(ma)});}return rm.call(this,p,...args);};
+const m=await import(${url('lib/lock.js')});m.withFileLock(${JSON.stringify(resource)},()=>fs.appendFileSync('events','a'));`);
+  await wait(ma);
+  const b = worker(t, d, pauseCode + `const m=await import(${url('lib/lock.js')});m.withFileLock(${JSON.stringify(resource)},()=>{pause(${JSON.stringify(mb)});fs.appendFileSync('events','b');});`);
+  await new Promise(r => setTimeout(r, 150)); const early = fs.existsSync(mb);
+  release(ma); await wait(mb); release(mb); check(await a); check(await b);
+  assert.equal(early, false); assert.equal(fs.readFileSync(path.join(d, 'events'), 'utf8').length, 2);
+});
+
+test('audit: file locks release after callback exceptions and ordinary process exit', async t => {
+  const d = scratch(t);
+  const r = await worker(t, d, `const m=await import(${url('lib/lock.js')});
+try{m.withFileLock('exception',()=>{throw Error('expected');});}catch{}
+m.lockFile('exit');process.exit(4);`);
+  assert.equal(r.status, 4);
+  assert.ok(!fs.existsSync(path.join(d, 'exception.lock'))); assert.ok(!fs.existsSync(path.join(d, 'exit.lock')));
+});
+
+test('audit: reconcile refuses dangling parties before mutating any record', t => {
+  const d = scratch(t); check(add(d));
+  const task = { ...record('mem-0002'), type: 'reconcile', status: 'open', parties: ['mem-0001', 'mem-9999'] };
+  const p = jsonl(d, 'brain/memory/records.jsonl', [record('mem-0001'), task]);
+  const before = fs.readFileSync(p, 'utf8');
+  const r = aegis(d, ['memory', 'reconcile', 'mem-0002', '--winner', 'mem-0001', '--resolution', 'evidence']);
+  assert.equal(r.status, 2); assert.equal(fs.readFileSync(p, 'utf8'), before);
+});
+
+test('audit: local citations cannot traverse outside their repo', t => {
+  const d = scratch(t); const outside = path.join(path.dirname(d), path.basename(d) + '-citation.txt');
+  fs.writeFileSync(outside, 'outside'); t.after(() => fs.rmSync(outside, { force: true }));
+  const r = aegis(d, ['memory', 'add', '--type', 'finding', '--title', 'x', '--body', 'y', '--cites', outside]);
+  assert.equal(r.status, 2); assert.ok(!fs.existsSync(path.join(d, 'brain/memory/records.jsonl')));
+});
+
+test('audit: ignored local work in a slice is preserved too', t => {
+  const d = scratch(t); fs.appendFileSync(path.join(d, '.gitignore'), '\nkept-local.txt\n');
+  gitIn(d, ['add', '.gitignore']); gitIn(d, ['commit', '-qm', 'ignore fixture']);
+  check(aegis(d, ['slice', 'create', 'local'])); const w = readState(d).slices.local.dir;
+  fs.writeFileSync(path.join(w, 'kept-local.txt'), 'local-only work');
+  const r = aegis(d, ['slice', 'remove', 'local']); assert.equal(r.status, 4);
+  assert.equal(fs.readFileSync(path.join(w, 'kept-local.txt'), 'utf8'), 'local-only work');
+  assert.ok(readState(d).slices.local);
+});
+
+test('audit: migration detects conflicting record IDs across main and lane stores', t => {
+  const d = scratch(t);
+  const main = jsonl(d, 'brain/memory/records.jsonl', [record('mem-0001', 'new main')]);
+  const legacy = jsonl(d, '.aegis/memory/lanes/w1.jsonl', [record('mem-0001', 'unmerged legacy lane')]);
+  const before = fs.readFileSync(legacy, 'utf8');
+  assert.equal(aegis(d, ['memory', 'sync']).status, 4);
+  assert.equal(fs.readFileSync(legacy, 'utf8'), before);
+  assert.equal(JSON.parse(fs.readFileSync(main, 'utf8')).title, 'new main');
 });
