@@ -17,7 +17,7 @@ tar -xzf aegis-cli.tar.gz && cd aegis-cli
 npm install && npm run build && npm link
 ```
 
-Requirements: Node 18+, git. TypeScript in the target project for full
+Requirements: Node 20 or 22+, git. TypeScript in the target project for full
 enforcement (without it Aegis degrades honestly and tells you).
 
 **Don't want to read this guide?** You don't have to — after install, tell

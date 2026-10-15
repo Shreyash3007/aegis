@@ -87,7 +87,7 @@ aegis init --yes && aegis ast build   # one trial found 2 real circular deps thi
 
 ## Install
 
-Requires Node 18+ and git. GitHub-only distribution (never on npm registry).
+Requires Node 20 or 22+ and git. GitHub-only distribution (never on npm registry).
 
 ```bash
 npm install -g https://github.com/Shreyash3007/aegis/archive/refs/tags/v0.9.0.tar.gz

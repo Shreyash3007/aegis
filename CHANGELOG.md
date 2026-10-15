@@ -6,6 +6,12 @@ lives in `docs/DOGFOOD-v*.md` and the cited commits.
 
 ## [Unreleased] — v0.10 "Grade"
 
+### Compatibility
+
+- Node 18 is no longer supported. Use Node 20 or 22+; the patched glob parser
+  requires this range. This is an intentional compatibility change in v0.10,
+  not a patch release under the old runtime promise.
+
 ### Added
 
 - Product discovery uses a shared brief and evidence-based product/design/
@@ -38,6 +44,9 @@ lives in `docs/DOGFOOD-v*.md` and the cited commits.
 
 ### Fixed
 
+- Update the transitive `brace-expansion` dependency within its declared range
+  to address resource-exhaustion advisories. A regression reproduces nested
+  brace stack exhaustion on 5.0.7 and passes against the patched dependency.
 - Jev now redacts credential-shaped text in questions, criterion descriptions,
   option descriptions and score levels before sending. Secret-like IDs or
   choice keys refuse egress rather than silently changing answer labels.
