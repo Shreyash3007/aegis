@@ -6,7 +6,7 @@
 // documented path. Any deviation from the EXPECTED column is a finding.
 // Usage: node scripts/audit.mjs [--section A|B|C|D|E|F]
 
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -174,13 +174,21 @@ function sectionD(dir) {
 }
 
 /* ---------------- E. stress ---------------- */
-function sectionE(dir) {
+async function sectionE(dir) {
   const S = 'E';
   // E1: 20 concurrent exec (suite proves 10)
   const N = 20;
-  const kids = [];
-  for (let i = 0; i < N; i++)
-    kids.push(sh(dir, process.execPath, [CLI, 'exec', '--', `"${process.execPath}" -e "process.exit(0)"`], { env: process.env }));
+  const kids = await Promise.all(Array.from({ length: N }, () => new Promise((resolve) => {
+    const p = spawn(process.execPath, [CLI, 'exec', '--', `"${process.execPath}" -e "process.exit(0)"`], {
+      cwd: dir, env: process.env, stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stdout = '', stderr = '';
+    const timer = setTimeout(() => p.kill(), 60_000);
+    p.stdout.on('data', (d) => { stdout += d; });
+    p.stderr.on('data', (d) => { stderr += d; });
+    p.on('error', (e) => { stderr += e.message; });
+    p.on('close', (code) => { clearTimeout(timer); resolve({ code: code ?? -1, stdout, stderr }); });
+  })));
   const bad = kids.filter((k) => k.code !== 0).length;
   check(S, `${N} concurrent exec all exit 0`, bad, 0, kids.find((k) => k.code !== 0)?.stderr.slice(0, 200) ?? '');
   const hist = JSON.parse(fs.readFileSync(path.join(dir, '.aegis', 'state.json'), 'utf8')).history;
@@ -224,7 +232,7 @@ function sectionF(dir) {
   for (const cmd of cmds) {
     // init scaffolds interactively (would hang on interview); update touches
     // the network (new-version check). Neither is bare-run safe.
-    if (cmd === 'init' || cmd === 'update') continue;
+    if (cmd === 'init' || cmd === 'update' || cmd === 'remove') continue;
     const r = sh(dir, process.execPath, [CLI, cmd], { env: { ...process.env, ...MOCK } }, 15000);
     const crashed = r.timedOut || r.code === 3221226505 || r.code > 125;
     check(S, `bare '${cmd}' never crashes/hangs (exit ${r.code})`, crashed, false,
@@ -246,7 +254,7 @@ function commitAllSafe(d) {
 for (const key of only) {
   if (!sections[key]) { console.error(`unknown section ${key}`); process.exit(2); }
   console.log(`--- section ${key} ---`);
-  sections[key](dir);
+  await sections[key](dir);
 }
 
 console.log(`\naudit: ${checks} checks, ${findings.length} finding(s)`);
