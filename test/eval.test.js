@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { scratch, aegis } from './helpers.js';
+import { scratch, aegis, REPO_ROOT } from './helpers.js';
 
 // Minimal Margin Format file: valid frontmatter + body order, one phantom CLI ref.
 const PHANTOM = `---
@@ -52,9 +52,12 @@ test('eval: a skill file referencing a phantom command fails (exit 11)', (t) => 
   assert.match(r.stdout, /cli-refs-exist: warp/);
 });
 
-test('eval --all: the stock skills pass (68/68)', (t) => {
+test('eval --all: every shipped skill/reference passes', (t) => {
   const dir = scratch(t);
   const r = aegis(dir, ['eval', '--all']);
   assert.equal(r.status, 0, r.stderr);
-  assert.match(r.stdout, /eval: 68\/68 passed/);
+  const count = fs.readdirSync(path.join(REPO_ROOT, 'skills'), { recursive: true })
+    .filter((f) => f.endsWith('.md')).length;
+  assert.ok(count >= 68, 'includes the established corpus');
+  assert.ok(r.stdout.includes(`eval: ${count}/${count} passed`), r.stdout);
 });
