@@ -1,8 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { AEGIS_DIR, REPO, die, ok, noStateMsg } from '../lib/util.js';
+import { randomUUID } from 'node:crypto';
+import { AEGIS_DIR, REPO, die, ok, noStateMsg, readJ, writeJ } from '../lib/util.js';
 import { declaredApps } from '../lib/state.js';
+import { withFileLock, lifecyclePath } from '../lib/lock.js';
+import { ownedPath } from '../lib/owned-path.js';
 
 /** Record memory beside brain/ (SPEC §8): typed decision/contract/finding/
  *  assumption records with status, confidence, citations, expiry and
@@ -15,17 +18,103 @@ import { declaredApps } from '../lib/state.js';
  *  only `promote` (the merge-gate promotion) moves lane records into the
  *  main store. Contradictions open reconcile tasks - never silent overwrites.
  *  IDs derive from scanning the JSONL tail (no separate counter file, so no
- *  two-op race); writers stay conductor-serialized (single-writer). */
+ *  two-op race); the store mutex serializes complete CLI transactions. */
 
 const MEM = () => path.join(AEGIS_DIR, 'memory');
 const STORE = () => path.join(REPO, 'brain', 'memory');
 const MAIN = () => path.join(STORE(), 'records.jsonl');
-const LANE = (l: string) => path.join(STORE(), 'lanes', `${l}.jsonl`);
+const LANE = (l: string) => {
+  if (!/^[a-z0-9-]+$/.test(l)) die(2, `lane must match [a-z0-9-], got '${l}'`);
+  return ownedPath(REPO, path.join(STORE(), 'lanes', `${l}.jsonl`));
+};
 const IDX = () => path.join(MEM(), 'index.db');
 // Pre-0.9 source of truth (gitignored, unhashed). ensureStore() migrates it
 // forward once, then removes it - never the reverse.
 const LEGACY_MAIN = () => path.join(MEM(), 'records.jsonl');
 const LEGACY_LANES = () => path.join(MEM(), 'lanes');
+const JOURNAL = () => ownedPath(REPO, path.join(MEM(), 'transaction.json'));
+let changes: Map<string, string | null> | null = null;
+let syncRequested = false;
+let messages: string[] | null = null;
+interface Change { file: string; before: string | null; after: string | null }
+
+function report(message: string): void {
+  if (messages) messages.push(message); else ok(message);
+}
+
+function text(file: string): string | null {
+  ownedPath(REPO, file);
+  return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : null;
+}
+
+function atomicText(file: string, content: string): void {
+  ownedPath(REPO, file);
+  const tmp = `${file}.tmp-${randomUUID()}`;
+  try {
+    fs.writeFileSync(tmp, content, { flag: 'wx' });
+    for (let attempt = 0; ; attempt++) {
+      ownedPath(REPO, file);
+      try { fs.renameSync(tmp, file); break; }
+      catch (e: any) {
+        if (!['EPERM', 'EBUSY', 'EACCES'].includes(e?.code) || attempt >= 5) throw e;
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25 * (attempt + 1));
+      }
+    }
+  } finally { fs.rmSync(tmp, { force: true }); }
+}
+
+function journalPath(file: string): string {
+  if (!/^(records\.jsonl|lanes\/[a-z0-9-]+\.jsonl)$/.test(file)) die(4, 'invalid memory transaction path - preserve journal for recovery');
+  return ownedPath(REPO, path.join(STORE(), file));
+}
+
+function applyTransaction(entries: Change[]): void {
+  if (!Array.isArray(entries)) die(4, 'invalid memory journal - preserve it for recovery');
+  for (const entry of entries) {
+    if (!entry || typeof entry.file !== 'string' || (entry.before !== null && typeof entry.before !== 'string')
+      || (entry.after !== null && typeof entry.after !== 'string')) die(4, 'invalid memory transaction - preserve journal');
+    const current = text(journalPath(entry.file));
+    if (current !== entry.before && current !== entry.after)
+      die(4, `memory transaction conflicts with ${entry.file} - preserve both journal and records`);
+  }
+  for (const entry of entries) {
+    const file = journalPath(entry.file);
+    if (entry.after === null) fs.rmSync(file, { force: true });
+    else atomicText(file, entry.after);
+  }
+}
+
+function storeAccess<T>(action: () => T): T {
+  if (changes) return action();
+  return withFileLock(lifecyclePath, () => {
+    ownedPath(REPO, AEGIS_DIR);
+    if (!fs.existsSync(AEGIS_DIR)) die(2, noStateMsg('missing .aegis'));
+    return withFileLock(path.join(AEGIS_DIR, 'memory-store'), () => {
+      ownedPath(REPO, MEM());
+      fs.mkdirSync(MEM(), { recursive: true });
+      if (fs.existsSync(JOURNAL())) {
+        applyTransaction(readJ<Change[]>(JOURNAL()));
+        fs.rmSync(JOURNAL());
+      }
+      changes = new Map(); syncRequested = false; messages = [];
+      try {
+        const result = action();
+        const entries: Change[] = [...changes].map(([file, after]) => ({
+          file: path.relative(STORE(), file).split(path.sep).join('/'), before: text(file), after,
+        }));
+        if (entries.length) {
+          writeJ(JOURNAL(), entries);
+          applyTransaction(entries);
+          fs.rmSync(JOURNAL());
+        }
+        changes = null;
+        if (syncRequested) renderStore();
+        messages.forEach(ok);
+        return result;
+      } finally { changes = null; syncRequested = false; messages = null; }
+    });
+  });
+}
 
 export const TYPES = ['decision', 'contract', 'finding', 'assumption', 'reconcile'] as const;
 const OPEN_STATUS = ['active', 'pending', 'superseded'];
@@ -44,6 +133,7 @@ export interface MemRecord {
 
 function needInit(): void {
   if (!fs.existsSync(AEGIS_DIR)) die(2, noStateMsg('missing .aegis'));
+  ownedPath(REPO, path.join(STORE(), 'lanes'));
   fs.mkdirSync(path.join(STORE(), 'lanes'), { recursive: true });
   ensureStore();
 }
@@ -53,46 +143,62 @@ function needInit(): void {
  *  no-ops once migrated. Prints to stderr so machine-readable stdout
  *  (list/get) stays parseable. */
 function ensureStore(): void {
+  ownedPath(REPO, LEGACY_MAIN()); ownedPath(REPO, LEGACY_LANES());
   if (!fs.existsSync(LEGACY_MAIN()) && !fs.existsSync(LEGACY_LANES())) return;
-  const moved: string[] = [];
-  if (fs.existsSync(LEGACY_MAIN()) && !fs.existsSync(MAIN())) {
-    fs.copyFileSync(LEGACY_MAIN(), MAIN());
-    moved.push('records.jsonl');
-  }
+  const pairs: { src: string; dst: string; bytes: Buffer }[] = [];
+  if (fs.existsSync(LEGACY_MAIN())) pairs.push({ src: LEGACY_MAIN(), dst: MAIN(), bytes: fs.readFileSync(LEGACY_MAIN()) });
   if (fs.existsSync(LEGACY_LANES())) {
     for (const f of fs.readdirSync(LEGACY_LANES())) {
       if (!f.endsWith('.jsonl')) continue;
-      const dst = path.join(STORE(), 'lanes', f);
-      if (!fs.existsSync(dst)) {
-        fs.copyFileSync(path.join(LEGACY_LANES(), f), dst);
-        moved.push(`lanes/${f}`);
-      }
+      const src = ownedPath(REPO, path.join(LEGACY_LANES(), f));
+      const dst = LANE(f.slice(0, -6));
+      pairs.push({ src, dst, bytes: fs.readFileSync(src) });
     }
   }
-  if (moved.length) {
-    try { fs.rmSync(LEGACY_MAIN(), { force: true }); } catch { /* keep going */ }
-    try { fs.rmSync(LEGACY_LANES(), { recursive: true, force: true }); } catch { /* keep going */ }
-    try { fs.rmSync(path.join(MEM(), 'seq'), { force: true }); } catch { /* pre-0.9 counter, superseded by tail scan */ }
-    console.error(`note: memory store migrated to brain/memory/ (${moved.join(', ')}) - the old gitignored copy is removed`);
+  // Preflight every source before deleting even one. Differing records are
+  // never merged by guesswork, and unrecognized legacy files stay untouched.
+  for (const { src, dst, bytes } of pairs) {
+    ownedPath(REPO, dst);
+    if (fs.existsSync(dst) && !fs.readFileSync(dst).equals(bytes))
+      die(4, `legacy memory migration conflict: ${src} vs ${dst} - both sources preserved`);
   }
+  const identities = new Map<string, { file: string; record: string }>();
+  const reserve = (file: string, records: MemRecord[]): void => {
+    for (const rec of records) {
+      if (!rec || typeof rec.id !== 'string') die(4, `invalid legacy memory identity in ${file} - sources preserved`);
+      const prior = identities.get(rec.id), value = JSON.stringify(rec);
+      if (prior && (prior.file !== file || prior.record !== value))
+        die(4, `legacy memory record conflict: ${rec.id} in ${prior.file} vs ${file} - sources preserved`);
+      identities.set(rec.id, { file, record: value });
+    }
+  };
+  for (const file of [MAIN(), ...laneFiles()]) reserve(file, readAll(file));
+  for (const { dst, bytes } of pairs)
+    reserve(dst, bytes.toString('utf8').split('\n').filter(line => line.trim()).map(line => JSON.parse(line)));
+  for (const { src, dst, bytes } of pairs) {
+    if (!fs.existsSync(dst)) fs.copyFileSync(src, dst, fs.constants.COPYFILE_EXCL);
+    if (!fs.readFileSync(dst).equals(bytes) || !fs.readFileSync(src).equals(bytes))
+      die(4, `legacy memory changed during migration: ${src} - source preserved`);
+    fs.rmSync(src);
+  }
+  if (fs.existsSync(LEGACY_LANES()) && !fs.readdirSync(LEGACY_LANES()).length) fs.rmdirSync(LEGACY_LANES());
+  if (pairs.length) console.error(`note: memory store migrated to brain/memory/ (${pairs.length} verified copies); conflicting/unrecognized sources are never removed`);
 }
 
 function readAll(file: string): MemRecord[] {
-  if (!fs.existsSync(file)) return [];
-  return fs.readFileSync(file, 'utf8').split('\n')
+  const bytes = changes?.has(file) ? changes.get(file) : text(file);
+  if (!bytes) return [];
+  return bytes.split('\n')
     .filter((l) => l.trim()).map((l) => JSON.parse(l));
 }
 
 function allMain(): MemRecord[] { return readAll(MAIN()); }
 function allLane(l: string): MemRecord[] { return readAll(LANE(l)); }
 export function allRecords(): MemRecord[] {
-  needInit();
-  const out = allMain();
-  const lanesDir = path.join(STORE(), 'lanes');
-  if (fs.existsSync(lanesDir))
-    for (const f of fs.readdirSync(lanesDir))
-      if (f.endsWith('.jsonl')) out.push(...readAll(path.join(lanesDir, f)));
-  return out;
+  return storeAccess(() => {
+    needInit();
+    return [...allMain(), ...laneFiles().flatMap(readAll)];
+  });
 }
 
 export function isStale(r: MemRecord, now = Date.now()): boolean {
@@ -120,13 +226,21 @@ function find(id: string): { rec: MemRecord; file: string } | null {
 }
 
 function laneFiles(): string[] {
-  const d = path.join(STORE(), 'lanes');
+  const d = ownedPath(REPO, path.join(STORE(), 'lanes'));
   if (!fs.existsSync(d)) return [];
-  return fs.readdirSync(d).filter((f) => f.endsWith('.jsonl')).map((f) => path.join(d, f));
+  const files = new Set(fs.readdirSync(d).filter((f) => f.endsWith('.jsonl')).map((f) => ownedPath(REPO, path.join(d, f))));
+  for (const [file, content] of changes ?? []) {
+    if (path.dirname(file) === d) {
+      if (content === null) files.delete(file); else files.add(file);
+    }
+  }
+  return [...files].sort();
 }
 
 function rewrite(file: string, recs: MemRecord[]): void {
-  fs.writeFileSync(file, recs.map((r) => JSON.stringify(r)).join('\n') + (recs.length ? '\n' : ''));
+  if (!changes) throw new Error('memory write requires store transaction');
+  ownedPath(REPO, file);
+  changes.set(file, recs.map((r) => JSON.stringify(r)).join('\n') + (recs.length ? '\n' : ''));
 }
 
 function flags(args: string[]): { pos: string[]; opt: Record<string, string> } {
@@ -164,6 +278,7 @@ function sqlite(): any {
 }
 
 function rebuildIndex(recs: MemRecord[]): void {
+  ownedPath(REPO, IDX());
   const mod = sqlite();
   try { fs.rmSync(IDX(), { force: true }); } catch { /* fresh */ }
   if (!mod) return; // token-scan fallback covers search
@@ -177,6 +292,7 @@ function rebuildIndex(recs: MemRecord[]): void {
 }
 
 function searchIds(q: string, recs: MemRecord[]): string[] {
+  ownedPath(REPO, IDX());
   const mod = sqlite();
   if (mod && fs.existsSync(IDX())) {
     try {
@@ -232,19 +348,30 @@ function render(recs: MemRecord[]): string {
 
 /** Rebuild the FTS index and re-render brain/memory.md. Idempotent. */
 export function syncStore(): void {
+  storeAccess(() => {
+    needInit();
+    ownedPath(REPO, path.join(REPO, 'brain', 'memory.md'));
+    ownedPath(REPO, IDX());
+    syncRequested = true;
+  });
+}
+
+function renderStore(): void {
   needInit();
-  const recs = allRecords();
+  const recs = [...allMain(), ...laneFiles().flatMap(readAll)];
   rebuildIndex(recs);
   const brainDir = path.join(REPO, 'brain');
   fs.mkdirSync(brainDir, { recursive: true });
-  fs.writeFileSync(path.join(brainDir, 'memory.md'), render(recs));
+  atomicText(path.join(brainDir, 'memory.md'), render(recs));
 }
 
 /** One-line resume-pack summary, or null when the store is unused. */
 export function memorySummary(): string | null {
   try {
     if (!fs.existsSync(MAIN()) && !laneFiles().length) return null;
-    const recs = allRecords();
+    // A status/resume summary is read-only; never migrate after integrity
+    // verification or create a store merely to report its absence.
+    const recs = [...allMain(), ...laneFiles().flatMap(readAll)];
     if (!recs.length) return null;
     const now = Date.now();
     const active = recs.filter((r) => r.status === 'active' || r.status === 'pending').length;
@@ -283,7 +410,7 @@ function cmdAdd(opt: Record<string, string>): void {
       if (!find(c)) die(2, `cite target not found: ${c} (dangling record ref)`);
       continue;
     }
-    if (!fs.existsSync(path.resolve(REPO, c.replace(/:\d+.*$/, ''))))
+    if (!fs.existsSync(ownedPath(REPO, path.resolve(REPO, c.replace(/:\d+.*$/, '')), 2)))
       die(2, `cite target not found: ${c} (cites must resolve to repo files; URLs exempt)`);
   }
   const lane = opt.lane || null;
@@ -306,6 +433,8 @@ function cmdAdd(opt: Record<string, string>): void {
     lane, app, at, verified_at: null, history: [{ at, event: 'created' }],
   };
   const extra: string[] = [];
+  const contradiction = opt.contradicts ? find(opt.contradicts) : null;
+  if (opt.contradicts && !contradiction) die(2, `contradicts target not found: ${opt.contradicts}`);
 
   if (opt.supersedes) {
     const hit = find(opt.supersedes);
@@ -318,11 +447,10 @@ function cmdAdd(opt: Record<string, string>): void {
     rewrite(hit.file, all);
     extra.push(`supersedes ${opt.supersedes}`);
   }
-  fs.appendFileSync(file, JSON.stringify(rec) + '\n');
+  rewrite(file, [...readAll(file), rec]);
 
   if (opt.contradicts) {
-    const hit = find(opt.contradicts);
-    if (!hit) die(2, `contradicts target not found: ${opt.contradicts}`);
+    const hit = contradiction!;
     const tat = new Date().toISOString();
     const task: MemRecord = {
       id: nextId(), type: 'reconcile', title: `Reconcile ${rec.id} vs ${hit.rec.id}`,
@@ -333,11 +461,11 @@ function cmdAdd(opt: Record<string, string>): void {
       // span apps, and scoping them could hide cross-app contradictions.
       lane, app: null, at: tat, verified_at: null, history: [{ at: tat, event: `opened by contradiction (${rec.id} vs ${hit.rec.id})` }],
     };
-    fs.appendFileSync(file, JSON.stringify(task) + '\n');
+    rewrite(file, [...readAll(file), task]);
     extra.push(`reconcile ${task.id} opened vs ${opt.contradicts}`);
   }
   syncStore();
-  ok(`memory added: ${rec.id} [${type}/${status}/${confidence}]${extra.length ? ` (${extra.join('; ')})` : ''}`);
+  report(`memory added: ${rec.id} [${type}/${status}/${confidence}]${extra.length ? ` (${extra.join('; ')})` : ''}`);
 }
 
 function cmdList(opt: Record<string, string>): void {
@@ -373,7 +501,7 @@ function cmdVerify(id: string, opt: Record<string, string>): void {
   hit.rec.history.push({ at, event: `verified (confidence ${hit.rec.confidence}, status ${hit.rec.status})` });
   rewrite(hit.file, readAll(hit.file).map((r) => r.id === id ? hit.rec : r));
   syncStore();
-  ok(`memory verified: ${id} (confidence ${hit.rec.confidence}, status ${hit.rec.status})`);
+  report(`memory verified: ${id} (confidence ${hit.rec.confidence}, status ${hit.rec.status})`);
 }
 
 function cmdRetire(id: string, opt: Record<string, string>): void {
@@ -391,7 +519,7 @@ function cmdRetire(id: string, opt: Record<string, string>): void {
   hit.rec.history.push({ at, event: `retired: ${opt.reason}` });
   rewrite(hit.file, readAll(hit.file).map((r) => r.id === id ? hit.rec : r));
   syncStore();
-  ok(`memory retired: ${id} (superseded: ${opt.reason})`);
+  report(`memory retired: ${id} (superseded: ${opt.reason})`);
 }
 
 function cmdReconcile(id: string, opt: Record<string, string>): void {
@@ -400,25 +528,28 @@ function cmdReconcile(id: string, opt: Record<string, string>): void {
   if (hit.rec.type !== 'reconcile' || hit.rec.status !== 'open')
     die(4, `${id} is not an open reconcile task`);
   if (!opt.winner || !opt.resolution) die(2, 'usage: aegis memory reconcile <task-id> --winner <id> --resolution <text>');
-  if (!hit.rec.parties!.includes(opt.winner))
-    die(2, `winner must be one of ${hit.rec.parties!.join(', ')}, got '${opt.winner}'`);
-  const loser = hit.rec.parties!.find((p) => p !== opt.winner)!;
+  const parties = hit.rec.parties;
+  if (!Array.isArray(parties) || parties.length !== 2 || parties[0] === parties[1])
+    die(2, `invalid reconcile parties for ${id}`);
+  if (!parties.includes(opt.winner))
+    die(2, `winner must be one of ${parties.join(', ')}, got '${opt.winner}'`);
+  const loser = parties.find((p) => p !== opt.winner)!;
+  if (!find(opt.winner)) die(2, `reconcile winner not found: ${opt.winner}`);
+  const loseHit = find(loser);
+  if (!loseHit) die(2, `reconcile party not found: ${loser}`);
   const at = new Date().toISOString();
   hit.rec.status = 'resolved';
   hit.rec.winner = opt.winner;
   hit.rec.resolution = opt.resolution;
   hit.rec.verified_at = at;
   hit.rec.history.push({ at, event: `resolved: ${opt.winner} wins over ${loser}` });
-  const loseHit = find(loser);
-  if (loseHit) {
-    loseHit.rec.status = 'superseded';
-    loseHit.rec.supersedes = opt.winner;
-    loseHit.rec.history.push({ at, event: `superseded by reconcile ${id} (winner: ${opt.winner})` });
-    rewrite(loseHit.file, readAll(loseHit.file).map((r) => r.id === loser ? loseHit.rec : r));
-  }
+  loseHit.rec.status = 'superseded';
+  loseHit.rec.supersedes = opt.winner;
+  loseHit.rec.history.push({ at, event: `superseded by reconcile ${id} (winner: ${opt.winner})` });
+  rewrite(loseHit.file, readAll(loseHit.file).map((r) => r.id === loser ? loseHit.rec : r));
   rewrite(hit.file, readAll(hit.file).map((r) => r.id === id ? hit.rec : r));
   syncStore();
-  ok(`memory reconciled: ${id} (winner: ${opt.winner}, ${loser} superseded)`);
+  report(`memory reconciled: ${id} (winner: ${opt.winner}, ${loser} superseded)`);
 }
 
 function cmdPromote(opt: Record<string, string>): void {
@@ -430,14 +561,20 @@ function cmdPromote(opt: Record<string, string>): void {
   for (const r of recs) {
     r.lane = null;
     r.history.push({ at, event: `promoted from lane ${opt.lane} (merge-gate)` });
-    fs.appendFileSync(MAIN(), JSON.stringify(r) + '\n');
   }
-  fs.rmSync(file, { force: true });
+  rewrite(MAIN(), [...allMain(), ...recs]);
+  changes!.set(file, null);
   syncStore();
-  ok(`memory promoted: ${recs.length} record(s) from lane ${opt.lane} to the main store`);
+  report(`memory promoted: ${recs.length} record(s) from lane ${opt.lane} to the main store`);
 }
 
 export function memory(args: string[]): void {
+  const { opt } = flags(args.slice(1));
+  if (opt.lane) LANE(opt.lane);
+  storeAccess(() => dispatchMemory(args));
+}
+
+function dispatchMemory(args: string[]): void {
   needInit();
   const op = args[0];
   const { pos, opt } = flags(args.slice(1));
@@ -463,6 +600,6 @@ export function memory(args: string[]): void {
     return cmdReconcile(pos[0], opt);
   }
   if (op === 'promote') return cmdPromote(opt);
-  if (op === 'sync') { syncStore(); ok('memory synced (FTS index rebuilt, brain/memory.md rendered)'); return; }
+  if (op === 'sync') { syncStore(); report('memory synced (FTS index rebuilt, brain/memory.md rendered)'); return; }
   die(2, 'usage: aegis memory <add|list|get|verify|retire|reconcile|promote|sync>');
 }
