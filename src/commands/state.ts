@@ -153,7 +153,10 @@ export function status(args: string[] = []): void {
 }
 
 export function next(args: string[] = []): void {
-  const { s, app } = resolveState(args, true); // pipeline-specific: multi-app requires --app
+  if (declaredApps().length && !args.includes('--app'))
+    die(2, `multi-app repo (apps: ${declaredApps().join(', ')}) - pass --app <name>`);
+  const { s, app } = resolveState(args, false);
+  if (declaredApps().length && !app) die(2, 'multi-app repo - pass --app <name>');
   const t = loadTransitions();
   const legal = t.edges.filter((e) => e.from === s.current_skill && !e.backward && blockers(s, t, e).length === 0);
   if (!legal.length) die(3, `Blocked at ${s.current_skill}${app ? ` (app ${app})` : ''} - no legal forward transition (run aegis status)`);

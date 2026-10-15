@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { AEGIS_DIR, die, readJ, writeJ, noStateMsg } from './util.js';
+import { lockFile, lifecyclePath } from './lock.js';
+import { ownedPath } from './owned-path.js';
 
 export const SCHEMA_VERSION = 1;
 
@@ -92,6 +94,7 @@ export const transP = path.join(AEGIS_DIR, 'transitions.json');
 export const configP = path.join(AEGIS_DIR, 'config.json');
 
 function loadJsonOr<T>(p: string, what: string): T {
+  ownedPath(AEGIS_DIR, p);
   if (!fs.existsSync(p)) die(2, noStateMsg(`missing ${what}`));
   try { return readJ<T>(p); }
   catch { die(2, `corrupt ${what} - fix it, restore from a checkpoint, or re-run aegis init`); }
@@ -146,67 +149,28 @@ export interface StateCtx { s: State; p: string; app: string | null }
 // processes can read the same state, append in memory, and the second write
 // silently overwrites the first's event (metis-nda trial: 3/5 concurrent
 // `aegis exec` calls recorded). `resume` VERIFIED cannot see a missing event.
-// Fix: a lockfile around the whole read-modify-write. Stale locks self-heal:
-// a lock whose pid is dead (or older than 60s) is stolen, so a die()/crash
-// mid-mutation never wedges the repo.
-
-const sleep = (ms: number): void => {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-};
-
-function acquireLock(p: string): void {
-  const lock = `${p}.lock`;
-  const deadline = Date.now() + 10_000;
-  for (;;) {
-    try {
-      fs.writeFileSync(lock, JSON.stringify({ pid: process.pid, at: Date.now() }), { flag: 'wx' });
-      return;
-    } catch (e: any) {
-      if (e?.code !== 'EEXIST') throw e;
-      // Read the holder with retries: on Windows the file can be opened
-      // mid-creation (permissive sharing lets a reader in while the writer's
-      // bytes are still landing), which parses as garbage. Treating that as
-      // a dead lock STEALS a live holder's lock -> two writers -> lost
-      // updates (the v0.4.1 class in a new location; CI caught 6/8 events).
-      // A creating writer finishes in ms; a truly corrupt lock never parses.
-      let holder: { pid?: unknown; at?: unknown } | null = null;
-      for (let i = 0; i < 6 && holder === null; i++) {
-        try {
-          const j: unknown = JSON.parse(fs.readFileSync(lock, 'utf8'));
-          if (j && typeof j === 'object' &&
-            typeof (j as Record<string, unknown>).pid === 'number' &&
-            typeof (j as Record<string, unknown>).at === 'number') holder = j as { pid: number; at: number };
-          else if (i === 5) break; // well-formed JSON, wrong shape: genuinely corrupt
-          else sleep(20);
-        } catch {
-          if (i === 5) break; // still unreadable after ~120ms: genuinely corrupt
-          sleep(20);
-        }
-      }
-      let steal = holder === null;
-      if (holder) {
-        let alive = true;
-        try { process.kill(holder.pid as number, 0); } catch { alive = false; }
-        steal = !alive || Date.now() - (holder.at as number) > 60_000;
-      }
-      if (steal) { fs.rmSync(lock, { force: true }); continue; }
-      if (Date.now() > deadline)
-        die(4, `state locked by another aegis process (waited 10s) - retry, or remove ${path.basename(lock)} if that process is gone`);
-      sleep(25 + Math.floor(Math.random() * 50)); // jittered backoff
-    }
-  }
-}
+// Recovery and process-exit cleanup are shared with memory/lifecycle writers.
+const stateLocks = new WeakMap<State, { p: string; release: () => void }>();
 
 /** Lock + load a state file for mutation. Pair with commitState. */
 export function acquireState(p: string): State {
-  acquireLock(p);
-  return loadStateFrom(p);
+  const lifecycle = lockFile(lifecyclePath);
+  let release: (() => void) | undefined;
+  try {
+    ownedPath(AEGIS_DIR, p);
+    release = lockFile(p);
+    const s = loadStateFrom(p);
+    stateLocks.set(s, { p, release: () => { release!(); lifecycle(); } });
+    return s;
+  } catch (e) { release?.(); lifecycle(); throw e; }
 }
 
 /** Write + unlock. Every mutation path must end here, not bare writeJ. */
 export function commitState(p: string, s: State): void {
-  try { writeJ(p, s); }
-  finally { fs.rmSync(`${p}.lock`, { force: true }); }
+  const owner = stateLocks.get(s);
+  if (!owner || owner.p !== p) die(4, 'commitState requires its acquired state and path');
+  try { ownedPath(AEGIS_DIR, p); writeJ(p, s); }
+  finally { stateLocks.delete(s); owner.release(); }
 }
 
 /** Resolve which state a command operates on. Multi-app repo + mutating
@@ -241,11 +205,11 @@ const STATE_ID = /^\d{2}[a-z]$/;
  *  no skill file under .aegis/skills/ are noted, since advisory states without
  *  a pipeline file are legitimate but typos are not. */
 function validateTransitions(t: Transitions): Transitions {
-  const skillsDir = path.join(AEGIS_DIR, 'skills');
+  const skillsDir = ownedPath(AEGIS_DIR, path.join(AEGIS_DIR, 'skills'));
   const known = new Set<string>();
   if (fs.existsSync(skillsDir)) {
     for (const fam of fs.readdirSync(skillsDir)) {
-      const d = path.join(skillsDir, fam);
+      const d = ownedPath(AEGIS_DIR, path.join(skillsDir, fam));
       if (!fs.statSync(d).isDirectory()) continue;
       for (const f of fs.readdirSync(d)) {
         const m = /^(\d{2}[a-z])-/.exec(f);

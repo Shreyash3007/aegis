@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { AEGIS_DIR, REPO, die, ok, readJ } from '../lib/util.js';
 import { MARKER } from '../lib/hooks.js';
+import { withFileLock, lifecyclePath } from '../lib/lock.js';
+import { ownedPath } from '../lib/owned-path.js';
 
 /** aegis remove - uninstall Aegis from this repo, restoring what init took.
  *  Removes: .aegis/ tree, Aegis-managed git hooks (marker check - foreign
@@ -15,29 +17,40 @@ import { MARKER } from '../lib/hooks.js';
 
 export function remove(args: string[]): void {
   if (args.length) die(2, 'usage: aegis remove (no arguments)');
+  withFileLock(lifecyclePath, uninstall);
+}
+
+function uninstall(): void {
+  ownedPath(REPO, AEGIS_DIR);
   if (!fs.existsSync(AEGIS_DIR)) die(2, 'nothing to remove - no .aegis/ (never initialized?)');
   try {
-    const s = readJ<{ slices?: Record<string, unknown>; lanes?: { active?: string[] } }>(path.join(AEGIS_DIR, 'state.json'));
+    const s = readJ<{ slices?: Record<string, unknown>; lanes?: { active?: string[] } }>(ownedPath(REPO, path.join(AEGIS_DIR, 'state.json')));
+    if (!s || !s.lanes || !Array.isArray(s.lanes.active) || (s.slices !== undefined &&
+      (!s.slices || typeof s.slices !== 'object' || Array.isArray(s.slices))))
+      die(4, 'unreadable active state - preserve the install and recover its lane registry first');
     const open = Object.keys(s.slices ?? {});
     if (open.length || (s.lanes?.active ?? []).length)
       die(4, `open slices/lanes: ${[...open, ...(s.lanes?.active ?? [])].join(', ')} - close them first (aegis slice remove <name>) so no worktree strands`);
-  } catch (e) {
-    if (e instanceof Error && e.message.startsWith('open slices')) throw e;
-    // Unparseable state: removing a corrupt install is still the way out.
-  }
+  } catch { die(4, 'unreadable active state - preserve the install and recover its lane registry first'); }
+  const legacy = ownedPath(REPO, path.join(AEGIS_DIR, 'memory', 'records.jsonl'));
+  const lanes = ownedPath(REPO, path.join(AEGIS_DIR, 'memory', 'lanes'));
+  if (fs.existsSync(legacy) || (fs.existsSync(lanes) && fs.readdirSync(lanes).length))
+    die(4, 'unmigrated/conflicting legacy memory - preserve .aegis; resolve with aegis memory sync before uninstall');
+  if (fs.existsSync(ownedPath(REPO, path.join(AEGIS_DIR, 'memory', 'transaction.json'))))
+    die(4, 'pending memory transaction - preserve .aegis and recover with aegis memory sync before uninstall');
 
   // 1. hooks: drop files WE manage, restore moved-aside foreign hooks.
-  const hooksDir = path.join(REPO, '.git', 'hooks');
+  const hooksDir = ownedPath(REPO, path.join(REPO, '.git', 'hooks'));
   const restored: string[] = [];
   const dropped: string[] = [];
   const kept: string[] = [];
   if (fs.existsSync(hooksDir)) {
     for (const f of fs.readdirSync(hooksDir)) {
       if (f.endsWith('.aegis-orig') || f.endsWith('.sample')) continue;
-      const p = path.join(hooksDir, f);
+      const p = ownedPath(REPO, path.join(hooksDir, f));
       if (!fs.statSync(p).isFile()) continue;
       const body = fs.readFileSync(p, 'utf8');
-      const orig = `${p}.aegis-orig`;
+      const orig = ownedPath(REPO, `${p}.aegis-orig`);
       if (body.includes(MARKER)) {
         fs.rmSync(p);
         dropped.push(f);
@@ -52,7 +65,7 @@ export function remove(args: string[]): void {
   }
 
   // 2. .gitignore: drop exactly our line; delete the file only if init wrote it.
-  const gi = path.join(REPO, '.gitignore');
+  const gi = ownedPath(REPO, path.join(REPO, '.gitignore'));
   if (fs.existsSync(gi)) {
     const kept2 = fs.readFileSync(gi, 'utf8').split('\n').filter((l) => l.trim() !== '.aegis/');
     if (!kept2.join('').trim()) fs.rmSync(gi);
