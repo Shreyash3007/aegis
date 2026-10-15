@@ -109,3 +109,12 @@ fs.existsSync=function(p){const found=original(p);if(String(p)===target&&!found)
   assert.deepEqual(codes, [0, 4]);
   assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).schema_version, 1);
 });
+
+test('audit: TDD preserves the recorded runner deadline for integrated verification', (t) => {
+  const dir = fixture(t);
+  const red = aegis(dir, ['tdd', 'red', 'feature', '--test-file', 'check.cjs', '--expect-exit', '1', '--timeout-ms', '90000', '--', process.execPath, 'check.cjs']);
+  assert.equal(red.status, 0, red.stderr);
+  const key = crypto.createHash('sha256').update('feature').digest('hex');
+  const proof = JSON.parse(fs.readFileSync(path.join(dir, '.aegis', 'tdd', `${key}.json`), 'utf8'));
+  assert.equal(proof.timeout_ms, 90000);
+});

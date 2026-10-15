@@ -41,3 +41,13 @@ test('audit: opt-in skill judge also redacts provider-bound file content', async
   assert.ok(body.length > 0, 'positive control: the configured judge received a request');
   assert.ok(!body.includes(secret), 'skill-file credentials are redacted before egress');
 });
+
+test('audit: classification output does not echo credential-shaped action text', (t) => {
+  const dir = scratch(t);
+  const secret = 'sk-fixture-ACTION123456789';
+  const file = path.join(dir, 'classify.json');
+  fs.writeFileSync(file, JSON.stringify({ action: `deploy using ${secret}` }));
+  const r = aegis(dir, ['jev', 'classify', '--file', file], { env: { JEV_BACKEND: 'mock' } });
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(!(r.stdout + r.stderr).includes(secret));
+});

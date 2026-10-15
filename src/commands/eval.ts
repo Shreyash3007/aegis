@@ -4,6 +4,7 @@ import { AEGIS_DIR, die, ok, noStateMsg } from '../lib/util.js';
 import { lintSkillFile, parseFrontmatter, splitList } from '../lib/skill-lint.js';
 import { judge, resolveBackend } from '../lib/jev.js';
 import { postJson } from '../lib/http.js';
+import { redactState } from '../lib/redact.js';
 
 /** aegis eval <file|--all> - prompt eval harness (O3).
  *  Deterministic checks always run. The model judge is opt-in: it activates
@@ -67,7 +68,7 @@ function parseVerdict(text: string): JudgeVerdict | undefined {
  *  an honest JUDGE-ERROR, never a pass or fail. */
 async function judgeFile(file: string, key: string, url: string, model: string): Promise<JudgeVerdict> {
   try {
-    const content = fs.readFileSync(file, 'utf8').slice(0, JUDGE_MAX_CHARS);
+    const content = redactState(fs.readFileSync(file, 'utf8').slice(0, JUDGE_MAX_CHARS));
     // Single attempt (no retries): preserves the documented judge semantics;
     // the shared transport still guarantees clean socket teardown.
     const body = await postJson(url,

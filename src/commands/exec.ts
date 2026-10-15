@@ -2,6 +2,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { REPO, die, ok } from '../lib/util.js';
 import { acquireState, commitState, stateP } from '../lib/state.js';
 import { checkpoint } from './persist.js';
+import { redactState } from '../lib/redact.js';
 
 /** aegis exec [--timeout <s>] -- <cmd> (v0.4): enforcement for external
  *  executors (opencode, GLM, fork-agent waves) is prompt-deep - nothing
@@ -28,7 +29,7 @@ export async function exec(args: string[]): Promise<void> {
   }
   // A single string is explicitly shell syntax; multiple args remain argv.
   // Never apply POSIX quoting to cmd.exe or interpolate literal argv in a shell.
-  const cmd = raw.length === 1 ? raw[0] : raw.map((s) => JSON.stringify(s)).join(' ');
+  const cmd = redactState(raw.length === 1 ? raw[0] : raw.map((s) => JSON.stringify(s)).join(' '));
   checkpoint(['--quiet']);
   let timedOut = false;
   const code = await new Promise<number>((resolve) => {

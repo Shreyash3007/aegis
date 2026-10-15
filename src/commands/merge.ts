@@ -2,12 +2,12 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execSync, spawnSync } from 'node:child_process';
-import { REPO, die, git, gitRaw, ok } from '../lib/util.js';
-import { contractsPath, stateP } from '../lib/state.js';
+import { REPO, die, git, gitTry, gitRaw, ok } from '../lib/util.js';
+import { contractsPath, stateP, loadState } from '../lib/state.js';
 import { quarantineMatch } from './clean.js';
 import { detectStack, typecheckCommand } from '../lib/oracles.js';
-import { branchWorktree, proofPath, proofProblem, readProof } from '../lib/tdd-proof.js';
-import { qualityProblem, readQuality, runCriteria } from '../lib/quality-evidence.js';
+import { branchWorktree, localBranch, proofPath, proofProblem, readProof, TddProof } from '../lib/tdd-proof.js';
+import { qualityProblem, readQuality, runCriteria, QualitySnapshot } from '../lib/quality-evidence.js';
 
 /** aegis merge check <branch> - the merge oracle (N3, simulation-proven).
  *  Real git merge in an OS-temp worktree (A1.5), tsc, contract immutability
@@ -32,30 +32,36 @@ function dependencySnapshot(root: string): string {
 }
 export function merge(args: string[]): void {
   if (args[0] !== 'check' || !args[1]) die(2, 'usage: aegis merge check <branch>');
-  const branch = args[1];
-
-  let branchSha: string;
-  try { branchSha = git(['rev-parse', branch]); }
-  catch { die(2, `unknown branch: ${branch}`); }
+  const branch = args[1].replace(/^refs\/heads\//, '');
+  const branchSha = localBranch(branch);
+  if (!branchSha) die(2, `unknown local branch (revision expressions are not supported): ${args[1]}`);
   const baseSha = git(['rev-parse', 'HEAD']);
-  const qualityIssue = qualityProblem(branch, branchSha, args.includes('--require-quality'));
-  if (qualityIssue) die(9, qualityIssue);
   // Quarantined lanes (SPEC §8): the oracle refuses quarantined paths until
   // a human clears them. Manual JSON read (not loadState): a corrupt or
   // missing state must not change merge behavior - no quarantine, no refusal.
-  try {
-    const st = JSON.parse(fs.readFileSync(stateP, 'utf8'));
-    const hit = ((st.quarantine ?? []) as any[]).find((r) => quarantineMatch(r, branch));
+  if (fs.existsSync(stateP)) {
+    const st = loadState();
+    if (st.quarantine !== undefined && !Array.isArray(st.quarantine)) die(9, 'quarantine registry malformed - cannot verify merge');
+    const hit = (st.quarantine ?? []).find((r) => quarantineMatch(r, branch));
     if (hit) die(9, `QUARANTINED ${branch} (frozen: ${hit.reason}) - oracle refuses until a human clears: aegis quarantine clear ${hit.target} --reason "<why>"`);
-  } catch { /* no readable state - nothing quarantined */ }
-  if (branchSha === baseSha) {
-    console.log('NOTHING TO MERGE: branch tip == base tip. This is NOT a pass (A1.6).');
+  }
+  if (gitTry(['merge-base', branchSha, baseSha]) === branchSha) {
+    console.log('NOTHING TO MERGE: branch is already contained in base. This is NOT a pass (A1.6).');
     process.exit(13);
   }
 
+  let qualitySnapshot: QualitySnapshot;
+  let proofSnapshot: TddProof | null;
+  try {
+    qualitySnapshot = { acceptance: readQuality(branch, 'acceptance'), review: readQuality(branch, 'review') };
+    proofSnapshot = readProof(branch);
+  } catch { die(9, 'QUALITY/TDD evidence unreadable or malformed - cannot verify merge'); }
+  const qualityIssue = qualityProblem(branch, branchSha, args.includes('--require-quality'), qualitySnapshot);
+  if (qualityIssue) die(9, qualityIssue);
+
   const proofRequired = args.includes('--require-proof') || fs.existsSync(proofPath(branch));
   if (proofRequired) {
-    const problem = proofProblem(branch, branchSha);
+    const problem = proofProblem(branch, branchSha, proofSnapshot);
     if (problem) die(9, problem);
     console.log(`TDD RED -> GREEN verified at ${branchSha}`);
   } else console.log('TDD UNMEASURED - no receipt; --require-proof makes evidence mandatory');
@@ -73,10 +79,11 @@ export function merge(args: string[]): void {
     try { git(['worktree', 'prune']); } catch { /* best effort */ }
   };
 
-  try { git(['worktree', 'prune']); git(['worktree', 'add', tmp, 'HEAD']); }
+  process.once('exit', cleanup);
+  try { git(['worktree', 'prune']); git(['worktree', 'add', '--detach', tmp, baseSha]); }
   catch { cleanup(); die(9, `failed to create merge-test worktree`); }
 
-  try { git([...ORACLE_ID, 'merge', '--no-commit', '--no-ff', branch], tmp); }
+  try { git([...ORACLE_ID, 'merge', '--no-commit', '--no-ff', branchSha], tmp); }
   catch { cleanup(); die(9, `MERGE CONFLICT in ${branch} - text conflicts need LLM resolution with compiler context`); }
 
   const failed: string[] = [];
@@ -128,19 +135,22 @@ export function merge(args: string[]): void {
   if (drift) failed.push(`CONTRACT DRIFT: slice modified immutable contracts (N1):\n  ${drift.split('\n').join('\n  ')}`);
 
   if (proofRequired) {
-    const proof = readProof(branch)!;
+    const proof = proofSnapshot!;
     const checked = spawnSync(proof.command[0], proof.command.slice(1), {
-      cwd: tmp, encoding: 'utf8', timeout: 60_000, maxBuffer: 4 * 1024 * 1024,
+      cwd: tmp, encoding: 'utf8', timeout: proof.timeout_ms ?? 60_000, maxBuffer: 4 * 1024 * 1024,
     });
     if (checked.error || checked.signal || checked.status !== 0)
       failed.push('TDD integrated test FAILED: recorded runner did not pass against the merged tree');
   }
 
-  const accepted = readQuality(branch, 'acceptance');
+  const accepted = qualitySnapshot.acceptance;
   if (accepted?.criteria && runCriteria(accepted.criteria, tmp).some((r) => r.status !== 'PASS'))
     failed.push('QUALITY acceptance FAILED against merged tree');
 
+  if (localBranch(branch) !== branchSha || git(['rev-parse', 'HEAD']) !== baseSha)
+    failed.push('snapshot changed during verification: feature or base moved - rerun against the current commits');
   cleanup();
+  process.off('exit', cleanup);
   if (failed.length) die(9, `MERGE ORACLE REFUSED ${branch}:\n${failed.join('\n')}`);
-  ok(`merge oracle PASSED ${branch} (${tcCommand ? `${tcLabel} clean` : 'typecheck UNVERIFIED'}, contracts intact)`);
+  ok(`merge oracle PASSED ${branch} (base ${baseSha}, feature ${branchSha}; ${tcCommand ? `${tcLabel} clean` : 'typecheck UNVERIFIED'}, contracts intact)`);
 }

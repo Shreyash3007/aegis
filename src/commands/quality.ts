@@ -21,7 +21,7 @@ export function quality(args: string[]): void {
   if (!file || path.isAbsolute(file) || file.split('/').includes('..')) die(2, '--file must name a committed repo-relative JSON plan');
   const wt = branchWorktree(branch);
   if (!wt) die(4, 'capture quality evidence from a checked-out branch worktree');
-  if (git(['status', '--porcelain'], wt)) die(4, 'commit the quality plan and source snapshot first');
+  if (git(['rev-parse', 'HEAD'], wt) !== tip || git(['status', '--porcelain'], wt)) die(4, 'commit the quality plan and source snapshot first');
   let bytes: Buffer;
   let plan: { criteria?: Criterion[]; findings?: Finding[] };
   try { bytes = gitFile(tip, file); plan = JSON.parse(bytes.toString('utf8')); }
@@ -60,7 +60,7 @@ export function quality(args: string[]): void {
     }
     receipt.findings = findings;
   }
-  if (localBranch(branch) !== tip || git(['status', '--porcelain'], wt)) die(9, 'quality snapshot changed during capture');
+  if (localBranch(branch) !== tip || git(['rev-parse', 'HEAD'], wt) !== tip || git(['status', '--porcelain'], wt)) die(9, 'quality snapshot changed during capture');
   const s = acquireState(stateP);
   fs.mkdirSync(path.join(AEGIS_DIR, 'quality'), { recursive: true });
   writeJ(qualityPath(branch, kind), receipt);

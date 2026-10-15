@@ -24,7 +24,7 @@ export function tdd(args: string[]): void {
   }
   const wt = branchWorktree(branch);
   if (!wt) die(4, 'branch must be checked out in a worktree to capture TDD evidence');
-  if (git(['status', '--porcelain'], wt)) die(4, 'commit the test/source snapshot before capturing TDD evidence');
+  if (git(['rev-parse', 'HEAD'], wt) !== tip || git(['status', '--porcelain'], wt)) die(4, 'commit the test/source snapshot before capturing TDD evidence');
   let old: TddProof | null;
   try { old = readProof(branch); }
   catch { die(9, 'TDD receipt unreadable - preserve it and investigate before recapturing'); }
@@ -39,7 +39,7 @@ export function tdd(args: string[]): void {
     const i = flags.lastIndexOf(name);
     return i < 0 ? undefined : flags[i + 1];
   };
-  const timeout = Number(value('--timeout-ms') ?? 60_000);
+  const timeout = Number(value('--timeout-ms') ?? old?.timeout_ms ?? 60_000);
   if (!Number.isInteger(timeout) || timeout <= 0 || timeout > 120_000) die(2, 'TDD timeout must be 1..120000 milliseconds');
   const command = op === 'green' ? old?.command : sep < 0 ? [] : args.slice(sep + 1);
   if (!command?.length) die(2, op === 'green' ? 'record RED before GREEN' : 'RED needs an argv after --');
@@ -71,7 +71,7 @@ export function tdd(args: string[]): void {
   });
   if (r.error || r.signal || r.status !== expected)
     die(9, `TDD ${op.toUpperCase()} not recorded: expected exit ${expected}, observed ${r.error ? 'runner error/timeout' : r.signal ?? r.status}`);
-  if (localBranch(branch) !== tip || git(['status', '--porcelain'], wt))
+  if (localBranch(branch) !== tip || git(['rev-parse', 'HEAD'], wt) !== tip || git(['status', '--porcelain'], wt))
     die(9, 'TDD snapshot changed during execution; no proof recorded');
   const out = JSON.stringify({ stdout: r.stdout, stderr: r.stderr });
   const record: TestRun = {
@@ -90,8 +90,8 @@ export function tdd(args: string[]): void {
   fs.mkdirSync(path.join(AEGIS_DIR, 'tdd'), { recursive: true });
   fs.writeFileSync(path.join(AEGIS_DIR, 'tdd', record.output), out);
   const proof: TddProof = op === 'red'
-    ? { version: 1, branch, command, tests, red: record }
-    : { ...old!, green: record };
+    ? { version: 1, branch, command, timeout_ms: timeout, tests, red: record }
+    : { ...old!, timeout_ms: timeout, green: record };
   writeJ(proofPath(branch), proof);
   s.history.push({ skill: s.current_skill, at: record.at, event: `tdd-${op}: ${branch} ${tip} exit=${record.exit} output-sha256=${record.output_sha256}` });
   commitState(stateP, s);

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { AEGIS_DIR, die, gitTry, ok, writeJ } from '../lib/util.js';
+import crypto from 'node:crypto';
+import { AEGIS_DIR, die, gitTry, ok } from '../lib/util.js';
 import { acquireState, commitState, loadState, stateP } from '../lib/state.js';
 
 /** Public exports deliberately aggregate rather than copy raw state:
@@ -51,6 +52,16 @@ export function evidence(args: string[]): void {
     privacy: 'aggregate only; no raw state, prompts, model names or commands',
   };
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  writeJ(file, document);
+  // Atomic create-only publication: rename/writeJ would replace a concurrent
+  // successful export. A same-directory hard link exposes only complete bytes.
+  const temporary = path.join(path.dirname(file), `.aegis-export-${crypto.randomUUID()}.tmp`);
+  fs.writeFileSync(temporary, JSON.stringify(document, null, 2) + '\n', { flag: 'wx' });
+  try { fs.linkSync(temporary, file); }
+  catch (e) {
+    fs.rmSync(temporary, { force: true });
+    if ((e as NodeJS.ErrnoException).code === 'EEXIST') die(4, 'evidence observation already exists; use a successor filename');
+    throw e;
+  }
+  fs.rmSync(temporary);
   ok(`aggregate evidence exported: ${file} (no raw state published)`);
 }

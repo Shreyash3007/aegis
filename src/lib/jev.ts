@@ -17,6 +17,8 @@
 
 import { postJson } from './http.js';
 import { reserveJudgments } from './judgment-budget.js';
+import { redactState } from './redact.js';
+export { redactState } from './redact.js';
 
 export interface JevQuestion {
   id?: string; type: 'noul' | 'choice' | 'score'; question: string;
@@ -75,16 +77,6 @@ class BackendError extends Error {
  *  secrets should be rephrased, not just redacted; the shapes below are the
  *  backstop, not the plan. Identifiers that match are refused rather than
  *  rewritten, since changing choice keys would change answer semantics. */
-export function redactState(state: string): string {
-  return state
-    .replace(/https?:\/\/[^/\s:@]+:[^/\s@]+@/g, 'https://[redacted]@')
-    .replace(/(authorization:\s*(?:bearer|basic|token)\s+)\S+/gi, '$1[redacted]')
-    .replace(/(^|\n)\s*cookie:[^\n]*/gi, '$1cookie: [redacted]')
-    .replace(/(^|\s)(-u|--user)\s+\S+:\S+/g, '$1$2 [redacted]')
-    .replace(/\b([A-Za-z_0-9]*(?:TOKEN|SECRET|PASSWORD|API_KEY)\s*=\s*)([^\s'";]+)/g, '$1[redacted]')
-    .replace(/\b(sk-[A-Za-z0-9\-_]{8,}|gh[pousr]_[A-Za-z0-9_]+|xox[baprs]-[A-Za-z0-9-]+)\b/g, '[redacted]');
-}
-
 function toNativeQuestion(q: JevQuestion & { id: string }): Record<string, unknown> {
   if (q.type === 'noul')
     return { type: 'noul', instructions: redactState(q.question), ...(q.criteria ? {
@@ -118,11 +110,29 @@ function parseAnswers(body: any, questions: (JevQuestion & { id: string })[]): R
   return questions.map((q) => {
     const a = byId[q.id];
     if (!a || typeof a !== 'object') throw new BackendError(`response missing answer for question "${q.id}"`);
-    const conf = typeof a.confidence === 'number' && Number.isFinite(a.confidence) ? a.confidence : undefined;
-    const dist = a.probabilities && typeof a.probabilities === 'object' ? a.probabilities : undefined;
-    if (q.type === 'noul') return { answer: num(a.noul, q.id), confidence: conf };
-    if (q.type === 'choice') return { answer: str(a.choice, q.id), confidence: conf, distribution: dist };
-    return { answer: num(a.score, q.id), confidence: conf, distribution: dist, legend: a.legend };
+    const conf = a.confidence;
+    if (conf !== undefined && (typeof conf !== 'number' || !Number.isFinite(conf) || conf < 0 || conf > 1))
+      throw new BackendError(`answer "${q.id}" has invalid confidence`);
+    const labels = q.type === 'choice' ? Array.isArray(q.options) ? q.options : Object.keys(q.options ?? {})
+      : q.type === 'score' ? (q.levels ?? []).map((_, i) => String(i)) : [];
+    const dist = a.probabilities;
+    if (dist !== undefined && (!dist || typeof dist !== 'object' || Array.isArray(dist) ||
+        Object.entries(dist).some(([key, value]) => !labels.includes(key) || typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1)))
+      throw new BackendError(`answer "${q.id}" has invalid probability map`);
+    if (q.type === 'noul') {
+      const answer = num(a.noul, q.id);
+      if (answer < 0 || answer > 1) throw new BackendError(`answer "${q.id}" is outside noul range`);
+      return { answer, confidence: conf };
+    }
+    if (q.type === 'choice') {
+      const answer = str(a.choice, q.id);
+      if (!labels.includes(answer)) throw new BackendError(`answer "${q.id}" is not a declared choice`);
+      return { answer, confidence: conf, distribution: dist };
+    }
+    const answer = num(a.score, q.id);
+    if (!Number.isInteger(answer) || answer < 0 || answer >= (q.levels?.length ?? 0))
+      throw new BackendError(`answer "${q.id}" is outside score levels`);
+    return { answer, confidence: conf, distribution: dist, legend: a.legend };
   });
 }
 
@@ -218,9 +228,10 @@ export async function judge(
 ): Promise<JevResult> {
   const qs = questions.map((q, i) => ({ ...q, id: q.id || `q${i}` }));
   const backend = resolveBackend();
-  if (state.length > MAX_STATE_CHARS) {
+  const payloadChars = JSON.stringify({ state, questions: qs }).length;
+  if (payloadChars > MAX_STATE_CHARS) {
     const verdicts = preCall('oversized',
-      `State is ${state.length} chars (> ~30k tokens) - shrink it to the evidence the questions need, or split into smaller judged states.`, qs);
+      `Judgment payload is ${payloadChars} chars (> ~30k tokens) - shrink evidence/questions or split into smaller batches.`, qs);
     return { verdicts, escalated: true, backend: backend.name, model: backend.model ?? 'none', latencyMs: 0 };
   }
   if (backend.name === 'typesafe' && qs.some((q) => {

@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { classifyAction } from '../lib/autonomy.js';
 import { die, ok } from '../lib/util.js';
 import { judge, type JevQuestion, type JevResult } from '../lib/jev.js';
+import { redactState } from '../lib/redact.js';
 
 /** aegis jev <judge|triage|score|classify|cite> --file <json> [--threshold f]
  *
@@ -16,7 +17,11 @@ const GATE_THRESHOLD = 0.7; // CONSTRAINTS §4: triage + citation gates
 
 function readJson(file: string): any {
   if (!file) die(2, 'usage: aegis jev <judge|triage|score|classify|cite> --file <request.json> [--threshold f]');
-  try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
+  try {
+    const value = JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (!value || typeof value !== 'object' || Array.isArray(value)) die(2, 'judgment request must be an object');
+    return value;
+  }
   catch { die(2, `unparseable JSON: ${file}`); }
 }
 
@@ -29,13 +34,27 @@ function checkQuestion(q: any, i: number): JevQuestion {
   if (!q || typeof q !== 'object') die(2, `questions[${i}]: must be an object`);
   if (!['noul', 'choice', 'score'].includes(q.type)) die(2, `questions[${i}]: type must be noul|choice|score`);
   if (typeof q.question !== 'string' || !q.question.trim()) die(2, `questions[${i}]: needs a non-empty "question"`);
+  if (q.id !== undefined && (typeof q.id !== 'string' || !q.id.trim())) die(2, `questions[${i}]: id must be a non-empty string`);
+  if (q.criteria !== undefined && (!q.criteria || typeof q.criteria.true !== 'string' || !q.criteria.true.trim() || typeof q.criteria.false !== 'string' || !q.criteria.false.trim()))
+    die(2, `questions[${i}]: noul criteria need true/false descriptions`);
   if (q.type === 'choice') {
-    const n = Array.isArray(q.options) ? q.options.length : Object.keys(q.options ?? {}).length;
-    if (n < 2) die(2, `questions[${i}]: choice needs >= 2 options`);
+    if (!q.options || typeof q.options !== 'object') die(2, `questions[${i}]: choice needs options`);
+    const labels = Array.isArray(q.options) ? q.options : Object.keys(q.options);
+    const descriptions = Array.isArray(q.options) ? q.options : Object.values(q.options);
+    if (labels.length < 2 || new Set(labels).size !== labels.length ||
+        [...labels, ...descriptions].some((s) => typeof s !== 'string' || !s.trim()))
+      die(2, `questions[${i}]: choice needs >= 2 unique labels and string descriptions`);
   }
-  if (q.type === 'score' && (!Array.isArray(q.levels) || q.levels.length < 2))
+  if (q.type === 'score' && (!Array.isArray(q.levels) || q.levels.length < 2 || q.levels.some((s: unknown) => typeof s !== 'string' || !s.trim())))
     die(2, `questions[${i}]: score needs >= 2 levels`);
   return q as JevQuestion;
+}
+
+async function checkedJudge(state: string, questions: JevQuestion[], opts: { threshold?: number } = {}): Promise<JevResult> {
+  const checked = questions.map(checkQuestion);
+  const ids = checked.map((q, i) => q.id ?? `q${i}`);
+  if (new Set(ids).size !== ids.length) die(2, 'judgment question IDs must be unique');
+  return judge(state, checked, opts);
 }
 
 function header(r: JevResult): string[] {
@@ -56,8 +75,8 @@ async function cmdJudge(file: string, threshold?: number): Promise<void> {
   const state = checkState(req.state);
   if (!Array.isArray(req.questions) || !req.questions.length) die(2, 'request needs a non-empty "questions" array');
   const questions = req.questions.map(checkQuestion);
-  const r = await judge(state, questions, threshold !== undefined ? { threshold } : {});
-  console.log([...header(r), ...r.verdicts.map(verdictLine)].join('\n'));
+  const r = await checkedJudge(state, questions, threshold !== undefined ? { threshold } : {});
+  console.log(redactState([...header(r), ...r.verdicts.map(verdictLine)].join('\n')));
   ok(`judged ${r.verdicts.length} question(s), ${r.verdicts.filter((v) => v.escalate).length} escalated`);
 }
 
@@ -73,7 +92,7 @@ async function cmdTriage(file: string, threshold: number): Promise<void> {
     id: f.id, type: 'noul', question: `Should this finding block the lane? ${f.text}`,
     criteria: { true: 'blocks the lane - fix before merging', false: 'safe to defer to the backlog' },
   }));
-  const r = await judge(state, questions, { threshold });
+  const r = await checkedJudge(state, questions, { threshold });
   const L = header(r);
   let act = 0, drop = 0, reverify = 0;
   for (const v of r.verdicts) {
@@ -84,7 +103,7 @@ async function cmdTriage(file: string, threshold: number): Promise<void> {
     L.push(`${verdict} ${v.id} (p=${v.answer} conf=${v.confidence}): ${verdict === 'REVERIFY' ? v.hint : verdict === 'ACT' ? 'fix before merging' : 'defer to backlog'}`);
   }
   L.push(`triage: ${act} act, ${drop} drop, ${reverify} reverify (threshold ${threshold})`);
-  console.log(L.join('\n'));
+  console.log(redactState(L.join('\n')));
   ok(`triaged ${r.verdicts.length} finding(s)`);
 }
 
@@ -101,15 +120,15 @@ async function cmdScore(file: string, threshold?: number): Promise<void> {
   const questions: JevQuestion[] = req.items.map((it: any) => ({
     id: it.id, type: 'score', question: `How actionable is this review item? ${it.text}`, levels: ACTION_LEVELS,
   }));
-  const r = await judge(state, questions, threshold !== undefined ? { threshold } : {});
+  const r = await checkedJudge(state, questions, threshold !== undefined ? { threshold } : {});
   const L = header(r);
   const levels = r.verdicts.map((v) => Math.max(0, Math.min(2, Math.round(v.answer as number))));
   r.verdicts.forEach((v, i) => L.push(`${v.escalate ? 'REVERIFY' : ACTION_LEVELS[levels[i]].toUpperCase()} ${v.id} (pos=${v.answer} conf=${v.confidence})`));
   const theater = levels.every((l) => l === 0);
-  L.push(theater
+  L.push(r.escalated ? 'cycle: UNMEASURED (one or more items require re-verification; no all-noise conclusion)' : theater
     ? `cycle: THEATER (all ${levels.length} item(s) noise - doubt theater, escalate to a human)`
     : `cycle: ACTIONABLE (${levels.filter((l) => l > 0).length}/${levels.length} item(s) above noise)`);
-  console.log(L.join('\n'));
+  console.log(redactState(L.join('\n')));
   ok(`scored ${r.verdicts.length} item(s)`);
 }
 
@@ -118,7 +137,7 @@ async function cmdClassify(file: string, threshold?: number): Promise<void> {
   if (typeof req.action !== 'string' || !req.action.trim()) die(2, 'classify needs a non-empty string "action"');
   const state = checkState(req.state ?? `Proposed agent action: ${req.action}`);
   const pattern = classifyAction(req.action);
-  const r = await judge(state, [{
+  const r = await checkedJudge(state, [{
     id: 'autonomy', type: 'choice', question: `Which autonomy level fits this action? ${req.action}`,
     options: {
       L0: 'human-only: prod, auth, payments, credentials, ship, migrations, external sends',
@@ -131,8 +150,8 @@ async function cmdClassify(file: string, threshold?: number): Promise<void> {
   L.push(`pattern: ${pattern.level} (authority - ${pattern.why})`);
   if (v.escalate) L.push(`jev: unavailable for this call (${v.reason}) - pattern stands alone`);
   else L.push(`jev: ${v.answer} (conf=${v.confidence}) ${v.answer === pattern.level ? 'AGREE' : 'DISAGREE - pattern rules; Jev is second opinion only'}`);
-  console.log(L.join('\n'));
-  ok(`classified "${req.action.slice(0, 60)}"`);
+  console.log(redactState(L.join('\n')));
+  ok(`classified "${redactState(req.action).slice(0, 60)}"`);
 }
 
 async function cmdCite(file: string, threshold: number): Promise<void> {
@@ -148,7 +167,7 @@ async function cmdCite(file: string, threshold: number): Promise<void> {
     criteria: { true: 'evidence directly supports the claim', false: 'evidence is missing, partial, or contradicts it' },
   }));
   // The evidence lives in state once, not repeated per question.
-  const r = await judge(`Evidence under review:\n${evidence}`, questions, { threshold });
+  const r = await checkedJudge(`Evidence under review:\n${evidence}`, questions, { threshold });
   const L = header(r);
   let sup = 0, ref = 0, rev = 0;
   for (const v of r.verdicts) {
@@ -159,7 +178,7 @@ async function cmdCite(file: string, threshold: number): Promise<void> {
     L.push(`${verdict} ${v.id} (p=${v.answer} conf=${v.confidence})`);
   }
   L.push(`cite: ${sup} supported, ${ref} refuted, ${rev} reverify (threshold ${threshold})`);
-  console.log(L.join('\n'));
+  console.log(redactState(L.join('\n')));
   ok(`checked ${r.verdicts.length} claim(s) against evidence`);
 }
 
