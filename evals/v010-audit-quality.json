@@ -1,0 +1,15 @@
+{
+  "criteria": [
+    { "id": "SHIP-SOURCE", "statement": "A G4 approval cannot authorize a later source commit; a fresh synthetic fixture approval restores only that fixture's transition.", "command": ["node", "--test", "test/audit-release.test.js"] },
+    { "id": "PUBLISH-OWNERSHIP", "statement": "A preplanted temporary hardlink cannot redirect atomic publication onto an outside sentinel.", "command": ["node", "--test", "test/audit-atomic-write.test.js"] },
+    { "id": "VALIDATION-LIVENESS", "statement": "Fast-lane validation can execute a recorded child Aegis operation without holding its parent state lease.", "command": ["node", "--test", "test/audit-fastlane.test.js"] },
+    { "id": "SCOPE-THROTTLE", "statement": "The actual lane cap changes, malformed limits/paths refuse, and unknown app scopes do not mutate the root pipeline.", "command": ["node", "--test", "test/audit-config.test.js"] }
+  ],
+  "review_provenance": "Scoped fresh-context model reviews plus conductor reconciliation and runnable regressions. Not an independent human security certification or G4 approval.",
+  "findings": [
+    { "id": "AUDIT-STATE", "severity": "major", "status": "resolved", "summary": "State, memory, path-ownership and recovery findings were repaired, re-reviewed and independently reverified by the conductor; the ledger links their negative controls.", "evidence": ["docs/releases/v0.10/AUDIT.json", "src/commands/memory.ts", "src/lib/lock.ts", "test/audit-state-fs.test.js"] },
+    { "id": "AUDIT-EVIDENCE", "severity": "major", "status": "resolved", "summary": "Ref aliases, nested recovery identities, malformed receipts, mutable source checks and competing-result false passes have explicit regression coverage and repairs.", "evidence": ["src/commands/merge.ts", "src/commands/clean.ts", "src/lib/quality-evidence.ts", "test/audit-evidence.test.js", "test/audit-receipt-races.test.js"] },
+    { "id": "AUDIT-RELEASE", "severity": "major", "status": "resolved", "summary": "Fresh builds, built-asset packaging, caller-owned source approval and accurate scope/limitations replace the prior misleading release paths. Final CI, artifact and human gates are still required.", "evidence": ["scripts/release-check.mjs", "scripts/package-check.mjs", "test/audit-packaging.test.js", "test/audit-release.test.js", "docs/releases/v0.10/RELEASE-CONTRACT.md"] },
+    { "id": "LIMITS", "severity": "note", "status": "open", "summary": "Legacy strict flags, structural doc heuristics, unavailable host capabilities, power-loss durability and comparative/small-executor effectiveness retain the limits stated in the release contract and queued v0.11 plan.", "evidence": ["docs/releases/v0.10/RELEASE-CONTRACT.md", "docs/ROADMAP.md"] }
+  ]
+}
