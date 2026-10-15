@@ -25,6 +25,23 @@ function registeredDir(name: string, meta: any): string {
   return dir;
 }
 
+function absent(dir: string): boolean {
+  try { fs.lstatSync(dir); return false; }
+  catch (e: any) { if (e?.code === 'ENOENT') return true; throw e; }
+}
+
+function verifiedAbsentWorktree(dir: string): boolean {
+  if (!absent(dir)) return false;
+  const paths = git(['worktree', 'list', '--porcelain', '-z']).split('\0')
+    .filter(field => field.startsWith('worktree ')).map(field => field.slice('worktree '.length));
+  if (!paths.length || paths.some(p => !path.isAbsolute(p)))
+    die(4, 'cannot verify Git worktree registry - slice and lane retained');
+  if (paths.some(p => path.relative(dir, path.resolve(p)) === ''))
+    die(4, 'absent worktree is still registered in Git - slice and lane retained');
+  if (!absent(dir)) die(4, 'worktree path reappeared during verification - slice and lane retained');
+  return true;
+}
+
 function operate(op: string, name: string): void {
   const pre = loadState() as any;
   pre.slices ??= {};
@@ -62,11 +79,13 @@ function operate(op: string, name: string): void {
     const s = acquireState(stateP) as any;
     s.slices = s.slices ?? {};
     try {
-      if (git(['symbolic-ref', '--short', 'HEAD'], dir) !== meta.branch)
-        die(4, `slice ${name} is on a different branch - preserve its worktree`);
-      if (git(['status', '--porcelain', '--untracked-files=all', '--ignored'], dir))
-        die(4, `slice ${name} has tracked, untracked or ignored local work - worktree and lane retained`);
-      git(['worktree', 'remove', dir]);
+      if (!verifiedAbsentWorktree(dir)) {
+        if (git(['symbolic-ref', '--short', 'HEAD'], dir) !== meta.branch)
+          die(4, `slice ${name} is on a different branch - preserve its worktree`);
+        if (git(['status', '--porcelain', '--untracked-files=all', '--ignored'], dir))
+          die(4, `slice ${name} has tracked, untracked or ignored local work - worktree and lane retained`);
+        git(['worktree', 'remove', dir]);
+      }
     } catch (e: any) { die(4, `worktree remove refused; slice and lane retained: ${String(e.message).split('\n')[0]}`); }
     delete s.slices[name];
     s.lanes.active = (s.lanes.active ?? []).filter((x: string) => x !== name);
