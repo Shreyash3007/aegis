@@ -95,7 +95,11 @@ export const gitTry = (args: string[], cwd: string = REPO): string => {
 };
 
 export const has = (bin: string): boolean => {
-  try { execSync(`command -v ${bin}`, { stdio: 'pipe' }); return true; }
+  try {
+    execFileSync(process.platform === 'win32' ? 'where.exe' : 'sh',
+      process.platform === 'win32' ? [bin] : ['-c', 'command -v "$1"', '--', bin], { stdio: 'pipe', timeout: 5000 });
+    return true;
+  }
   catch { return false; }
 };
 

@@ -18,17 +18,14 @@ export interface DoctorReport {
   project_type_hint: 'greenfield' | 'brownfield';
 }
 
-/** Tool actually usable, not merely installable: on PATH (global), a local
- *  node_modules/.bin shim, or a declared package.json (dev)dependency. Cheap
+/** Discover installed tools: on PATH (global) or a local shim. A declaration
+ *  is not an installation or a successful execution. Cheap
  *  (no subprocess beyond the PATH probe) and cache-friendly - doctor output
  *  feeds config, so no network/npx resolution here. */
 function toolPresent(name: string): boolean {
   if (has(name)) return true;
   if (fs.existsSync(path.join(REPO, 'node_modules', '.bin', name))) return true;
-  try {
-    const pkg = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8'));
-    return !!(pkg.dependencies?.[name] || pkg.devDependencies?.[name]);
-  } catch { return false; } // no/unparseable package.json -> honestly absent
+  return process.platform === 'win32' && fs.existsSync(path.join(REPO, 'node_modules', '.bin', `${name}.cmd`));
 }
 
 /** Greenfield vs brownfield, judged from evidence, not asked blind: init

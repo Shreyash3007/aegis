@@ -1,6 +1,6 @@
 {
   "name": "aegis",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "AEGIS runtime \\u2014 the enforcement layer for AI-native development",
   "type": "module",
   "bin": {
@@ -10,7 +10,7 @@
     "build": "tsc -p tsconfig.json",
     "test": "node --test test/*.test.js",
     "prepublishOnly": "npm run build",
-    "prepare": "npm run build || test -f dist/cli.js",
+    "prepare": "npm run build",
     "prepack": "npm run build"
   },
   "engines": {

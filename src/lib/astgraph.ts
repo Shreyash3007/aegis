@@ -41,8 +41,10 @@ function extractExports(sf: SourceFile): string[] {
 function extractEdges(sf: SourceFile): { imports: string[]; edges: string[] } {
   const imports: string[] = [];
   const edges: string[] = [];
-  for (const i of sf.getImportDeclarations()) {
-    imports.push(i.getModuleSpecifierValue());
+  for (const i of [...sf.getImportDeclarations(), ...sf.getExportDeclarations()]) {
+    const specifier = i.getModuleSpecifierValue();
+    if (!specifier) continue;
+    imports.push(specifier);
     const target = i.getModuleSpecifierSourceFile();
     if (target && !target.getFilePath().includes('node_modules')) {
       edges.push(path.relative(REPO, target.getFilePath()));

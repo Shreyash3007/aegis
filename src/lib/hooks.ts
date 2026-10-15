@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { REPO } from './util.js';
+import { REPO, git, die } from './util.js';
+
+export const hooksDir = (): string => git(['rev-parse', '--path-format=absolute', '--git-path', 'hooks']);
 
 // Every Aegis hook starts with this marker so re-init can tell "our hook"
 // (safe to overwrite/upgrade) from a pre-existing foreign hook (must be
@@ -16,7 +18,7 @@ export const MARKER = '# AEGIS';
 // (pre-commit, pre-push) propagate the orig's failure; post-commit is
 // advisory. stdin flows through untouched, so pre-push ref listings reach
 // the orig hook unmodified.
-const CHAIN = (blocking: boolean): string => `ORIG="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/hooks/$(basename "$0").aegis-orig"
+const CHAIN = (blocking: boolean): string => `ORIG="$(dirname "$0")/$(basename "$0").aegis-orig"
 if [ -x "$ORIG" ]; then "$ORIG" "$@" || { echo "aegis: pre-existing hook failed"; ${blocking ? 'exit 1' : 'true'}; }; fi
 `;
 
@@ -102,7 +104,7 @@ function scriptsFor(profile: HookProfile): Record<string, string> {
 /** Names of Aegis-managed hook files currently on disk (marker present).
  *  `aegis hooks` diffs this across a profile switch to report removals. */
 export function managedHookNames(): string[] {
-  const dir = path.join(REPO, '.git', 'hooks');
+  const dir = hooksDir();
   const out: string[] = [];
   for (const name of Object.keys(STD)) {
     const p = path.join(dir, name);
@@ -117,7 +119,11 @@ export function managedHookNames(): string[] {
  *  foreign hook at that path (no marker) and every `.aegis-orig` backup are
  *  left untouched. The chain/marker/move-aside semantics are unchanged. */
 export function installHooks(profile: HookProfile = 'standard'): string[] {
-  const dir = path.join(REPO, '.git', 'hooks');
+  const dir = path.resolve(hooksDir());
+  const common = path.resolve(git(['rev-parse', '--path-format=absolute', '--git-common-dir']));
+  const inside = (root: string): boolean => { const r = path.relative(root, dir); return r !== '..' && !r.startsWith(`..${path.sep}`) && !path.isAbsolute(r); };
+  if (!inside(REPO) && !inside(common)) die(4, 'effective hooks directory is outside this repo - integrate Aegis into the owner-managed hooks explicitly');
+  fs.mkdirSync(dir, { recursive: true });
   const cliPath = process.argv[1] ? path.resolve(process.argv[1]) : '';
   // Bake the installing CLI's version into the hooks (ghost-binary tripwire).
   let version = 'unknown';

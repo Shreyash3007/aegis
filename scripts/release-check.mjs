@@ -13,7 +13,7 @@
 //
 // Usage: node scripts/release-check.mjs [--local]
 //   --local skips steps 4-7 (no network/no gh) for quick pre-flights.
-// Exit 0 = cleared to tag. Non-zero = the ritual refuses, with the reason.
+// Full-mode exit 0 = cleared to tag. --local only verifies a local preflight.
 
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -41,6 +41,15 @@ function sh(bin, args, opts = {}) {
 // module path and crashes (found when the ritual always reported FAIL).
 // The glob form below is what package.json runs on every platform.)
 {
+  console.log('release-check: build fresh source before compiled checks...');
+  const built = process.platform === 'win32'
+    ? sh('cmd', ['/c', 'npm', 'run', 'build'], { timeout: 120_000 })
+    : sh('npm', ['run', 'build'], { timeout: 120_000 });
+  if (built.code !== 0) {
+    step('1. fresh build and local test suite green', false, `build exit=${built.code}; tests NOT RUN against stale dist`);
+    console.error('release-check: REFUSED - fresh build failed');
+    process.exit(1);
+  }
   console.log('release-check: local suite (this takes a few minutes)...');
   // npm is a shell shim on Windows (.cmd): spawn it through the shell,
   // direct spawnSync fails ENOENT there. Everywhere else runs it directly.
@@ -73,7 +82,9 @@ if (!LOCAL) {
   // 4. hooks baked for this CLI version
   {
     const ver = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8')).version;
-    const hook = fs.readFileSync(path.join(REPO, '.git', 'hooks', 'pre-commit'), 'utf8');
+    const location = sh('git', ['rev-parse', '--path-format=absolute', '--git-path', 'hooks/pre-commit']);
+    let hook = '';
+    try { if (location.code === 0) hook = fs.readFileSync(location.out.trim(), 'utf8'); } catch { /* missing/unreadable is a failed check */ }
     const baked = (hook.match(/!= "v?([\d.]+)"/) || [])[1];
     step('4. hooks baked for this version', baked === ver, `baked=${baked} cli=${ver} (repair: aegis hooks)`);
   }
@@ -114,5 +125,6 @@ if (!LOCAL) {
 
 console.log(failures.length
   ? `\nrelease-check: REFUSED - ${failures.length} gap(s). Fix, then re-run.`
+  : LOCAL ? '\nrelease-check: LOCAL PREFLIGHT PASS - checks 4-7 UNMEASURED; NOT CLEARED TO TAG.'
   : `\nrelease-check: CLEARED to tag. Ritual: tag vNEXT, push tag, verify Pages + claims once.`);
 process.exit(failures.length ? 1 : 0);
