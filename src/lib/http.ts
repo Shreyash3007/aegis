@@ -16,10 +16,11 @@ export class HttpError extends Error {
   constructor(message: string, status?: number) { super(message); this.status = status; }
 }
 
-export interface PostOptions { timeoutMs?: number; maxRetries?: number }
+export interface PostOptions { timeoutMs?: number; maxRetries?: number; maxResponseBytes?: number }
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 const DEFAULT_MAX_RETRIES = 2;
+const DEFAULT_MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 
 const retryable = (status?: number): boolean =>
   status === undefined || status === 408 || status === 429 || status >= 500;
@@ -39,9 +40,13 @@ export async function probeUrl(url: string, timeoutMs = 10_000): Promise<{ statu
         res.resume(); // drain without storing - only the status matters
         res.on('end', () => resolve(res.statusCode ?? 0));
         res.on('error', reject);
+        res.on('aborted', () => reject(new Error('response aborted')));
       });
       req.on('error', reject);
-      req.setTimeout(timeoutMs, () => req.destroy(new Error('timed out')));
+      // Socket inactivity is not a total deadline: a slow trickle can keep it
+      // alive forever. This timer also bounds DNS/connect and streaming time.
+      const timer = setTimeout(() => req.destroy(new Error('timed out')), timeoutMs);
+      req.once('close', () => clearTimeout(timer));
       req.end();
     });
     return { status, latency_ms: Date.now() - start };
@@ -59,6 +64,7 @@ export async function postJson(
 ): Promise<unknown> {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxRetries = opts.maxRetries ?? DEFAULT_MAX_RETRIES;
+  const maxResponseBytes = opts.maxResponseBytes ?? DEFAULT_MAX_RESPONSE_BYTES;
   // http and https share the call shape used here; the cast keeps one code path.
   const mod = (url.startsWith('https:') ? https : http) as typeof http;
   let last: HttpError = new HttpError('unreachable');
@@ -72,12 +78,22 @@ export async function postJson(
           headers: { 'content-type': 'application/json', accept: 'application/json', ...headers },
         }, (res) => {
           const chunks: Buffer[] = [];
-          res.on('data', (d) => chunks.push(d as Buffer));
+          let bytes = 0;
+          res.on('data', (d: Buffer) => {
+            bytes += d.length;
+            if (bytes > maxResponseBytes) {
+              reject(new HttpError('response exceeds byte limit', 0));
+              res.destroy();
+              req.destroy();
+            } else chunks.push(d);
+          });
           res.on('end', () => resolve({ status: res.statusCode, text: Buffer.concat(chunks).toString('utf8') }));
           res.on('error', reject);
+          res.on('aborted', () => reject(new HttpError('response aborted', 0)));
         });
         req.on('error', reject);
-        req.setTimeout(timeoutMs, () => req.destroy(new Error(`request timed out after ${timeoutMs}ms`)));
+        const timer = setTimeout(() => req.destroy(new Error(`request timed out after ${timeoutMs}ms`)), timeoutMs);
+        req.once('close', () => clearTimeout(timer));
         req.end(JSON.stringify(body));
       });
       if (status !== undefined && status >= 200 && status < 300) {

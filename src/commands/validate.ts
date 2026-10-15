@@ -4,7 +4,7 @@ import { execSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
 import { AEGIS_DIR, REPO, die, detectPackageManager, has, ok, readJ, writeJ } from '../lib/util.js';
 import { loadConfig, contractsPath } from '../lib/state.js';
-import { detectStack, typecheckCommand } from '../lib/oracles.js';
+import { detectStack, typecheckCommand, typescriptCommand } from '../lib/oracles.js';
 
 /** aegis validate <suite> - real tool runners with measurement citations.
  *  Every result: {tool, command, status: PASS|FAIL|UNMEASURED, summary}.
@@ -43,9 +43,13 @@ function loadPerfBudgets(): { budgets: PerfBudgets; source: string } {
     return { budgets: DEFAULT_BUDGETS, source: 'no .aegis/perf-budgets.json - default budgets (bundle 200kb, api p95 200ms, db 50ms, tti 3s)' };
   try {
     const j = readJ<Partial<PerfBudgets>>(p);
+    if (!j || typeof j !== 'object' || Array.isArray(j)) die(2, 'perf budgets must be an object');
+    for (const k of ['bundle_kb', 'api_p95_ms', 'db_query_ms', 'tti_ms'] as const)
+      if (j[k] !== undefined && (typeof j[k] !== 'number' || !Number.isFinite(j[k]) || j[k]! <= 0))
+        die(2, `perf budget ${k} must be a finite positive number`);
     return { budgets: { ...DEFAULT_BUDGETS, ...j }, source: 'budgets from .aegis/perf-budgets.json' };
   } catch {
-    return { budgets: DEFAULT_BUDGETS, source: '.aegis/perf-budgets.json UNPARSEABLE - default budgets used' };
+    die(2, '.aegis/perf-budgets.json is unparseable - repair the declared budgets before verification');
   }
 }
 
@@ -57,6 +61,7 @@ async function measureApiP95(url: string, n = 20): Promise<number | null> {
     const t0 = performance.now();
     try {
       const r = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+      if (!r.ok) { await r.body?.cancel(); return null; }
       await r.arrayBuffer();
     } catch { return null; }
     times.push(performance.now() - t0);
@@ -105,11 +110,7 @@ function contractsAt(cp: string, label?: string): Result {
     // pass, never hard-fail for a missing foreign toolchain.
     if (tsFiles.length || stackFiles.length) {
       const wantTs = tsFiles.length > 0;
-      const command = wantTs
-        ? (fs.existsSync(path.join(REPO, 'node_modules', '.bin', 'tsc'))
-            ? `"${path.join(REPO, 'node_modules', '.bin', 'tsc')}" --noEmit`
-            : has('tsc') ? 'tsc --noEmit' : null)
-        : typecheckCommand();
+      const command = wantTs ? typescriptCommand() : typecheckCommand();
       const tool = wantTs || stack === 'typescript' ? 'tsc'
         : stack === 'go' ? 'go vet' : stack === 'rust' ? 'cargo check'
         : stack === 'python' ? 'compileall' : 'tsc';
@@ -233,7 +234,11 @@ const suites: Record<string, (app?: string) => Result | Promise<Result>> = {
     const r = runCmd('npm audit --json');
     try {
       const j = JSON.parse(r.out);
-      const v = j.metadata?.vulnerabilities ?? {};
+      const v = j.metadata?.vulnerabilities;
+      if (!v || ['critical', 'high', 'moderate', 'low'].some((k) => !Number.isInteger(v[k]) || v[k] < 0))
+        throw new Error('audit vulnerability metadata missing or malformed');
+      if (j.error || (r.code !== 0 && Object.values(v).every((n) => n === 0)))
+        throw new Error('audit process failed without vulnerability evidence');
       const crit = (v.critical ?? 0) + (v.high ?? 0);
       return { suite: 'deps', tool: 'npm audit', command: 'npm audit --json',
         status: crit > 0 ? 'FAIL' : 'PASS',

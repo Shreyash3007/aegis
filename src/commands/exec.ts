@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { REPO, die, ok } from '../lib/util.js';
 import { acquireState, commitState, stateP } from '../lib/state.js';
 import { checkpoint } from './persist.js';
@@ -12,37 +12,47 @@ import { checkpoint } from './persist.js';
  *  (A1.1) - it records reality. The command's exit code passes through
  *  unchanged. --timeout kills runaway commands (default: none); a timeout
  *  records `exec (exit TIMEOUT)` and exits 1 - it is data, not a pass. */
-export function exec(args: string[]): void {
+export async function exec(args: string[]): Promise<void> {
   const dash = args.indexOf('--');
-  const pre = dash === -1 ? args : args.slice(0, dash);
+  const pre = dash === -1 ? [] : args.slice(0, dash);
   const raw = dash === -1 ? args : args.slice(dash + 1);
   if (!raw.length) die(2, 'usage: aegis exec [--timeout <seconds>] -- <command>');
+  if ((pre.length && (pre.length !== 2 || pre[0] !== '--timeout')) || (dash === -1 && raw[0].startsWith('--')))
+    die(2, 'usage: aegis exec [--timeout <seconds>] -- <command>');
   let timeoutMs: number | undefined;
   const ti = pre.indexOf('--timeout');
   if (ti >= 0) {
     const secs = Number(pre[ti + 1]);
-    if (!Number.isFinite(secs) || secs <= 0) die(2, '--timeout must be a positive number of seconds');
+    if (!Number.isFinite(secs) || secs <= 0 || secs * 1000 > 2_147_483_647) die(2, '--timeout must be a positive, bounded number of seconds');
     timeoutMs = Math.floor(secs * 1000);
   }
-  // Two calling conventions: ONE arg after -- is a full shell command string
-  // (run verbatim: aegis exec -- "npm test && npm run build"); MULTIPLE args
-  // are an argv to reassemble safely - bare joining loses the caller's
-  // quoting, so an arg with shell metacharacters (parens in natural language,
-  // semicolons) breaks or executes as shell syntax (found dogfooding: an
-  // opencode prompt with parens died 'Syntax error: ( unexpected').
-  const q = (s: string): string => `'${s.replace(/'/g, `'\\''`)}'`;
-  const cmd = raw.length === 1 ? raw[0] : raw.map(q).join(' ');
+  // A single string is explicitly shell syntax; multiple args remain argv.
+  // Never apply POSIX quoting to cmd.exe or interpolate literal argv in a shell.
+  const cmd = raw.length === 1 ? raw[0] : raw.map((s) => JSON.stringify(s)).join(' ');
   checkpoint(['--quiet']);
-  let code = 0;
   let timedOut = false;
-  // Shell on purpose: the operator types the full command. This is trusted
-  // input (same posture as owner-declared validate suites) - never wire
-  // untrusted/agent-generated strings here without reviewing them first.
-  try { execSync(cmd, { stdio: 'inherit', cwd: REPO, timeout: timeoutMs }); }
-  catch (e: any) {
-    timedOut = e?.code === 'ETIMEDOUT' || /timed out/i.test(String(e?.message ?? ''));
-    code = timedOut ? 1 : typeof e.status === 'number' ? e.status : 1;
-  }
+  const code = await new Promise<number>((resolve) => {
+    const child = spawn(raw[0], raw.length === 1 ? [] : raw.slice(1), {
+      stdio: 'inherit', cwd: REPO, shell: raw.length === 1,
+      detached: process.platform !== 'win32',
+    });
+    const timer = timeoutMs === undefined ? undefined : setTimeout(() => {
+      timedOut = true;
+      if (child.pid) {
+        if (process.platform === 'win32') {
+          spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore', timeout: 10_000 });
+        } else {
+          try { process.kill(-child.pid, 'SIGKILL'); } catch { /* process already exited */ }
+        }
+      }
+      child.kill('SIGKILL');
+    }, timeoutMs);
+    child.on('error', () => { /* close follows startup failure and records exit 1 */ });
+    child.once('close', (status) => {
+      if (timer) clearTimeout(timer);
+      resolve(timedOut ? 1 : status ?? 1);
+    });
+  });
   // Lock ONLY around the read-append-write - never during the command run
   // (concurrent waves must not serialize their work, just their recording;
   // the lock makes every event land, v0.4.1).

@@ -29,18 +29,17 @@ export function detectStack(cwd: string = REPO): Stack {
  *  never hard-fail because the wrong toolchain is missing. The typescript path
  *  prefers the repo's local tsc (so the right version/types resolve) and falls
  *  back to a global tsc; other stacks use their native checker if present. */
+export function typescriptCommand(cwd: string = REPO): string | null {
+  const localBin = path.join(cwd, 'node_modules', '.bin', 'tsc');
+  if (fs.existsSync(localBin)) return `"${localBin}" --noEmit`;
+  if (process.platform === 'win32' && fs.existsSync(`${localBin}.cmd`)) return `"${localBin}.cmd" --noEmit`;
+  return has('tsc') ? 'tsc --noEmit' : null;
+}
+
 export function typecheckCommand(cwd: string = REPO): string | null {
   switch (detectStack(cwd)) {
     case 'typescript': {
-      const localBin = path.join(cwd, 'node_modules', '.bin', 'tsc');
-      if (fs.existsSync(localBin)) return `"${localBin}" --noEmit`;
-      // Windows npm bins are .cmd shims; the extensionless POSIX bin is not
-      // directly executable by cmd.exe.
-      if (process.platform === 'win32') {
-        const winBin = `${localBin}.cmd`;
-        if (fs.existsSync(winBin)) return `"${winBin}" --noEmit`;
-      }
-      return has('tsc') ? 'tsc --noEmit' : null;
+      return typescriptCommand(cwd);
     }
     case 'rust':
       return has('cargo') ? 'cargo check' : null;

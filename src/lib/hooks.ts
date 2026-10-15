@@ -24,8 +24,8 @@ if [ -x "$ORIG" ]; then "$ORIG" "$@" || { echo "aegis: pre-existing hook failed"
 // There is deliberately NO `npx aegis` fallback - aegis is not on the npm
 // registry (GitHub install only), so npx can never work and would fail with
 // a misleading 404. Fail loud instead.
-const RESOLVE = `if command -v aegis >/dev/null 2>&1; then A=aegis;
-elif [ -f "__CLIPATH__" ]; then A="node __CLIPATH__";
+const RESOLVE = `if command -v aegis >/dev/null 2>&1; then aegis_run() { command aegis "$@"; };
+elif [ -f __CLIPATH__ ]; then aegis_run() { node __CLIPATH__ "$@"; };
 else echo "aegis: CLI not found on PATH and baked install path is stale - reinstall aegis or re-run: aegis init --overwrite" >&2; exit 1; fi
 `;
 
@@ -36,7 +36,7 @@ else echo "aegis: CLI not found on PATH and baked install path is stale - reinst
 // version. Mismatch -> loud ADVISORY (never blocks a commit/push - the
 // enforcement running old-but-working code beats a frozen repo), telling
 // the human exactly how to re-resolve.
-const VCHECK = `VCUR=$($A --version 2>/dev/null | awk '{print $2}')
+const VCHECK = `VCUR=$(aegis_run --version 2>/dev/null | awk '{print $2}')
 if [ -n "$VCUR" ] && [ "$VCUR" != "__VERSION__" ]; then
   echo "aegis: warning - resolved CLI is v$VCUR but hooks were baked for v__VERSION__ (ghost binary?); repair: aegis hooks (re-resolve) or aegis update" >&2
 fi
@@ -54,33 +54,33 @@ ${MARKER}: checkpoint must succeed; typecheck via aegis (multi-stack, honest UNM
 ${CHAIN(true)}${RESOLVE}${VCHECK}COMMON=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
 MAIN=$(dirname "$COMMON")
 # checkpoint runs against MAIN repo state (.aegis lives there, not in slice worktrees)
-(cd "$MAIN" && $A checkpoint --quiet) || { echo "aegis: checkpoint failed"; exit 1; }
+(cd "$MAIN" && aegis_run checkpoint --quiet) || { echo "aegis: checkpoint failed"; exit 1; }
 # typecheck the repo's real stack (tsc/go vet/cargo check/compileall) or degrade
 # honestly (UNMEASURED) - never fakes a pass, never hard-fails a foreign stack.
-$A typecheck || exit 1
+aegis_run typecheck || exit 1
 `;
 
 const POST_COMMIT = `#!/bin/sh
 ${MARKER}: record checkpoint with new HEAD
-${CHAIN(false)}if command -v aegis >/dev/null 2>&1; then A=aegis;
-elif [ -f "__CLIPATH__" ]; then A="node __CLIPATH__";
+${CHAIN(false)}if command -v aegis >/dev/null 2>&1; then aegis_run() { command aegis "$@"; };
+elif [ -f __CLIPATH__ ]; then aegis_run() { node __CLIPATH__ "$@"; };
 else echo "aegis: CLI not found - post-commit checkpoint skipped (reinstall aegis or re-run: aegis init --overwrite)" >&2; exit 0; fi
 ${VCHECK}COMMON=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
 MAIN=$(dirname "$COMMON")
-(cd "$MAIN" && $A checkpoint --quiet) || true
+(cd "$MAIN" && aegis_run checkpoint --quiet) || true
 `;
 
 const PRE_PUSH = `#!/bin/sh
 ${MARKER}: contract validation
-${CHAIN(true)}${RESOLVE}${VCHECK}$A validate contracts || exit 1
+${CHAIN(true)}${RESOLVE}${VCHECK}aegis_run validate contracts || exit 1
 `;
 
 // strict: standard pre-push followed by `aegis validate tests` - both must
 // pass (each || exit 1) before a push is allowed.
 const PRE_PUSH_STRICT = `#!/bin/sh
 ${MARKER}: contract validation + tests
-${CHAIN(true)}${RESOLVE}${VCHECK}$A validate contracts || exit 1
-$A validate tests || exit 1
+${CHAIN(true)}${RESOLVE}${VCHECK}aegis_run validate contracts || exit 1
+aegis_run validate tests || exit 1
 `;
 
 // Canonical hook scripts per name (the STANDARD set). MINIMAL installs only
@@ -137,7 +137,7 @@ export function installHooks(profile: HookProfile = 'standard'): string[] {
       if (!fs.existsSync(orig)) fs.renameSync(p, orig);
     }
     fs.writeFileSync(p, script
-      .replaceAll('__CLIPATH__', cliPath)
+      .replaceAll('__CLIPATH__', `'${cliPath.replaceAll("'", "'\\''")}'`)
       .replaceAll('__VERSION__', version));
     fs.chmodSync(p, 0o755);
     installed.push(name);

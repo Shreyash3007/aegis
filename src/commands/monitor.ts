@@ -14,6 +14,16 @@ import { probeUrl } from '../lib/http.js';
 interface Target { url: string; benchmark_ms?: number }
 interface CheckResult { url: string; ok: boolean; status: number | string; latency_ms: number; breach: boolean }
 
+function validateTarget(t: Target): void {
+  if (!t || typeof t.url !== 'string') die(2, 'monitor target needs an HTTP(S) URL');
+  try {
+    const url = new URL(t.url);
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error('unsafe URL');
+  } catch { die(2, 'monitor target must be a valid HTTP(S) URL without embedded credentials'); }
+  if (t.benchmark_ms !== undefined && (!Number.isInteger(t.benchmark_ms) || t.benchmark_ms <= 0))
+    die(2, 'monitor benchmark_ms must be a positive integer');
+}
+
 export async function monitor(args: string[]): Promise<void> {
   if (args[0] === 'target') return monitorTarget(args.slice(1));
   if (!args.includes('--once')) die(2, 'usage: aegis monitor --once | aegis monitor target <add|remove|list> (scheduler is external: cron/CI)');
@@ -34,6 +44,12 @@ export async function monitor(args: string[]): Promise<void> {
   } catch {
     die(2, 'monitor-targets.json is unparseable - fix it: aegis monitor target list');
   }
+  if (!targets.length) {
+    writeJ(path.join(reportDir, 'last-run.json'), { at: new Date().toISOString(), status: 'UNMEASURED', reason: 'empty monitor registry' });
+    ok('monitor: UNMEASURED - no targets configured');
+    return;
+  }
+  for (const t of targets) validateTarget(t);
   const results: CheckResult[] = [];
   for (const t of targets) {
     if (!t || typeof t.url !== 'string' || !t.url) die(2, 'monitor-targets.json holds a malformed entry (need {url}) - fix it: aegis monitor target list');
@@ -65,6 +81,7 @@ function readTargets(): { path: string; targets: Target[] } {
   try { parsed = readJ<unknown>(p); }
   catch { die(2, 'monitor-targets.json is unparseable - fix it or delete it to start over'); }
   if (!Array.isArray(parsed)) die(2, 'monitor-targets.json must be an array [{url, benchmark_ms}]');
+  for (const t of parsed) validateTarget(t);
   return { path: p, targets: parsed as Target[] };
 }
 
@@ -84,6 +101,7 @@ function monitorTarget(args: string[]): void {
     const bi = args.indexOf('--benchmark-ms');
     const bench = bi >= 0 ? Number(args[bi + 1]) : 200;
     if (!Number.isInteger(bench) || bench <= 0) die(2, '--benchmark-ms must be a positive integer (milliseconds)');
+    validateTarget({ url, benchmark_ms: bench });
     if (targets.some((t) => t.url === url)) die(4, `target already watched: ${url}`);
     targets.push({ url, benchmark_ms: bench });
     writeJ(p, targets);
