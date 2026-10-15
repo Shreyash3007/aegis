@@ -129,6 +129,7 @@ test('audit: release hook lookup supports a linked worktree and effective hook p
 test('audit: distribution carries a consumer-honored dependency closure and does not excuse failed compilation', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8'));
   assert.equal(pkg.scripts.prepare, 'npm run build');
+  assert.ok(pkg.files.includes('npm-shrinkwrap.json'), 'the consumer lock must be in the distributed file allowlist');
   const file = path.join(REPO_ROOT, 'npm-shrinkwrap.json');
   assert.ok(fs.existsSync(file), 'consumer installation must receive the runtime lock');
   const lock = JSON.parse(fs.readFileSync(file, 'utf8'));
