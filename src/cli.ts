@@ -35,7 +35,7 @@ Daily position (where am I, what is next):
                                fast lane for small fixes (tests must pass to close)
   chore <desc>                 record a docs/config-class change (no lifecycle)
   exec [--timeout <s>] -- <cmd>  run a command recorded + checkpointed (executor waves)
-  wave                         emit the executor prompt block (brain/wave-prompt.md)
+  wave [--budget N]             executor prompt + optional logical-judgment ceiling (not a dollar budget)
 
 Pipeline (the funnel into production lanes):
   transition <skill> [--reason t] [--app <name>]  record a validated transition
@@ -57,6 +57,8 @@ Pipeline (the funnel into production lanes):
 
 Evidence (prove it, or label it UNMEASURED):
   checkpoint [--quiet]         snapshot state + hashes
+  evidence <usage|export --file <json>>  capture reported usage or export private-safe aggregate facts; absent metrics stay UNMEASURED
+  quality <acceptance|review|status> <branch> [--file <plan.json>]  execute criteria or record review findings; --require-quality enables strict merge checks
   tdd <red|green|status> <branch>  run and pin test evidence; red needs --test-file and --expect-exit, green reuses the runner
   resume                       verify integrity, print reconstruction pack
   ast build|diff               ts-morph module graph / impact analysis (Phase 1)
@@ -86,7 +88,8 @@ Evidence (prove it, or label it UNMEASURED):
 
 System:
   config [set <key> <value>]   view/update setup interview answers
-  sync                         regenerate AGENTS.md + CLAUDE.md (Phase 2); merge the CLI's transitions invariant forward
+  blade <list|resolve <name>> [--root <checkout>]  verify optional Superpowers craft source against its pinned blob, or use native fallback
+  sync [--refresh-skills]       regenerate context + transitions; explicit skill refresh preserves the prior snapshot without re-init
   gc                           checkpoint retention + brain hygiene (Phase 2)
   update [--check]             self-update from the latest GitHub tag tarball
   completions <bash|zsh|pwsh>  shell tab-completion for the command surface

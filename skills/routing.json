@@ -1,6 +1,7 @@
 {
   "$schema": "aegis-routing-v1",
-  "version": "0.6.0-draft",
+  "version": "0.10.0-development",
+  "source_lock": "superpowers.lock.json",
   "law": [
     "Agents never invoke external blades directly and never talk agent-to-agent.",
     "A phase lists allowed blades. The lane worker runs the blade inside an `aegis exec` recorded run.",
@@ -27,8 +28,10 @@
     { "name": "terminal-ops", "phase": "04-build", "role": "execution-evidence", "chain": "thin",
       "triggers": ["run repo command", "prove what was executed"], "not_triggers": ["unverified claims"] },
     { "name": "systematic-debugging", "phase": "05-validate", "role": "debug", "chain": "thick",
+      "source": "superpowers.lock.json#systematic-debugging",
       "triggers": ["bug", "test failure", "unexpected behavior"], "not_triggers": ["proposing fixes before root cause"] },
-    { "name": "test-driven-development", "phase": "05-validate", "role": "tdd", "chain": "thick",
+    { "name": "test-driven-development", "phase": "04-build", "role": "tdd", "chain": "thin",
+      "source": "superpowers.lock.json#test-driven-development",
       "triggers": ["new logic", "bug fix", "behavior change"], "not_triggers": ["shipping without a failing test first"] },
     { "name": "verification-loop", "phase": "05-validate", "role": "verify", "chain": "thick",
       "triggers": ["pre-PR check", "post-feature verification"], "not_triggers": ["declaring done without evidence"] },
@@ -54,7 +57,15 @@
       "triggers": ["frontend looks designed not generated", "browser proof"], "not_triggers": ["taste without render"] },
     { "name": "jev-use", "phase": "judgment-ring", "role": "judge", "chain": "thick",
       "triggers": ["did it work", "which option", "how risky", "safe to run"], "not_triggers": ["producing content", "writing code"],
-      "wiring": "typed Choice/Noul/Score behind TYPESAFE_API_KEY flag; no key = degraded mode, must announce itself" }
+      "wiring": "typed Choice/Noul/Score behind TYPESAFE_API_KEY flag; no key = degraded mode, must announce itself" },
+    { "name": "brainstorming", "phase": "01-discover", "role": "discovery-craft", "chain": "thin",
+      "source": "superpowers.lock.json#brainstorming", "triggers": ["product discovery alternatives"], "not_triggers": ["second pipeline authority"] },
+    { "name": "requesting-code-review", "phase": "06-orchestrate", "role": "review-craft", "chain": "thin",
+      "source": "superpowers.lock.json#requesting-code-review", "triggers": ["isolated contract-bound reviewer"], "not_triggers": ["approve human gates"] },
+    { "name": "using-git-worktrees", "phase": "04-build", "role": "isolation-craft", "chain": "thin",
+      "source": "superpowers.lock.json#using-git-worktrees", "triggers": ["slice isolation baseline"], "not_triggers": ["unregistered worktrees"] },
+    { "name": "verification-before-completion", "phase": "05-validate", "role": "verification-craft", "chain": "thin",
+      "source": "superpowers.lock.json#verification-before-completion", "triggers": ["completion evidence checkpoint"], "not_triggers": ["trust a reported success"] }
   ],
   "missing_with_fallback": [
     { "name": "typesafe-ai", "fallback": "direct TypeSafe HTTPS from CLI (Wave 5) + jev-use MCP when present; never block on the skill file" },

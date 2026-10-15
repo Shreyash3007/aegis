@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { AEGIS_DIR, REPO, ok, readJ, writeJ } from '../lib/util.js';
+import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+import { AEGIS_DIR, REPO, ok, die, readJ, writeJ } from '../lib/util.js';
 import { loadState, loadConfig, loadTransitions, Transitions, transP } from '../lib/state.js';
 import { defaultTransitions } from '../templates/transitions.js';
 
@@ -72,7 +74,24 @@ function refreshTransitions(): string {
   return touched ? 'transitions.json merged forward (DEMO gate on 04a entries)' : 'transitions.json already current';
 }
 
-export function sync(): void {
+export function sync(args: string[] = []): void {
+  if (args.some((a) => a !== '--refresh-skills')) die(2, 'usage: aegis sync [--refresh-skills]');
+  if (args.includes('--refresh-skills')) {
+    // An explicit, non-destructive upgrade of the CLI-owned installed copy.
+    // Preserve the old snapshot and never reinitialize state, brain or hooks.
+    const source = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'skills');
+    const installed = path.join(AEGIS_DIR, 'skills');
+    const id = crypto.randomUUID();
+    const staged = path.join(AEGIS_DIR, `skills-staged-${id}`);
+    const history = path.join(AEGIS_DIR, 'skills-history');
+    fs.cpSync(source, staged, { recursive: true });
+    fs.mkdirSync(history, { recursive: true });
+    const previous = path.join(history, id);
+    if (fs.existsSync(installed)) fs.renameSync(installed, previous);
+    try { fs.renameSync(staged, installed); }
+    catch (e) { if (fs.existsSync(previous)) fs.renameSync(previous, installed); throw e; }
+    ok('installed skills refreshed; prior snapshot preserved under .aegis/skills-history/');
+  }
   const ctxP = path.join(REPO, 'brain', 'context-window.md');
   const ctx = fs.existsSync(ctxP) ? fs.readFileSync(ctxP, 'utf8') : '# Context Window\n';
   const s = loadState();

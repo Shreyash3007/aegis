@@ -80,8 +80,10 @@ if (!LOCAL) {
   // 5. routing blades resolve
   {
     const routing = JSON.parse(fs.readFileSync(path.join(REPO, 'skills', 'routing.json'), 'utf8'));
+    const pins = JSON.parse(fs.readFileSync(path.join(REPO, 'skills', 'superpowers.lock.json'), 'utf8')).skills;
     const stores = [path.join(os.homedir(), '.agents', 'skills'), path.join(os.homedir(), '.claude', 'skills')];
-    const missing = (routing.blades ?? []).filter((b) => !stores.some((s) => fs.existsSync(path.join(s, b.name))))
+    const missing = (routing.blades ?? []).filter((b) => !stores.some((s) => fs.existsSync(path.join(s, b.name))) &&
+      !pins.some((p) => b.source === `superpowers.lock.json#${p.name}` && fs.existsSync(path.join(REPO, 'skills', p.fallback))))
       .map((b) => b.name);
     step('5. routing blades resolve in skill store', missing.length === 0,
       missing.length ? `missing: ${missing.join(', ')} (restore from ~\\.skills-archive\\.agents or deprecate in routing.json)` : `${(routing.blades ?? []).length} blades live`);

@@ -24,6 +24,7 @@ Works matters less than maintainable-in-two-years.
 - Judgment calls labeled judgment; structural claims cite graph edges.
 
 ## Process
+- Record findings with committed evidence paths and severity; open blocker/major findings refuse merge, minor/note findings remain for backlog: `aegis quality review`
 - Fresh graph; cycle check: `aegis ast build`
 - Structural drift since last checkpoint: `aegis ast diff`
 - Read standards.md; sample highest-fan-in modules: `aegis status`

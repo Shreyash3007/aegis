@@ -5,6 +5,7 @@ import { loadState, loadStateFrom, loadTransitions, loadConfig, contractsPath, d
 import { memorySummary } from './memory.js';
 import { demoSha, demoStaleness } from './demo.js';
 import { phaseAutonomy } from '../lib/autonomy.js';
+import { qualityProblem } from '../lib/quality-evidence.js';
 
 /** v0.6.0 machinery at a glance (conductor visibility): quarantine, clean
  *  cycles, demo record. Conditional lines only - empty machinery prints
@@ -15,6 +16,7 @@ function machineryLines(s: State): string[] {
     L.push(`quarantine FROZEN: ${r.target} (-> ${r.branch}): ${r.reason}`);
   for (const [b, rec] of Object.entries(s.clean ?? {}))
     L.push(`clean FAILING: ${b} (cycle ${rec.cycles}/3: ${rec.last_class})`);
+  if (s.judgment_budget) L.push(`judgment budget: ${s.judgment_budget.used}/${s.judgment_budget.limit} logical questions (not dollars)`);
   if (s.demo)
     L.push(`demo: ${s.demo.kind} [${s.demo.files.join(', ')}]${demoStaleness(s) ? ' (approval STALE - re-approve)' : ''}`);
   const mem = memorySummary();
@@ -226,6 +228,12 @@ export function transition(args: string[]): void {
   if (e.backward && !args.includes('--reason'))
     die(4, 'Backward transition requires --reason');
   const b = blockers(s, t, e);
+  if (to === '08b') {
+    const branch = gitTry(['branch', '--show-current']);
+    const quality = branch ? qualityProblem(branch, gitTry(['rev-parse', 'HEAD']), args.includes('--require-quality'))
+      : args.includes('--require-quality') ? 'QUALITY requires a named local branch' : null;
+    if (quality) b.push(quality);
+  }
   if (b.length) {
     const isEscalation = b.some((x) => x.includes('cycle guard') || x.includes('loop limit'));
     // Exit-5 parks AFK runs BY DESIGN (the tripwire). Tell the returning

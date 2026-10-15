@@ -24,6 +24,7 @@ If it doesn't meet the SLO it doesn't ship; if you didn't measure it, it doesn't
 - Never let a flaky/model grader gate a release; a single run is not a result.
 
 ## Process
+- Commit an observable acceptance plan; execute each criterion and record its outcome: `aegis quality acceptance`
 - Build + typecheck clean before slower suites; red build stops here: `aegis typecheck`
 - Acceptance flows via e2e harness where configured: `aegis validate e2e`
 - Full suite with coverage; record passed/total + coverage: `aegis validate tests`

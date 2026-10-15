@@ -7,6 +7,7 @@ import { contractsPath, stateP } from '../lib/state.js';
 import { quarantineMatch } from './clean.js';
 import { detectStack, typecheckCommand } from '../lib/oracles.js';
 import { proofPath, proofProblem, readProof } from '../lib/tdd-proof.js';
+import { qualityProblem, readQuality, runCriteria } from '../lib/quality-evidence.js';
 
 /** aegis merge check <branch> - the merge oracle (N3, simulation-proven).
  *  Real git merge in an OS-temp worktree (A1.5), tsc, contract immutability
@@ -26,6 +27,8 @@ export function merge(args: string[]): void {
   try { branchSha = git(['rev-parse', branch]); }
   catch { die(2, `unknown branch: ${branch}`); }
   const baseSha = git(['rev-parse', 'HEAD']);
+  const qualityIssue = qualityProblem(branch, branchSha, args.includes('--require-quality'));
+  if (qualityIssue) die(9, qualityIssue);
   // Quarantined lanes (SPEC §8): the oracle refuses quarantined paths until
   // a human clears them. Manual JSON read (not loadState): a corrupt or
   // missing state must not change merge behavior - no quarantine, no refusal.
@@ -105,6 +108,10 @@ export function merge(args: string[]): void {
     if (checked.error || checked.signal || checked.status !== 0)
       failed.push('TDD integrated test FAILED: recorded runner did not pass against the merged tree');
   }
+
+  const accepted = readQuality(branch, 'acceptance');
+  if (accepted?.criteria && runCriteria(accepted.criteria, tmp).some((r) => r.status !== 'PASS'))
+    failed.push('QUALITY acceptance FAILED against merged tree');
 
   cleanup();
   if (failed.length) die(9, `MERGE ORACLE REFUSED ${branch}:\n${failed.join('\n')}`);

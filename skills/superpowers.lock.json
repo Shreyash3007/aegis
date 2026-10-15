@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "repository": "https://github.com/obra/superpowers",
+  "license": "MIT",
+  "tag": "v6.4.2",
+  "commit": "8ca22dba9a94f28898bbce59f2537ff4d87c747d",
+  "authority": "Aegis owns pipeline, approvals, worktree registration and evidence gates; upstream skills supply craft guidance only.",
+  "skills": [
+    { "name": "brainstorming", "phase": "01a", "path": "skills/brainstorming/SKILL.md", "git_blob": "e3f17885f8d5f87d7a92f0469141662b476e1288", "fallback": "01-discover/01a-prd.md", "collisions": ["Preserve the user's approved scope; never treat this skill as a second pipeline or a second approval authority."] },
+    { "name": "test-driven-development", "phase": "04a", "path": "skills/test-driven-development/SKILL.md", "git_blob": "46838cc9e893c06259e3bdad0fc2425b36242f15", "fallback": "04-build/04a-parallel-build.md", "collisions": ["Never delete or reset unfamiliar user work to satisfy the upstream delete-untested-code instruction.", "Record actual test outcomes with tdd red/green; review why RED failed."] },
+    { "name": "systematic-debugging", "phase": "05c", "path": "skills/systematic-debugging/SKILL.md", "git_blob": "095d194ac041502905f15b01d22d294fb94db8b2", "fallback": "05-validate/05c-bug-hunting.md", "collisions": ["Root-cause investigation does not grant production access or permission to change credentials."] },
+    { "name": "requesting-code-review", "phase": "06b", "path": "skills/requesting-code-review/SKILL.md", "git_blob": "6d995da5c7d8d6c5a3cc63ddb701427f88ec2021", "fallback": "06-orchestrate/06b-code-review.md", "collisions": ["Conductor authorizes reviewers; no recursive persona-spawning or agent-to-agent instructions.", "Reviewers receive artifact and contract; their verdict cannot approve a human gate."] },
+    { "name": "using-git-worktrees", "phase": "04a", "path": "skills/using-git-worktrees/SKILL.md", "git_blob": "1381dacb3516b94382dd6ec736ede21ee8ede2b3", "fallback": "04-build/04a-parallel-build.md", "collisions": ["Aegis slice registry owns lane caps and worktrees; do not create a second worktree or a second .aegis state.", "If isolation is unavailable, stop or record a sequential exception; do not silently build production slices on main."] },
+    { "name": "verification-before-completion", "phase": "05d", "path": "skills/verification-before-completion/SKILL.md", "git_blob": "7d45333cc4a49c57a80df6c1fe2fa777a207afbc", "fallback": "05-validate/05d-e2e-performance.md", "collisions": ["No completion claim without fresh evidence; absent tools mean UNMEASURED, not PASS.", "Verification guidance cannot override a failed suite, review blocker or ship gate."] }
+  ]
+}

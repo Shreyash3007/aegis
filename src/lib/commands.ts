@@ -24,6 +24,9 @@ import { jev } from '../commands/jev.js';
 import { memory } from '../commands/memory.js';
 import { lintSkills } from '../commands/lint-skills.js';
 import { tdd } from '../commands/tdd.js';
+import { blade } from '../commands/blade.js';
+import { quality } from '../commands/quality.js';
+import { evidence } from '../commands/evidence.js';
 
 /** The dispatch table - single source of truth for the command set. COMMANDS
  *  is derived from its keys, so cli.ts and eval.ts can never drift. */
@@ -32,7 +35,7 @@ const DISPATCH: Record<string, (args: string[]) => void | Promise<void>> = {
   checkpoint, resume, ast, sync, gc, config, merge, slice, validate, monitor,
   eval: evalCmd, migrate, fix, chore, import: importCmd, update, exec, typecheck, hooks,
   wave, 'lint-skills': (args) => lintSkills(args, Object.keys(DISPATCH)),
-  clean, quarantine, memory, jev, demo, remove, tdd,
+  clean, quarantine, memory, jev, demo, remove, tdd, blade, quality, evidence,
 };
 
 export const COMMANDS: string[] = Object.keys(DISPATCH);

@@ -9,7 +9,7 @@ export const CONTRACT_COMMANDS: string[] = [
   'loops', 'lane', 'checkpoint', 'resume', 'ast', 'sync', 'gc', 'config',
   'merge', 'slice', 'validate', 'monitor', 'eval', 'migrate', 'fix', 'chore',
   'import', 'update', 'exec', 'typecheck', 'hooks', 'wave', 'lint-skills',
-  'clean', 'quarantine', 'memory', 'jev', 'demo', 'remove', 'completions', 'tdd',
+  'clean', 'quarantine', 'memory', 'jev', 'demo', 'remove', 'completions', 'tdd', 'blade', 'quality', 'evidence',
 ];
 
 /** Exit codes and their single meaning. Gates branch on these numbers. */

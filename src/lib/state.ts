@@ -26,6 +26,8 @@ export interface State {
   gates: Record<string, GateRecord>;
   lanes: { max: number; active: string[] };
   contracts_merged: boolean;
+  judgment_budget?: { limit: number; used: number };
+  usage_reports?: { model: string | null; tokens_in: number | null; tokens_out: number | null; cost_usd: number | null; at: string }[];
   // Fast lane (v0.3): small fixes/chores recorded on a parallel track instead
   // of forcing the full pipeline. The sizing IS the record - abuse is visible
   // in history, which is the enforcement. Optional: pre-0.3 states lack it.

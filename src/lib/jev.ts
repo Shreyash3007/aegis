@@ -16,6 +16,7 @@
  *  with reason `unreachable`, and the caller must announce it verbatim. */
 
 import { postJson } from './http.js';
+import { reserveJudgments } from './judgment-budget.js';
 
 export interface JevQuestion {
   id?: string; type: 'noul' | 'choice' | 'score'; question: string;
@@ -219,6 +220,7 @@ export async function judge(
       `State is ${state.length} chars (> ~30k tokens) - shrink it to the evidence the questions need, or split into smaller judged states.`, qs);
     return { verdicts, escalated: true, backend: backend.name, model: backend.model ?? 'none', latencyMs: 0 };
   }
+  if (backend.name !== 'degraded') reserveJudgments(qs.length);
   const t0 = Date.now();
   if (backend.name === 'mock') {
     const verdicts = qs.map((q, i) => withThreshold(mockAnswer(state, q, i), q, opts.threshold));

@@ -8,6 +8,7 @@ import { doctor } from '../lib/detect.js';
 import { installHooks } from '../lib/hooks.js';
 import { runInterview } from '../lib/interview.js';
 import { fileURLToPath } from 'node:url';
+import { readSourceLock } from '../lib/blade-source.js';
 
 const PKG_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -242,12 +243,15 @@ function drift(): string[] {
   // to ~/.agents/skills + ~/.claude/skills, overridable via AEGIS_SKILL_STORES
   // (path-separator list) for operators and tests.
   try {
-    const routing = JSON.parse(fs.readFileSync(path.join(AEGIS_DIR, 'skills', 'routing.json'), 'utf8')) as { blades?: { name: string }[] };
+    const routing = JSON.parse(fs.readFileSync(path.join(AEGIS_DIR, 'skills', 'routing.json'), 'utf8')) as { blades?: { name: string; source?: string }[] };
     const stores = (process.env.AEGIS_SKILL_STORES
       ? process.env.AEGIS_SKILL_STORES.split(path.delimiter)
       : [path.join(os.homedir(), '.agents', 'skills'), path.join(os.homedir(), '.claude', 'skills')]);
+    const sourceFile = path.join(AEGIS_DIR, 'skills', 'superpowers.lock.json');
+    const pins = fs.existsSync(sourceFile) ? readSourceLock(sourceFile).skills : [];
     const missing = (routing.blades ?? [])
-      .filter((b) => !stores.some((s) => fs.existsSync(path.join(s, b.name))))
+      .filter((b) => !stores.some((s) => fs.existsSync(path.join(s, b.name))) &&
+        !pins.some((p) => b.source === `superpowers.lock.json#${p.name}` && fs.existsSync(path.join(AEGIS_DIR, 'skills', p.fallback))))
       .map((b) => b.name);
     if (missing.length)
       notes.push(`${missing.length} routed blade(s) missing from the skill store: ${missing.join(', ')} - restore from the archive, install them, or deprecate them in skills/routing.json`);
