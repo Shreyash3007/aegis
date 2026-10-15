@@ -29,11 +29,11 @@ Two slices build simultaneously only if neither writes a module the other import
 - Compose each team from the template registry only (no invented roles); justify each role; store in repo library: `aegis status`
 - Create one worktree per slice; cap is the only throttle — queue, never bypass; verify live lanes before next wave: `aegis slice create`
 - Assign each agent ONLY slice spec + contract code + module subgraph + standards (isolation by data): `aegis slice list`
-- RED gate per slice: failing test reproducing the behavior first; confirm RED is the intended gap, not syntax/setup: `aegis validate tests`
-- GREEN minimal code; rerun SAME target to confirm the flip; refactor only while green: `aegis validate tests`
+- RED gate per slice: commit the regression test; capture the intended failure (not syntax/setup) with the test path, declared exit, and runner argv: `aegis tdd red`
+- GREEN minimal code; commit it without weakening the test; rerun the recorded target; refactor only while green: `aegis tdd green`
 - Record per-slice evidence map (task -> test -> RED proof -> GREEN proof -> coverage) in the worktree; quote commands and output: `aegis checkpoint`
 - Hand completed branches to 04b level by level in DAG order; a finished slice with unfinished dependencies WAITS: `aegis status`
-- Oracle-gate every branch before merge; contract edits refused (adapter in feature code instead); exit-13 investigated, never done: `aegis merge check`
+- Oracle-gate every branch with mandatory RED/GREEN evidence; contract edits refused; exit-13 investigated, never done: `aegis clean <branch> --require-proof`
 
 ## Verification
 - RED/GREEN claims cite the actual test command + output; coverage cites the validation run; merge readiness cites the oracle.

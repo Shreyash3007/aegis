@@ -20,14 +20,19 @@ mechanical or it doesn't ship.
       screens; HTML is an assumption test via the demo track; every PRD line
       traces to debate Q&A in memory records. Reuses 04-build team-templates
       as voices. Skill-format work, zero CLI risk.
-- [ ] **(1) A9 ladder enforcement.** L0-pattern refusal in CLI, L2 fast-lane
+- [x] **(1) A9 ladder enforcement.** L0-pattern refusal in CLI, L2 fast-lane
       detection, per-phase defaults at transition time. The load-bearing
       brick: everything below plugs into rigidity, not prose.
       Implemented slice: sensitive fast-lane refusal, shared classification,
       phase defaults recorded on transitions, G4 cannot self-approve under
       autonomy=full. Boundary: these do not control shell access outside the CLI.
-- [ ] **(2) D2 RED-gate evidence.** merge/clean carry failing-test-first
+- [x] **(2) D2 RED-gate evidence.** merge/clean carry failing-test-first
       proof (test-output hash in the evidence map). Makes the TDD claim real.
+      Implemented slice: CLI executes and pins RED/GREEN commands, committed
+      tests, branch tips and output hashes. Receipts are enforced automatically
+      once captured; --require-proof refuses branches without receipts. Legacy
+      branches explicitly say TDD UNMEASURED. Human review still verifies the
+      reason for RED; arbitrary shell access is outside the trust boundary.
 - [ ] **(3) Superpowers 6-blade routing** (tdd→04a, systematic-debugging→05c,
       brainstorming→01a, requesting-code-review→06b, using-git-worktrees→04a,
       verification-before-completion→05d). No pipeline merge; collisions

@@ -1,11 +1,12 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { execSync } from 'node:child_process';
+import { execSync, spawnSync } from 'node:child_process';
 import { REPO, die, git, gitRaw, ok } from '../lib/util.js';
 import { contractsPath, stateP } from '../lib/state.js';
 import { quarantineMatch } from './clean.js';
 import { detectStack, typecheckCommand } from '../lib/oracles.js';
+import { proofPath, proofProblem, readProof } from '../lib/tdd-proof.js';
 
 /** aegis merge check <branch> - the merge oracle (N3, simulation-proven).
  *  Real git merge in an OS-temp worktree (A1.5), tsc, contract immutability
@@ -37,6 +38,13 @@ export function merge(args: string[]): void {
     console.log('NOTHING TO MERGE: branch tip == base tip. This is NOT a pass (A1.6).');
     process.exit(13);
   }
+
+  const proofRequired = args.includes('--require-proof') || fs.existsSync(proofPath(branch));
+  if (proofRequired) {
+    const problem = proofProblem(branch, branchSha);
+    if (problem) die(9, problem);
+    console.log(`TDD RED -> GREEN verified at ${branchSha}`);
+  } else console.log('TDD UNMEASURED - no receipt; --require-proof makes evidence mandatory');
 
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'aegis-merge-'));
   const cleanup = (): void => {
@@ -88,6 +96,15 @@ export function merge(args: string[]): void {
   // oracle 2: contract immutability (git-native diff, A1.1)
   const drift = gitRaw(['diff', '--name-only', 'HEAD', '--', contractsPath()], tmp).trim();
   if (drift) failed.push(`CONTRACT DRIFT: slice modified immutable contracts (N1):\n  ${drift.split('\n').join('\n  ')}`);
+
+  if (proofRequired) {
+    const proof = readProof(branch)!;
+    const checked = spawnSync(proof.command[0], proof.command.slice(1), {
+      cwd: tmp, encoding: 'utf8', timeout: 60_000, maxBuffer: 4 * 1024 * 1024,
+    });
+    if (checked.error || checked.signal || checked.status !== 0)
+      failed.push('TDD integrated test FAILED: recorded runner did not pass against the merged tree');
+  }
 
   cleanup();
   if (failed.length) die(9, `MERGE ORACLE REFUSED ${branch}:\n${failed.join('\n')}`);

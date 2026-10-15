@@ -36,6 +36,7 @@ export function brainHashes(): Record<string, string> {
   };
   walk(path.join(REPO, 'brain'));
   walk(path.join(AEGIS_DIR, 'ast'));
+  walk(path.join(AEGIS_DIR, 'tdd'));
   const h: Record<string, string> = {};
   for (const f of files.sort()) h[path.relative(REPO, f)] = sha(fs.readFileSync(f));
   for (const name of ['state.json', 'transitions.json']) {

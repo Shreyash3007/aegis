@@ -49,8 +49,8 @@ export function quarantineHit(s: any, branch: string): any {
   return q.find((r) => quarantineMatch(r, branch));
 }
 
-function runOracle(branch: string): { code: number; out: string } {
-  const r = spawnSync(process.execPath, [process.argv[1], 'merge', 'check', branch],
+function runOracle(branch: string, strict: boolean): { code: number; out: string } {
+  const r = spawnSync(process.execPath, [process.argv[1], 'merge', 'check', branch, ...(strict ? ['--require-proof'] : [])],
     { cwd: REPO, encoding: 'utf8', timeout: 120_000 });
   const out = `${r.stdout ?? ''}\n${r.stderr ?? ''}`.trim();
   if (r.error) return { code: 9, out: `${out}\noracle harness error: ${String(r.error).split('\n')[0]}` };
@@ -64,6 +64,7 @@ function classify(code: number, out: string): string[] {
   if (out.includes('MERGE CONFLICT')) c.push('TEXT-CONFLICT');
   if (out.includes('CONTRACT DRIFT')) c.push('CONTRACT-DRIFT');
   if (out.includes('QUARANTINED')) c.push('QUARANTINED');
+  if (/TDD (?:proof|GREEN|RED|test|outcomes|output|integrated)/.test(out)) c.push('TDD-PROOF');
   if (/FAILED:/.test(out)) c.push('TYPECHECK');
   if (!c.length) c.push(code === 9 ? 'ORACLE-REFUSED' : `EXIT-${code}`);
   return c;
@@ -82,7 +83,7 @@ export function clean(args: string[]): void {
   const sha = branchSha(branch);
   const short = sha.slice(0, 8);
 
-  const { code, out } = runOracle(branch);
+  const { code, out } = runOracle(branch, args.includes('--require-proof'));
   const classes = classify(code, out);
   const at = new Date().toISOString();
 

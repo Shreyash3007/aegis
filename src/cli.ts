@@ -41,11 +41,11 @@ Pipeline (the funnel into production lanes):
   transition <skill> [--reason t] [--app <name>]  record a validated transition
   gate <name> --approve [--evidence <ref>] [--app <name>]   record human gate approval (+ evidence pointer; DEMO pins the artifact)
   contracts                    verify contracts merged to base branch (unlocks 04a)
-  merge check <branch>         merge oracle: real merge + typecheck + contract drift (N3)
+  merge check <branch> [--require-proof]  merge oracle: real merge + typecheck + contracts + captured TDD proof
   loops reset --reason <t>     zero loop/cycle counters after human review (audited)
   lane <open|close> <slice>    parallel lane management (cap enforced)
   slice <create|list|remove>   worktree-per-slice + lane management (Phase 6)
-  clean <branch>               loop-until-clean gate: oracle verify + classify +
+  clean <branch> [--require-proof]  loop-until-clean gate: oracle verify + classify +
                                cycle accounting (3 cycles = escalate exit 5;
                                unchanged-SHA re-run = doubt theater exit 5)
   quarantine <freeze|clear|list> <target> --reason t
@@ -57,6 +57,7 @@ Pipeline (the funnel into production lanes):
 
 Evidence (prove it, or label it UNMEASURED):
   checkpoint [--quiet]         snapshot state + hashes
+  tdd <red|green|status> <branch>  run and pin test evidence; red needs --test-file and --expect-exit, green reuses the runner
   resume                       verify integrity, print reconstruction pack
   ast build|diff               ts-morph module graph / impact analysis (Phase 1)
   validate <suite>             contracts|tests|deps|perf|e2e + owner-declared

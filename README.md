@@ -147,6 +147,12 @@ enforces the rules mechanically whichever agent you use.
 
 ## Command reference
 
+For test-first slice work, see [TDD-EVIDENCE.md](docs/TDD-EVIDENCE.md):
+`tdd red` captures a committed failing test, `tdd green` reruns the same
+command after the fix, and `clean <branch> --require-proof` checks both
+receipts and reruns the test on the merged tree. This verifies observed
+process outcomes, not test adequacy; semantic review remains required.
+
 | Command | Behavior | Exit codes |
 |---|---|---|
 | `aegis init [--yes] [--overwrite] [--apps a,b] [--profile min\|std\|full]` | Scaffold .aegis/ + brain/, git hooks (existing preserved + chained), doctor, interview (brownfield auto-detected); minimal profile = standalone tools only (no hooks/brain) | 0 / 1 / 2 |
