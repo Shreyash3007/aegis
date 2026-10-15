@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { randomUUID } from 'node:crypto';
-import { AEGIS_DIR, REPO, die, ok, noStateMsg, readJ, writeJ } from '../lib/util.js';
+import { AEGIS_DIR, REPO, die, ok, noStateMsg, readJ } from '../lib/util.js';
 import { declaredApps } from '../lib/state.js';
 import { withFileLock, lifecyclePath } from '../lib/lock.js';
 import { ownedPath } from '../lib/owned-path.js';
@@ -103,7 +103,7 @@ function storeAccess<T>(action: () => T): T {
           file: path.relative(STORE(), file).split(path.sep).join('/'), before: text(file), after,
         }));
         if (entries.length) {
-          writeJ(JOURNAL(), entries);
+          atomicText(JOURNAL(), JSON.stringify(entries, null, 2) + '\n');
           applyTransaction(entries);
           fs.rmSync(JOURNAL());
         }

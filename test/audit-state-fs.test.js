@@ -364,3 +364,16 @@ for (const locked of [false, true]) {
     assert.ok(readState(d).lanes.active.includes('uncertain')); assert.ok(fs.existsSync(`${meta.dir}-moved`));
   });
 }
+
+test('audit cycle 2: an unavailable Git registry cannot clear an absent slice', async t => {
+  const d = scratch(t); check(aegis(d, ['slice', 'create', 'unknown']));
+  gitIn(d, ['worktree', 'remove', readState(d).slices.unknown.dir]);
+  const before = fs.readFileSync(path.join(d, '.aegis/state.json'), 'utf8');
+  const r = await worker(t, d, `import cp from 'node:child_process';import {syncBuiltinESMExports} from 'node:module';
+const exec=cp.execFileSync;cp.execFileSync=function(bin,args,...rest){
+if(bin==='git'&&args[0]==='worktree'&&args[1]==='list')throw Error('registry unavailable');
+return exec.call(this,bin,args,...rest);};syncBuiltinESMExports();
+(await import(${url('commands/slice.js')})).slice(['remove','unknown']);`);
+  assert.equal(r.status, 4); assert.equal(fs.readFileSync(path.join(d, '.aegis/state.json'), 'utf8'), before);
+  assert.ok(!fs.existsSync(path.join(d, '.aegis/state.json.lock')));
+});
