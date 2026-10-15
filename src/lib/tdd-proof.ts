@@ -29,7 +29,12 @@ export const proofPath = (branch: string): string =>
 
 export function localBranch(branch: string): string | null {
   if (!branch || branch.startsWith('-')) return null;
-  return gitTry(['show-ref', '--verify', '--hash', `refs/heads/${branch}`]) || null;
+  const ref = `refs/heads/${branch}`;
+  // Loose refs on case-insensitive filesystems accept alternate casing.
+  // Require the actual exact spelling before selecting safety records.
+  const refs = gitTry(['for-each-ref', '--format=%(refname)', ref]).split(/\r?\n/);
+  if (!refs.includes(ref)) return null;
+  return gitTry(['show-ref', '--verify', '--hash', ref]) || null;
 }
 
 export function branchWorktree(branch: string): string | null {
@@ -50,7 +55,7 @@ export function readProof(branch: string): TddProof | null {
       p.tests.some((t) => !t || typeof t.file !== 'string' || path.isAbsolute(t.file) || t.file.replace(/\\/g, '/').split('/').includes('..') || !/^[a-f0-9]{64}$/.test(t.sha256)) ||
       new Set(p.tests.map((t) => t.file)).size !== p.tests.length || !/^[a-f0-9]{40}$/.test(p.red.commit) ||
       (p.green && !/^[a-f0-9]{40}$/.test(p.green.commit)) ||
-      (p.timeout_ms !== undefined && (!Number.isInteger(p.timeout_ms) || p.timeout_ms < 1 || p.timeout_ms > 120_000)))
+      (p.timeout_ms !== undefined && (!Number.isInteger(p.timeout_ms) || p.timeout_ms < 1 || p.timeout_ms > 600_000)))
     throw new Error('malformed TDD receipt');
   return p;
 }

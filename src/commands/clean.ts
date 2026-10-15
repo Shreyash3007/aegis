@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
-import { REPO, die, gitTry, ok } from '../lib/util.js';
+import { REPO, die, git, ok } from '../lib/util.js';
 import { acquireState, commitState, loadState, stateP } from '../lib/state.js';
+import { localBranch } from '../lib/tdd-proof.js';
 
 /** Loop-until-clean review gate (SPEC §6) + lane quarantine (SPEC §8).
  *
@@ -21,7 +22,7 @@ import { acquireState, commitState, loadState, stateP } from '../lib/state.js';
 const MAX_CYCLES = 3;
 
 function branchSha(branch: string): string {
-  const sha = gitTry(['rev-parse', branch]);
+  const sha = localBranch(branch);
   if (!sha) die(2, `unknown branch: ${branch}`);
   return sha;
 }
@@ -31,15 +32,26 @@ function branchSha(branch: string): string {
  *  lane convention aegis/slice-<name> (verified, else guessed for lanes
  *  not yet registered). Never double-prefixes a name like 'slice-x'. */
 function resolveFreezeBranch(target: string): string {
+  target = target.replace(/^refs\/heads\//, '');
+  try { git(['check-ref-format', `refs/heads/${target}`]); }
+  catch { die(2, `invalid quarantine branch or lane: ${target}`); }
   if (target.startsWith('aegis/')) return target;
-  if (gitTry(['rev-parse', '--verify', target])) return target;
+  if (localBranch(target)) return target;
   return `aegis/slice-${target}`;
 }
 
 /** Quarantine record matcher: exact branch, the freeze target as given, or the
  *  slice-name <-> aegis/slice-<name> pair in either direction. Single source
  *  of truth for clean(), quarantine clear, and the merge-oracle refusal. */
-export function quarantineMatch(r: { branch: string; target: string }, branch: string): boolean {
+export function quarantineMatch(r: { branch: string; target: string; canonical_ref?: string }, branch: string): boolean {
+  if (!r || typeof r.branch !== 'string' || typeof r.target !== 'string') die(9, 'quarantine registry malformed - cannot verify branch safety');
+  if (r.canonical_ref) return r.canonical_ref === `refs/heads/${branch}`;
+  // Legacy full-ref records predate the explicit identity field. Ambiguous
+  // nested spellings require review rather than skipping a possible freeze.
+  if (r.branch === `refs/heads/${branch}`) {
+    if (localBranch(r.branch)) die(9, 'legacy quarantine ref is ambiguous - review and clear its exact target');
+    return true;
+  }
   return r.branch === branch || r.target === branch ||
     branch === `aegis/slice-${r.target}` || r.branch === `aegis/slice-${branch}`;
 }
@@ -50,8 +62,8 @@ export function quarantineHit(s: any, branch: string): any {
 }
 
 function runOracle(branch: string, flags: string[]): { code: number; out: string } {
-  const r = spawnSync(process.execPath, [process.argv[1], 'merge', 'check', branch, ...flags],
-    { cwd: REPO, encoding: 'utf8', timeout: 120_000 });
+  const r = spawnSync(process.execPath, [process.argv[1], 'merge', 'check', `refs/heads/${branch}`, ...flags],
+    { cwd: REPO, encoding: 'utf8', timeout: 900_000 });
   const out = `${r.stdout ?? ''}\n${r.stderr ?? ''}`.trim();
   if (r.error) return { code: 9, out: `${out}\noracle harness error: ${String(r.error).split('\n')[0]}` };
   return { code: r.status ?? 9, out };
@@ -75,8 +87,9 @@ const evidence = (out: string, n = 12): string =>
   out.split('\n').filter((l) => l.trim()).slice(-n).join('\n');
 
 export function clean(args: string[]): void {
-  const branch = args[0];
+  const branch = args[0]?.replace(/^refs\/heads\//, '');
   if (!branch) die(2, 'usage: aegis clean <branch>');
+  if (args.slice(1).some((a) => !['--require-proof', '--require-quality'].includes(a))) die(2, 'unknown clean option');
   const pre = loadState() as any;
   const frozen = quarantineHit(pre, branch);
   if (frozen)
@@ -150,13 +163,13 @@ export function quarantine(args: string[]): void {
   if (op === 'freeze') {
     if (quarantineHit(s, branch) || quarantineHit(s, target))
       die(4, `already quarantined: ${target} (clear first: aegis quarantine clear ${target} --reason "<why>")`);
-    s.quarantine.push({ target, branch, reason, at });
+    s.quarantine.push({ target, branch, canonical_ref: `refs/heads/${branch}`, reason, at });
     s.history.push({ skill: s.current_skill, at, event: `quarantine-freeze ${target}`, reason });
     commitState(stateP, s);
     ok(`quarantine frozen: ${target} (-> ${branch}) - oracle refuses until: aegis quarantine clear ${target} --reason "<why>"`);
     return;
   }
-  const i = s.quarantine.findIndex((r: any) => quarantineMatch(r, branch) || quarantineMatch(r, target));
+  const i = s.quarantine.findIndex((r: any) => r.target === target || quarantineMatch(r, branch));
   if (i === -1) die(2, `not quarantined: ${target} (see: aegis quarantine list)`);
   const [cleared] = s.quarantine.splice(i, 1);
   const retained = (s.clean ?? {})[cleared.branch]?.cycles ?? (s.clean ?? {})[cleared.target]?.cycles ?? 0;

@@ -63,8 +63,8 @@ export const readJ = <T>(p: string): T => JSON.parse(fs.readFileSync(p, 'utf8'))
  *  state.json - rename is atomic on POSIX, so readers see old or new, never
  *  half-written. */
 export const writeJ = (p: string, o: unknown): void => {
-  const tmp = `${p}.tmp-${process.pid}`;
-  fs.writeFileSync(tmp, JSON.stringify(o, null, 2) + '\n');
+  const tmp = `${p}.tmp-${crypto.randomUUID()}`;
+  fs.writeFileSync(tmp, JSON.stringify(o, null, 2) + '\n', { flag: 'wx' });
   // Windows denies rename-over-open (a concurrent lock-free read holds the
   // target): retry transient lock errors, then let the last one surface.
   for (let i = 0; ; i++) {

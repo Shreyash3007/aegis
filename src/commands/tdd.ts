@@ -40,7 +40,7 @@ export function tdd(args: string[]): void {
     return i < 0 ? undefined : flags[i + 1];
   };
   const timeout = Number(value('--timeout-ms') ?? old?.timeout_ms ?? 60_000);
-  if (!Number.isInteger(timeout) || timeout <= 0 || timeout > 120_000) die(2, 'TDD timeout must be 1..120000 milliseconds');
+  if (!Number.isInteger(timeout) || timeout <= 0 || timeout > 600_000) die(2, 'TDD timeout must be 1..600000 milliseconds (default 60000)');
   const command = op === 'green' ? old?.command : sep < 0 ? [] : args.slice(sep + 1);
   if (!command?.length) die(2, op === 'green' ? 'record RED before GREEN' : 'RED needs an argv after --');
   if (op === 'green' && (old!.red.commit === tip || git(['merge-base', old!.red.commit, tip]) !== old!.red.commit))

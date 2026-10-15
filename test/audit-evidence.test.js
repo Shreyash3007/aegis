@@ -117,4 +117,47 @@ test('audit: TDD preserves the recorded runner deadline for integrated verificat
   const key = crypto.createHash('sha256').update('feature').digest('hex');
   const proof = JSON.parse(fs.readFileSync(path.join(dir, '.aegis', 'tdd', `${key}.json`), 'utf8'));
   assert.equal(proof.timeout_ms, 90000);
+  assert.equal(aegis(dir, ['tdd', 'green', 'feature', '--timeout-ms', '600001']).status, 2, 'the explicit execution budget is still bounded');
+});
+
+test('audit: clean accounting uses canonical branch identities and strict-flag typos cannot pass', (t) => {
+  const dir = fixture(t);
+  assert.equal(aegis(dir, ['tdd', 'red', 'feature', '--test-file', 'check.cjs', '--expect-exit', '1', '--', process.execPath, 'check.cjs']).status, 0);
+  gitIn(dir, ['switch', 'main']);
+  assert.equal(aegis(dir, ['clean', 'feature']).status, 9);
+  const again = aegis(dir, ['clean', 'refs/heads/feature']);
+  assert.equal(again.status, 5, again.stderr + again.stdout);
+  assert.equal(aegis(dir, ['merge', 'check', 'feature', '--require-qaulity']).status, 2);
+  assert.equal(aegis(dir, ['clean', 'feature', '--require-qaulity']).status, 2);
+});
+
+test('audit cycle 2: non-exact branch case cannot bypass a quarantine on case-insensitive filesystems', (t) => {
+  const dir = fixture(t);
+  gitIn(dir, ['branch', '-m', 'AuditLane']);
+  gitIn(dir, ['switch', 'main']);
+  assert.equal(aegis(dir, ['quarantine', 'freeze', 'AuditLane', '--reason', 'fixture']).status, 0);
+  assert.equal(aegis(dir, ['merge', 'check', 'AuditLane']).status, 9, 'positive control: the real branch is frozen');
+  assert.equal(aegis(dir, ['merge', 'check', 'auditlane']).status, 2);
+  assert.equal(aegis(dir, ['clean', 'auditlane']).status, 2);
+});
+
+test('audit cycle 2: clean forwards a nested literal branch name unambiguously', (t) => {
+  const dir = scratch(t);
+  fs.mkdirSync(path.join(dir, 'src', 'contracts'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'src', 'contracts', 'api.txt'), 'immutable contract\n');
+  gitIn(dir, ['add', '.gitignore', 'brain', 'src/contracts/api.txt']);
+  gitIn(dir, ['commit', '-m', 'contract base']);
+  gitIn(dir, ['switch', '-c', 'lane']);
+  fs.writeFileSync(path.join(dir, 'good.txt'), 'good feature\n');
+  gitIn(dir, ['add', 'good.txt']); gitIn(dir, ['commit', '-m', 'good feature']);
+  gitIn(dir, ['switch', 'main']); gitIn(dir, ['switch', '-c', 'refs/heads/lane']);
+  fs.writeFileSync(path.join(dir, 'src', 'contracts', 'api.txt'), 'bad contract change\n');
+  gitIn(dir, ['add', 'src/contracts/api.txt']); gitIn(dir, ['commit', '-m', 'contract drift']);
+  gitIn(dir, ['switch', 'main']);
+  const r = aegis(dir, ['clean', 'refs/heads/refs/heads/lane']);
+  assert.equal(r.status, 9, r.stderr + r.stdout);
+  assert.match(r.stderr, /CONTRACT.DRIFT/);
+  assert.equal(aegis(dir, ['quarantine', 'freeze', 'refs/heads/refs/heads/lane', '--reason', 'nested fixture']).status, 0);
+  assert.equal(aegis(dir, ['merge', 'check', 'lane']).status, 0, 'an unrelated literal branch is not the frozen nested branch');
+  assert.match(aegis(dir, ['merge', 'check', 'refs/heads/refs/heads/lane']).stderr, /QUARANTINED/);
 });

@@ -32,6 +32,7 @@ function dependencySnapshot(root: string): string {
 }
 export function merge(args: string[]): void {
   if (args[0] !== 'check' || !args[1]) die(2, 'usage: aegis merge check <branch>');
+  if (args.slice(2).some((a) => !['--require-proof', '--require-quality'].includes(a))) die(2, 'unknown merge option');
   const branch = args[1].replace(/^refs\/heads\//, '');
   const branchSha = localBranch(branch);
   if (!branchSha) die(2, `unknown local branch (revision expressions are not supported): ${args[1]}`);
@@ -121,7 +122,7 @@ export function merge(args: string[]): void {
     : stack === 'go' ? 'go vet' : stack === 'rust' ? 'cargo check'
     : stack === 'python' ? 'compileall' : 'typecheck';
   if (tcCommand) {
-    try { execSync(tcCommand, { cwd: tmp, encoding: 'utf8', stdio: 'pipe' }); }
+    try { execSync(tcCommand, { cwd: tmp, encoding: 'utf8', stdio: 'pipe', timeout: 120_000 }); }
     catch (e: any) {
       const out = [e.stdout, e.stderr].filter(Boolean).join('\n') || e.message;
       failed.push(`${tcLabel} FAILED:\n${String(out).split('\n').slice(0, 12).join('\n')}`);
