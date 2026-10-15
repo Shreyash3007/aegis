@@ -1,0 +1,111 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import { spawn } from 'node:child_process';
+import { scratch, aegis, gitIn, CLI } from './helpers.js';
+
+function fixture(t, command = [process.execPath, '-e', 'process.exit(0)']) {
+  const dir = scratch(t);
+  fs.writeFileSync(path.join(dir, 'value.cjs'), 'module.exports=1;\n');
+  gitIn(dir, ['add', '.gitignore', 'brain', 'value.cjs']);
+  gitIn(dir, ['commit', '-m', 'base snapshot']);
+  gitIn(dir, ['switch', '-c', 'feature']);
+  fs.writeFileSync(path.join(dir, 'value.cjs'), 'module.exports=0;\n');
+  fs.writeFileSync(path.join(dir, 'check.cjs'), "require('node:assert/strict').equal(require('./value.cjs'),1);\n");
+  fs.writeFileSync(path.join(dir, 'plan.json'), JSON.stringify({ criteria: [{ id: 'AC1', statement: 'observable check', command }], findings: [] }));
+  gitIn(dir, ['add', 'value.cjs', 'check.cjs', 'plan.json']);
+  gitIn(dir, ['commit', '-m', 'feature snapshot']);
+  return dir;
+}
+
+const receipt = (dir, kind) => path.join(dir, '.aegis', 'quality', `${crypto.createHash('sha256').update('feature').digest('hex')}-${kind}.json`);
+
+test('audit: alternate local ref spelling cannot bypass enrolled TDD or quarantine', (t) => {
+  const dir = fixture(t);
+  assert.equal(aegis(dir, ['tdd', 'red', 'feature', '--test-file', 'check.cjs', '--expect-exit', '1', '--', process.execPath, 'check.cjs']).status, 0);
+  gitIn(dir, ['switch', 'main']);
+  assert.equal(aegis(dir, ['merge', 'check', 'refs/heads/feature']).status, 9);
+  assert.equal(aegis(dir, ['merge', 'check', 'feature~0']).status, 2);
+  assert.equal(aegis(dir, ['quarantine', 'freeze', 'feature', '--reason', 'test fixture']).status, 0);
+  const r = aegis(dir, ['merge', 'check', 'refs/heads/feature']);
+  assert.equal(r.status, 9, r.stderr);
+  assert.match(r.stderr, /QUARANTINED/);
+});
+
+test('audit: malformed stored acceptance and review receipts never satisfy strict quality', (t) => {
+  const dir = fixture(t);
+  assert.equal(aegis(dir, ['quality', 'acceptance', 'feature', '--file', 'plan.json']).status, 0);
+  assert.equal(aegis(dir, ['quality', 'review', 'feature', '--file', 'plan.json']).status, 0);
+  const file = receipt(dir, 'acceptance');
+  const valid = fs.readFileSync(file, 'utf8');
+  const broken = JSON.parse(valid);
+  delete broken.criteria;
+  broken.results = [{ id: 'NOT_AC', status: 'PASS', exit: 1 }];
+  fs.writeFileSync(file, JSON.stringify(broken));
+  assert.doesNotMatch(aegis(dir, ['quality', 'status', 'feature']).stdout, /QUALITY VERIFIED/);
+  gitIn(dir, ['switch', 'main']);
+  assert.equal(aegis(dir, ['merge', 'check', 'feature', '--require-quality']).status, 9);
+  fs.writeFileSync(file, valid);
+  const review = JSON.parse(fs.readFileSync(receipt(dir, 'review'), 'utf8'));
+  review.findings = [{ id: 'F1', summary: 'hidden blocker', severity: 'MAJOR', status: 'closed', evidence: ['value.cjs'] }];
+  fs.writeFileSync(receipt(dir, 'review'), JSON.stringify(review));
+  assert.equal(aegis(dir, ['merge', 'check', 'feature', '--require-quality']).status, 9);
+});
+
+test('audit: evidence capture refuses a runner that switches to a different checkout HEAD', (t) => {
+  const switchAndCheck = "require('node:child_process').execFileSync('git',['switch','main']); require('node:assert/strict').equal(require('./value.cjs'),1)";
+  const dir = fixture(t, [process.execPath, '-e', switchAndCheck]);
+  const r = aegis(dir, ['quality', 'acceptance', 'feature', '--file', 'plan.json']);
+  assert.equal(r.status, 9, r.stderr + r.stdout);
+  assert.ok(!fs.existsSync(receipt(dir, 'acceptance')));
+  gitIn(dir, ['switch', 'feature']);
+  const red = aegis(dir, ['tdd', 'red', 'feature', '--test-file', 'check.cjs', '--expect-exit', '1', '--', process.execPath, '-e',
+    "require('node:child_process').execFileSync('git',['switch','main']); process.exit(1)"]);
+  assert.equal(red.status, 9, red.stderr + red.stdout);
+});
+
+test('audit: a merged ancestor is nothing-to-merge, never an oracle PASS', (t) => {
+  const dir = fixture(t);
+  gitIn(dir, ['switch', 'main']);
+  gitIn(dir, ['merge', '--ff-only', 'feature']);
+  gitIn(dir, ['commit', '--allow-empty', '-m', 'later base commit']);
+  const r = aegis(dir, ['merge', 'check', 'feature']);
+  assert.equal(r.status, 13, r.stderr + r.stdout);
+});
+
+test('audit: merge verification pins commits and refuses a concurrently advanced feature ref', (t) => {
+  const dir = fixture(t);
+  assert.equal(aegis(dir, ['quality', 'acceptance', 'feature', '--file', 'plan.json']).status, 0);
+  assert.equal(aegis(dir, ['quality', 'review', 'feature', '--file', 'plan.json']).status, 0);
+  const reviewed = gitIn(dir, ['rev-parse', 'HEAD']);
+  gitIn(dir, ['commit', '--allow-empty', '-m', 'unreviewed change']);
+  const future = gitIn(dir, ['rev-parse', 'HEAD']);
+  gitIn(dir, ['branch', 'keep-future']);
+  gitIn(dir, ['switch', 'main']);
+  gitIn(dir, ['branch', '-f', 'feature', reviewed]);
+  const hook = path.join(dir, '.aegis', 'advance.cjs');
+  fs.writeFileSync(hook, `const cp=require('node:child_process'); const original=cp.execFileSync; let moved=false;
+cp.execFileSync=function(bin,args,opts){if(!moved&&bin==='git'&&args.includes('merge')&&args.includes('--no-commit')){moved=true;original('git',['update-ref','refs/heads/feature',${JSON.stringify(future)}],opts);}return original.apply(this,arguments);};require('node:module').syncBuiltinESMExports();`);
+  const r = aegis(dir, ['merge', 'check', 'feature', '--require-quality'], { env: { NODE_OPTIONS: `--require ${JSON.stringify(hook)}` } });
+  assert.equal(r.status, 9, r.stderr + r.stdout);
+  assert.match(r.stderr, /changed|moved|STALE/i);
+});
+
+test('audit: concurrent public exports publish exactly one immutable observation', async (t) => {
+  const dir = scratch(t);
+  const file = path.join(dir, '.aegis', 'export.json');
+  const hook = path.join(dir, '.aegis', 'barrier.cjs');
+  fs.writeFileSync(hook, `const fs=require('node:fs');const original=fs.existsSync;const target=${JSON.stringify(file)};
+fs.existsSync=function(p){const found=original(p);if(String(p)===target&&!found){fs.writeFileSync(target+'.'+process.pid+'.ready','ready');const until=Date.now()+5000;while(Date.now()<until&&fs.readdirSync(require('node:path').dirname(target)).filter(f=>f.endsWith('.ready')).length<2)Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,10);}return found;};`);
+  const run = () => new Promise((resolve) => {
+    const p = spawn(process.execPath, [CLI, 'evidence', 'export', '--file', file], {
+      cwd: dir, env: { ...process.env, NODE_OPTIONS: `--require ${JSON.stringify(hook)}` }, stdio: 'ignore',
+    });
+    p.once('close', (code) => resolve(code));
+  });
+  const codes = (await Promise.all([run(), run()])).sort((a, b) => a - b);
+  assert.deepEqual(codes, [0, 4]);
+  assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).schema_version, 1);
+});
