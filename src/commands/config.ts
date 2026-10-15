@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { die, ok, readJ, writeJ, noStateMsg } from '../lib/util.js';
-import { Config, configP, freshState, appStatePath } from '../lib/state.js';
+import { Config, configP, freshState, appStatePath, acquireState, commitState, stateP } from '../lib/state.js';
 
 type Cfg = Record<string, unknown>;
 /** Settable keys = the 00b interview's canonical keys (src/lib/interview.ts)
@@ -26,14 +26,18 @@ const SETTABLE: Record<string, (cfg: Cfg, v: string) => void> = {
     const mt = (c.model_tiers ?? { strong: 'default', standard: 'default', light: 'default' }) as Config['model_tiers'];
     mt.light = v; c.model_tiers = mt;
   },
-  human_lane_cap: (c, v) => { c.human_lane_cap = Math.max(1, parseInt(v, 10) || 2); },
+  human_lane_cap: (c, v) => {
+    const limit = Number(v);
+    if (!Number.isSafeInteger(limit) || limit < 1) die(2, 'human_lane_cap: positive integer');
+    c.human_lane_cap = limit;
+  },
   ship_profile: (c, v) => { c.ship_profile = v === 'prototype' ? 'prototype' : 'production'; },
   pii_logs: (c, v) => { c.pii_logs = v === 'true'; },
   token_budget: (c, v) => { const n = parseInt(v, 10);
     if (!Number.isFinite(n) || n <= 0) die(2, 'token_budget: positive integer (advisory, not enforced)');
     c.token_budget = n; },
   contracts_path: (c, v) => {
-    if (!v || v.startsWith('/') || v.includes('..')) die(2, 'contracts_path: repo-relative path, no .. (e.g. pw-ai/plan/contracts)');
+    if (!v || path.isAbsolute(v) || path.win32.isAbsolute(v) || v.includes('..')) die(2, 'contracts_path: repo-relative path, no .. (e.g. pw-ai/plan/contracts)');
     c.contracts_path = v.replace(/\/$/, '');
   },
   apps: (c, v) => {
@@ -70,7 +74,7 @@ export function config(args: string[]): void {
       const apps = (cfg.apps ?? []) as string[];
       if (!apps.includes(app))
         die(2, `contracts_path.${app}: app not declared (apps: ${apps.join(', ') || 'none'} - set apps first)`);
-      if (!/^[^.]/.test(value) || value.startsWith('/') || value.includes('..'))
+      if (!/^[^.]/.test(value) || path.isAbsolute(value) || path.win32.isAbsolute(value) || value.includes('..'))
         die(2, 'contracts_path.<app>: repo-relative path, no ..');
       const m = (cfg.contracts_path_apps ?? {}) as Record<string, string>;
       if (value === '-') delete m[app]; else m[app] = value.replace(/\/$/, '');
@@ -84,7 +88,7 @@ export function config(args: string[]): void {
       const name = key.slice('validate_suite.'.length);
       if (!/^[a-z][a-z0-9_]*$/.test(name))
         die(2, `validate_suite name '${name}': lowercase letters/digits/underscore, starting with a letter`);
-      if (['contracts', 'tests', 'deps', 'perf', 'e2e'].includes(name))
+      if (['contracts', 'tests', 'deps', 'perf', 'e2e', 'acceptance'].includes(name))
         die(2, `validate_suite.${name} collides with a builtin suite - choose another name`);
       const vs = (cfg.validate_suites ?? {}) as Record<string, string>;
       if (value === '-') delete vs[name]; else vs[name] = value;
@@ -105,6 +109,18 @@ export function config(args: string[]): void {
       return;
     }
     SETTABLE[key](cfg, value);
+    if (key === 'human_lane_cap') {
+      const s = acquireState(stateP);
+      if (s.lanes.active.length > Number(cfg.human_lane_cap)) {
+        commitState(stateP, s);
+        die(4, 'lane cap cannot be lowered below the current active lanes');
+      }
+      s.lanes.max = Number(cfg.human_lane_cap);
+      writeJ(configP, cfg);
+      commitState(stateP, s);
+      ok(`config: human_lane_cap = ${cfg.human_lane_cap} (global throttle updated)`);
+      return;
+    }
     writeJ(configP, cfg);
     ok(`config: ${key} = ${JSON.stringify(key === 'model_strong' ? (cfg.model_tiers as Config['model_tiers']).strong : cfg[key])}`);
   } else {

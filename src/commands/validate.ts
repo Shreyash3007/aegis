@@ -5,6 +5,7 @@ import { performance } from 'node:perf_hooks';
 import { AEGIS_DIR, REPO, die, detectPackageManager, has, ok, readJ, writeJ } from '../lib/util.js';
 import { loadConfig, contractsPath } from '../lib/state.js';
 import { detectStack, typecheckCommand, typescriptCommand } from '../lib/oracles.js';
+import { quality } from './quality.js';
 
 /** aegis validate <suite> - real tool runners with measurement citations.
  *  Every result: {tool, command, status: PASS|FAIL|UNMEASURED, summary}.
@@ -297,7 +298,7 @@ const suites: Record<string, (app?: string) => Result | Promise<Result>> = {
   },
 };
 
-export const BUILTIN_SUITES = Object.keys(suites);
+export const BUILTIN_SUITES = [...Object.keys(suites), 'acceptance'];
 
 /** Custom suites from .aegis/config.json validate_suites (repo-owner-written
  *  smoke scripts: "run this, exit 0 = PASS"). Trusted input by design - the
@@ -316,6 +317,7 @@ export async function runSuite(suite: string, app?: string): Promise<Result | nu
 
 export async function validate(args: string[]): Promise<void> {
   const suite = args[0];
+  if (suite === 'acceptance') return quality(['acceptance', ...args.slice(1)]);
   const appIdx = args.indexOf('--app');
   const app = appIdx >= 0 ? args[appIdx + 1] : undefined;
   if (appIdx >= 0 && !app) die(2, 'usage: aegis validate <suite> [--app <name>]');
