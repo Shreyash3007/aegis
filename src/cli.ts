@@ -41,7 +41,7 @@ Pipeline (the funnel into production lanes):
   transition <skill> [--reason t] [--app <name>]  record a validated transition
   gate <name> --approve [--evidence <ref>] [--app <name>]   record human gate approval (+ evidence pointer; DEMO pins the artifact)
   contracts                    verify contracts merged to base branch (unlocks 04a)
-  merge check <branch> [--require-proof]  merge oracle: real merge + typecheck + contracts + captured TDD proof
+  merge check <branch> [--require-proof] [--require-quality]  pinned merge + typecheck + contracts + enrolled evidence
   loops reset --reason <t>     zero loop/cycle counters after human review (audited)
   lane <open|close> <slice>    parallel lane management (cap enforced)
   slice <create|list|remove>   worktree-per-slice + lane management (Phase 6)
@@ -63,6 +63,7 @@ Evidence (prove it, or label it UNMEASURED):
   resume                       verify integrity, print reconstruction pack
   ast build|diff               ts-morph module graph / impact analysis (Phase 1)
   validate <suite>             contracts|tests|deps|perf|e2e + owner-declared
+  validate acceptance <branch> --file <plan.json>  execute committed acceptance through the canonical quality checker
                                custom suites (config set validate_suite.<name> "<cmd>")
   typecheck                    run the repo's real typechecker (tsc / go vet /
                                cargo check / compileall) or degrade honestly
@@ -91,7 +92,7 @@ System:
   blade <list|resolve <name>> [--root <checkout>]  verify optional Superpowers craft source against its pinned blob, or use native fallback
   sync [--refresh-skills]       regenerate context + transitions; explicit skill refresh preserves the prior snapshot without re-init
   gc                           checkpoint retention + brain hygiene (Phase 2)
-  update [--check]             self-update from the latest GitHub tag tarball
+  update [--check]             self-update from the latest tag's built release asset (installation scripts disabled)
   completions <bash|zsh|pwsh>  shell tab-completion for the command surface
   migrate                      schema migration across versions (Phase 12)
 

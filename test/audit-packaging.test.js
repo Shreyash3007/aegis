@@ -75,6 +75,17 @@ test('audit: TypeScript re-exports and mixed import/export cycles fire the DAG g
   assert.equal(r.status, 8, r.stderr + r.stdout);
 });
 
+test('audit: source directories merely containing the text node_modules are not excluded from the graph', (t) => {
+  const dir = scratch(t);
+  fs.writeFileSync(path.join(dir, 'tsconfig.json'), JSON.stringify({ compilerOptions: { target: 'ES2022', module: 'NodeNext', moduleResolution: 'NodeNext' }, include: ['src/**/*.ts'] }));
+  const source = path.join(dir, 'src', 'not_node_modules_code');
+  fs.mkdirSync(source, { recursive: true });
+  fs.writeFileSync(path.join(source, 'a.ts'), "import { b } from './b.js'; export const a=()=>b();\n");
+  fs.writeFileSync(path.join(source, 'b.ts'), "import { a } from './a.js'; export const b=()=>a();\n");
+  const r = aegis(dir, ['ast', 'build']);
+  assert.equal(r.status, 8, r.stderr + r.stdout);
+});
+
 function releaseFixture(t, { buildFailure = false, linked = false } = {}) {
   const dir = scratch(t, { init: false });
   fs.mkdirSync(path.join(dir, 'scripts'));

@@ -11,6 +11,7 @@ export interface ModuleNode {
   edges: string[];         // repo-relative files this module depends on — sorted
 }
 export interface ModuleGraph { modules: ModuleNode[] }  // NO timestamps (A1.2)
+const dependencyPath = (file: string): boolean => file.replace(/\\/g, '/').split('/').includes('node_modules');
 
 function extractExports(sf: SourceFile): string[] {
   const out: string[] = [];
@@ -46,7 +47,7 @@ function extractEdges(sf: SourceFile): { imports: string[]; edges: string[] } {
     if (!specifier) continue;
     imports.push(specifier);
     const target = i.getModuleSpecifierSourceFile();
-    if (target && !target.getFilePath().includes('node_modules')) {
+    if (target && !dependencyPath(target.getFilePath())) {
       edges.push(path.relative(REPO, target.getFilePath()));
     }
   }
@@ -62,7 +63,7 @@ export function buildGraph(): ModuleGraph {
   const modules: ModuleNode[] = [];
   for (const sf of project.getSourceFiles()) {
     const fp = sf.getFilePath();
-    if (fp.includes('node_modules')) continue;
+    if (dependencyPath(fp)) continue;
     const rel = path.relative(REPO, fp);
     const { imports, edges } = extractEdges(sf);
     modules.push({

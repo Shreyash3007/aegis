@@ -79,6 +79,8 @@ write(wt, 'src/greet-impl.ts', "import { greet } from './contracts/greet.js';\ne
 git(wt, ['add', 'src/greet-impl.ts']);
 git(wt, ['commit', '-q', '-m', 'slice: greet impl']);
 step('clean PASS', dir, ['clean', 'aegis/slice-greet'], 0);
+git(dir, ['merge', '--no-ff', 'aegis/slice-greet', '-m', 'merge smoke fixture after oracle verification']);
+step('close merged slice', dir, ['slice', 'remove', 'greet'], 0);
 step('04b', dir, ['transition', '04b'], 0);
 step('04c', dir, ['transition', '04c'], 0);
 step('refused on G3', dir, ['transition', '05a'], 4);

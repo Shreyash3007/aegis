@@ -29,5 +29,7 @@ jobs:
       - run: npm test
       - name: smoke
         run: node dist/cli.js help
+      - name: built package and offline isolated install
+        run: node scripts/package-check.mjs
       - name: adversarial audit (148+ checks, 0 findings required)
         run: node scripts/audit.mjs

@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { execFileSync, execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { die, ok } from '../lib/util.js';
 
@@ -30,11 +30,13 @@ export function update(args: string[]): void {
   const repoUrl: string | undefined = pkg.repository?.url;
   if (!repoUrl) die(2, 'package.json has no repository.url - cannot self-update');
   const https = repoUrl.replace(/^git\+/, '').replace(/\.git$/, '');
+  if (!/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(https))
+    die(2, 'self-update requires a canonical HTTPS GitHub repository URL');
   let remote: string;
   try {
-    remote = execFileSync('git', ['ls-remote', '--tags', https], { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+    remote = execFileSync('git', ['ls-remote', '--tags', https], { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], timeout: 30_000 });
   } catch {
-    die(2, `cannot reach ${https} - check network, then retry (or install by hand: npm i -g ${https}/archive/refs/tags/<tag>.tar.gz)`);
+    die(2, `cannot reach ${https} - check network, then retry or install a published built asset from ${https}/releases`);
   }
   const latest = latestTag(remote);
   if (!latest) die(2, `no semver tags found on ${https}`);
@@ -49,8 +51,10 @@ export function update(args: string[]): void {
     return;
   }
   if (!behind) { ok(`aegis ${current} is already at or ahead of the latest tag (${latestV})`); return; }
-  const tarball = `${https}/archive/refs/tags/${latest}.tar.gz`;
+  const tarball = `${https}/releases/download/${latest}/aegis-${latestV}.tgz`;
   console.log(`updating aegis ${current} -> ${latestV} via ${tarball}`);
-  execSync(`npm install -g ${JSON.stringify(tarball)}`, { stdio: 'inherit' });
+  const install = ['install', '-g', '--ignore-scripts', tarball];
+  if (process.platform === 'win32') execFileSync('cmd', ['/c', 'npm', ...install], { stdio: 'inherit', timeout: 300_000 });
+  else execFileSync('npm', install, { stdio: 'inherit', timeout: 300_000 });
   ok(`aegis updated to ${latestV} - verify: aegis help`);
 }
