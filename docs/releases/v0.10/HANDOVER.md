@@ -5,10 +5,13 @@ Date: 2026-10-16. Authority: this file plus `docs/releases/v0.10/RELEASE-CONTRAC
 
 ## 1. Where we are
 
-- Main HEAD: `7c05edb`, clean, pushed. No tag, no release, no G4 for v0.10.
-- Pipeline state: `08a` (ship verdict). No open slices or lanes; the
-  `v010-lock-deadline` slice (`aegis/slice-v010-lock-deadline`) was merged
-  through the oracle (`--require-proof` PASS) and its worktree is closed.
+- Code freeze for the lock-deadline repair: `7c05edb` (merged through the
+  oracle with `--require-proof` PASS, worktree closed). Docs follow-ups may
+  advance HEAD without touching `src/`; the release candidate is always the
+  HEAD that carries green exact-commit CI, a passed full ritual, and the
+  fresh human G4 — never an older SHA.
+- Pipeline state: `08a` (ship verdict). No open slices or lanes.
+- No tag, no release, no G4 for v0.10.
 - Loop/cycle counters were reset by the owner after human review of the
   remaining Windows failures. That authorized another repair pass, not shipping.
 

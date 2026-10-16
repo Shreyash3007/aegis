@@ -21,8 +21,10 @@ failed-run observations; append successors rather than rewriting them.
 
 ## Current handover (2026-10-16)
 
-- Pipeline: `08a` (ship verdict); main HEAD `7c05edb`, clean and pushed.
-  No open slices or lanes. The `v010-lock-deadline` slice is merged and closed.
+- Pipeline: `08a` (ship verdict). Code freeze `7c05edb` (lock-deadline
+  repair, merged and closed); docs follow-ups may advance HEAD. The release
+  candidate is the HEAD with green exact-commit CI, a passed full ritual,
+  and fresh human G4 — never an older SHA.
 - Completed repair: `src/lib/lock.ts` acquisition bound 10s to 60s for the
   audit's 20-way contention check (`test/windows-lock-deadline.test.js`,
   `scripts/check-lock-deadline.mjs`). Ownership, exclusive creation and
