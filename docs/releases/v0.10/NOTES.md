@@ -18,6 +18,8 @@ it. It does not claim improved model effectiveness from pipeline traversal.
 - Six pinned optional Superpowers craft sources with explicit Aegis collision
   rules, native fallbacks, caller-reported usage and private-safe observations.
 - Fresh-source release checks and an actually verified distribution artifact.
+- Lock contention bound raised from 10s to 60s after the audit's own 20-way
+  check wedged on slow CI hardware; ownership safety is unchanged.
 - Corrected landing-page muted-text contrast and footer-link distinction,
   with historical metrics and unmeasured effectiveness clearly labelled.
 

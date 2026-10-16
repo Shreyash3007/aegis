@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "source_commit": "0cef1bce551bea312a94e314180174eb195358d7",
+  "ci_run": 38889740451,
+  "status": "FAILED_NOT_RELEASED",
+  "jobs": {
+    "ubuntu_node20": "PASS",
+    "ubuntu_node22": "PASS",
+    "windows_node22": "FAIL: audit section E, 20-way contention"
+  },
+  "test_suite": "303/303 passed on Windows CI, including package verification",
+  "audit": "153 checks, 2 findings, both from one check: 20 concurrent exec all exit 0 (got 1 failure) and 20/20 events recorded (got 19)",
+  "root_cause": "The fixed 10s lock acquisition deadline is shorter than the time 20 queued exec processes need on slow 2-core CI hardware. One contender hit the anti-wedge bound while the lock owner was still legitimately working. Locally the same audit passes 153/153 because the machine is faster.",
+  "why_not_a_safety_defect": "Exclusive wx creation, ownership tokens, dead-owner reclamation, path/link refusal and fail-closed malformed-lock handling are all unchanged and still covered by passing tests. The failure is availability under contention, not lost updates or stolen ownership.",
+  "successor_repair": "Raise the acquisition bound from 10s to 60s in src/lib/lock.ts with identical refusal semantics; regression test/windows-lock-deadline.test.js proves a 12s live holder is acquirable and the refusal names the 60s bound without granting ownership.",
+  "boundary": "This erratum is preserved history. It is not release clearance. The successor needs fresh full-matrix CI, package verification, the full 7-check ritual and human G4."
+}

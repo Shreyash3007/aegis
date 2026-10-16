@@ -18,3 +18,13 @@ orchestrator; model routing and automatic effort/model selection are deferred.
 Never reuse v0.9 G4 as v0.10 approval. The human approves the exact final
 source commit; active lanes must close safely. Keep the original audit and
 failed-run observations; append successors rather than rewriting them.
+
+## Current handover (2026-10-16)
+
+- Pipeline: `05c` with open slice `v010-lock-deadline`
+  (`aegis/slice-v010-lock-deadline`); main HEAD `0cef1bc`, clean and pushed.
+- Active repair: raise `src/lib/lock.ts` acquisition bound 10s to 60s for the
+  audit's 20-way contention check (`test/windows-lock-deadline.test.js`).
+  Ownership, exclusive creation and reclamation are unchanged.
+- Full handover for any other agent/session:
+  `docs/releases/v0.10/HANDOVER.md`. Read it before touching this slice.

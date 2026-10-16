@@ -53,6 +53,9 @@ lives in `docs/DOGFOOD-v*.md` and the cited commits.
 - Avoid resolving volatile lock-file leaves to NTFS deleted-object paths;
   retry delete-pending exclusive-open contention without granting ownership,
   stealing live locks or extending the acquisition deadline.
+- Raise the lock acquisition anti-wedge bound from 10s to 60s so the audit's
+  own 20-way contention check passes on slow CI hardware. Exclusive creation,
+  ownership tokens, dead-owner reclamation and fail-closed refusal are unchanged.
 - Owned state/lifecycle locks release on refusals, reclaim only proven-dead
   owners and protect checkpoint/state consistency. Memory mutations are
   serialized, journaled and recoverable; conflicting legacy truth is preserved.

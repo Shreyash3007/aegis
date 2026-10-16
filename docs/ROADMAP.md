@@ -85,6 +85,14 @@ script-free offline install; G4 must approve that source commit before tag.
   Frozen calibration tasks are not an independent held-out study.
 - Final release ritual and a v0.10-specific human G4 approval remain open.
   The stored v0.9 approval must not be represented as new release approval.
+- Successor candidates after those snapshots: `73870db` (Windows hook/slice
+  path identity), `a9be808` (repository-root alias canonicalization),
+  `aaa7d9c` (owned-component expansion without following links),
+  `0cef1bc` (volatile lock-leaf and delete-pending open handling). Each
+  failure is preserved as `docs/evidence/v0.10-ci-erratum-<sha>.json`; the
+  current repair raises the lock acquisition bound to 60s for the audit's
+  20-way contention check without weakening ownership. No snapshot above
+  counts as release clearance on its own.
 - v0.11/v0.12 stay queued until v0.10 clears the release bar. Model routing
   remains deferred. Do not silently relax these gaps to create a tag.
 
