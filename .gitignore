@@ -4,3 +4,5 @@ dist/
 
 .env.local
 .aegis/
+.aegis-lifecycle.lock
+.aegis-lifecycle.lock.reclaim
