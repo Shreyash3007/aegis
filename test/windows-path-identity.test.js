@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { scratch, aegis, gitIn, readState } from './helpers.js';
+import { pathToFileURL } from 'node:url';
+import { scratch, aegis, gitIn, readState, CLI } from './helpers.js';
 
 function nestedRepository(t) {
   const root = scratch(t, { init: false });
@@ -81,4 +82,33 @@ test('path identity: an alias never permits hook installation outside the owned 
   const refused = aegis(alias, ['hooks']);
   assert.equal(refused.status, 4, refused.stderr);
   assert.equal(fs.readFileSync(sentinel, 'utf8'), 'owner sentinel');
+});
+
+test('path identity: direct file locks accept an owned resource through a short-parent alias', (t) => {
+  const dir = nestedRepository(t);
+  const alias = repositoryAlias(dir);
+  const resource = path.join(alias, '.aegis', 'resource');
+  const lockModule = pathToFileURL(path.join(path.dirname(CLI), 'lib', 'lock.js')).href;
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e',
+    `import {lockFile} from ${JSON.stringify(lockModule)}; const release=lockFile(${JSON.stringify(resource)}); release(); console.log('LOCK_RELEASED');`],
+  { cwd: dir, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /LOCK_RELEASED/);
+  assert.ok(!fs.existsSync(`${resource}.lock`));
+});
+
+test('path identity: short-name expansion must not follow even an in-repository directory link', (t) => {
+  const dir = nestedRepository(t);
+  const alias = repositoryAlias(dir);
+  const actual = path.join(dir, '.aegis', 'actual');
+  fs.mkdirSync(actual);
+  const linked = path.join(dir, '.aegis', 'linked');
+  fs.symlinkSync(actual, linked, process.platform === 'win32' ? 'junction' : 'dir');
+  const resource = path.join(alias, '.aegis', 'linked', 'resource');
+  const lockModule = pathToFileURL(path.join(path.dirname(CLI), 'lib', 'lock.js')).href;
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e',
+    `import {lockFile} from ${JSON.stringify(lockModule)}; lockFile(${JSON.stringify(resource)});`],
+  { cwd: dir, encoding: 'utf8' });
+  assert.equal(result.status, 4, result.stderr);
+  assert.ok(!fs.existsSync(path.join(actual, 'resource.lock')), 'link targets are never written');
 });
