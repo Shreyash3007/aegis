@@ -71,6 +71,8 @@ lives in `docs/DOGFOOD-v*.md` and the cited commits.
   lanes. It cannot reuse a v0.9 approval or auto-approve through autonomy=full.
 - Static re-export cycles and source folders merely containing the text
   node_modules are included in the TypeScript graph instead of disappearing.
+- Real-browser checks repaired low-contrast text, a color-only footer link,
+  mobile navigation/CTA overflow and keyboard access to the transcript.
 - Preserve npm launcher symlinks in the dependency-oracle test fixture.
   Ubuntu Node 20 exposed that dereferencing `.bin/tsc` made its relative
   imports invalid. The test retains its oracle and dependency-isolation checks.

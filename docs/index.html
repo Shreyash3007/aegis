@@ -7,7 +7,7 @@
 <meta name="description" content="Your AI agent is fast. Aegis makes fast trustworthy — enforcement in code, judgment in skills, proof on record.">
 <style>
   :root {
-    --ink: #1f2328; --muted: #59636e; --faint: #8b949e;
+    --ink: #1f2328; --muted: #59636e; --faint: var(--muted);
     --line: #d0d7de; --bg: #ffffff; --bg-soft: #f6f8fa;
     --accent: #0969da; --accent-ink: #0550ae;
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
@@ -41,6 +41,13 @@
                 margin: 24px auto 0; }
   .hero .cta { margin-top: 36px; display: flex; gap: 12px; justify-content: center; }
   .hero .cta .btn { font-size: 15px; padding: 12px 26px; border-radius: 10px; }
+  @media (max-width: 600px) {
+    nav .wrap { height: auto; min-height: 60px; flex-wrap: wrap; gap: 12px; padding-top: 14px; padding-bottom: 14px; }
+    nav .links { width: 100%; flex-wrap: wrap; gap: 10px 16px; font-size: 13px; }
+    .hero { padding: 72px 0 64px; }
+    .hero .cta { flex-direction: column; align-items: center; }
+    .hero .cta .btn { max-width: 100%; padding: 12px 20px; font-size: 14px; }
+  }
   .badge { display: inline-block; font-family: var(--mono); font-size: 12px; color: var(--accent-ink);
            border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 5px 16px;
            margin-bottom: 26px; text-decoration: none; }
@@ -103,6 +110,7 @@
   .term .ok { color: #7ee787; }
   .term .fail { color: #ffa198; }
   .term .dim { color: #8b949e; }
+  @media (max-width: 600px) { .term { white-space: pre-wrap; overflow-wrap: anywhere; } }
 
   /* numbers */
   .numbers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 44px; text-align: center; }
@@ -112,7 +120,7 @@
 
   footer { border-top: 1px solid var(--line); padding: 32px 0; font-size: 13px; color: var(--faint); }
   footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-  footer a { color: var(--muted); text-decoration: none; }
+  footer a { color: var(--muted); text-decoration: underline; text-underline-offset: .15em; }
   footer a:hover { color: var(--ink); }
 </style>
 </head>
@@ -268,10 +276,10 @@
 
 <section class="callout" id="guide">
   <div class="wrap">
-    <div class="kicker">Zero manual</div>
-    <h2>Don't want to read docs? Don't.</h2>
-    <p class="lead" style="margin-left:auto;margin-right:auto">Tell your AI agent one sentence. The aegis-guide skill
-      does the setup with you — explaining each step, asking only when a decision is truly yours.</p>
+    <div class="kicker">Guided setup</div>
+    <h2>A guide for the next step.</h2>
+    <p class="lead" style="margin-left:auto;margin-right:auto">After CLI initialization, an agent with file access can read the bundled aegis-guide procedure
+      and explain each step and owner decision. Host-specific auto-registration is planned, not installed by this CLI release.</p>
     <div class="sentence">“walk me through Aegis”</div>
   </div>
 </section>
@@ -294,7 +302,7 @@
       <div class="num"><div class="v">6</div><div class="k">human gates<br>(PRD·G1·G2·G3·G4·DEMO)</div></div>
       <div class="num"><div class="v">37</div><div class="k">v0.9 command surface,<br>historical snapshot</div></div>
     </div>
-    <div class="term"><span class="dim"># real session transcript — the v0.7.0 self-cycle, abridged</span>
+    <div class="term" tabindex="0" role="region" aria-label="Historical CLI transcript"><span class="dim"># recorded v0.7.0 conformance transcript, abridged; synthetic approvals</span>
 <span class="p">$</span> <span class="c">aegis transition 04a</span>
 <span class="fail">FAIL ILLEGAL: gate DEMO (demo-approval) OPEN - CLI refuses</span>
 <span class="p">$</span> <span class="c">aegis demo record --kind ui --file docs/index.html</span>
