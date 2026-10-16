@@ -34,7 +34,13 @@ function create(file: string, token: string): boolean {
   ownedPath(REPO, file);
   let fd: number;
   try { fd = fs.openSync(file, 'wx'); }
-  catch (e: any) { if (e?.code === 'EEXIST') return false; throw e; }
+  catch (e: any) {
+    // Windows can deny a new exclusive open while the previous lock is
+    // delete-pending. Treat it as contention, never as an acquisition. The
+    // caller still checks ownership and enforces its existing total deadline.
+    if (e?.code === 'EEXIST' || (process.platform === 'win32' && ['EPERM', 'EACCES', 'EBUSY'].includes(e?.code))) return false;
+    throw e;
+  }
   try { fs.writeFileSync(fd, JSON.stringify({ pid: process.pid, at: Date.now(), token })); }
   finally { fs.closeSync(fd); }
   return true;

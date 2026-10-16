@@ -19,7 +19,11 @@ function expandWindowsSpelling(file: string, code: number): string {
     // Check BEFORE native expansion: otherwise an in-root link could become
     // an ordinary owned path and escape the link refusal below.
     if (stat.isSymbolicLink()) die(code, `linked path is not owned: ${current}`);
-    current = fs.realpathSync.native(current);
+    // Expand directory aliases only. A regular lock file can be unlinked by
+    // its owner between lstat and realpath; Windows may then report its NTFS
+    // $Deleted identity rather than the owned pathname. The directory already
+    // supplies containment, and the link check above still applies to leaves.
+    if (stat.isDirectory()) current = fs.realpathSync.native(current);
   }
   return current;
 }

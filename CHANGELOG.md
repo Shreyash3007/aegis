@@ -50,6 +50,9 @@ lives in `docs/DOGFOOD-v*.md` and the cited commits.
 - Normalize Windows short-parent directory aliases before comparing repository
   ownership and Git worktree paths; preserve hook/uninstall operation and
   still-registered missing-worktree lanes on hosted Windows runners.
+- Avoid resolving volatile lock-file leaves to NTFS deleted-object paths;
+  retry delete-pending exclusive-open contention without granting ownership,
+  stealing live locks or extending the acquisition deadline.
 - Owned state/lifecycle locks release on refusals, reclaim only proven-dead
   owners and protect checkpoint/state consistency. Memory mutations are
   serialized, journaled and recoverable; conflicting legacy truth is preserved.

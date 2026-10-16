@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "source_commit": "aaa7d9cb983ddb6b54404ce750ee2a273b07f6da",
+  "ci_run": 38886162468,
+  "status": "FAILED_NOT_RELEASED",
+  "jobs": { "ubuntu_node20": "PASS", "ubuntu_node22": "PASS", "windows_node22": "FAIL: 296/298 tests passed" },
+  "failure": "Concurrent exec/chore operations failed when native realpath resolved a volatile regular lock file to an NTFS $Extend/$Deleted identity. A subsequent local reproduction also exposed EPERM opening an exclusively-created, delete-pending lock path.",
+  "repairs": [
+    "Expand Windows directory aliases only; lstat still refuses links, but volatile regular-file leaves are not passed through native realpath.",
+    "Retry Windows EPERM/EACCES/EBUSY exclusive-open contention within the existing acquisition loop and deadline. A failed open never counts as lock ownership."
+  ],
+  "negative_controls": [
+    "Both deleted-identity regressions failed before repair.",
+    "All three transient-open regressions failed before repair.",
+    "Exclusive wx acquisition, ownership tokens, live-owner retention, path/link refusal and dead-owner reclaimer checks remain present."
+  ],
+  "focused_verification": { "passed": 55, "failed": 0, "skipped": 0 },
+  "approval_boundary": "The owner explicitly reviewed the remaining Windows failures and reset loop counters through the CLI. This permitted another repair pass, not shipping or a lower verification bar. The successor still requires complete tests, exact-source cross-platform CI, package checks, the full release ritual and human G4."
+}
