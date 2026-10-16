@@ -72,7 +72,7 @@ export function quality(args: string[]): void {
   const ownProblem = qualityProblem(branch, tip, false, own);
   if (ownProblem) die(9, ownProblem);
   const problem = qualityProblem(branch, tip);
-  if (problem) die(9, problem);
+  if (problem) console.log(`note: ${problem}; this capture passed, but combined merge quality remains blocked`);
   if (kind === 'acceptance') ok(`${receipt.results!.filter((r) => r.status === 'PASS').length}/${receipt.results!.length} acceptance checks passed (criterion adequacy remains a review responsibility)`);
   else ok('review recorded: no open blocker/major; minor/note findings retained for backlog');
 }

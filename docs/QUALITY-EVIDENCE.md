@@ -33,6 +33,11 @@ acceptance and review evidence. Enrolled evidence is checked even without
 the flags. The oracle also reruns acceptance checks on the merged tree.
 Legacy branches without receipts are not retroactively claimed as reviewed.
 
+Acceptance and review captures report their own artifact's outcome. Refreshing
+one must not fail merely because the other is stale; the command explicitly
+notes that combined quality is still blocked. `quality status` and the merge
+gate assess the combined set. An invocation's own failure always remains failure.
+
 ## Limits and capture
 
 `aegis wave --budget 100` declares a ceiling on logical judgment questions.
