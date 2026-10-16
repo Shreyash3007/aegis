@@ -45,7 +45,10 @@ export function aegis(dir, args, { env = {} } = {}) {
  *  `aegis init --yes` applied. t.after removes the temp dir AND the sibling
  *  worktree root (`<dir>-worktrees`) that `slice create` may have made. */
 export function scratch(t, { init = true } = {}) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'aegis-test-'));
+  // Race fixtures intercept exact filenames. Use the physical spelling just
+  // as the CLI does, rather than comparing RUNNER~1 with runneradmin. Tests
+  // that exercise aliases explicitly still construct real alternate paths.
+  const dir = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'aegis-test-')));
   t.after(() => {
     fs.rmSync(dir, { recursive: true, force: true });
     fs.rmSync(`${dir}-worktrees`, { recursive: true, force: true });

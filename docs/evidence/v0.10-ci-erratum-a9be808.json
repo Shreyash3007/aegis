@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "source_commit": "a9be808992412f1eda95dbad9be7a29ad3c3fad4",
+  "ci_run": 38883975508,
+  "status": "FAILED_NOT_RELEASED",
+  "jobs": {
+    "ubuntu_node20": "PASS",
+    "ubuntu_node22": "PASS",
+    "windows_node22": "FAIL: remaining short-path resource and exact-filename fixture cases"
+  },
+  "findings": [
+    "Canonicalizing the repository root repaired Git path identity, but direct lock callers could still provide an 8.3 alias. Owned resource normalization must handle this without following directory links.",
+    "The race-test fixture compared raw temporary filenames against canonical CLI filenames. Its interceptor did not activate under RUNNER~1, so the test did not exercise the intended interleaving."
+  ],
+  "successor_repairs": [
+    "Expand Windows path components only after lstat rejects links, retaining owned-root containment and missing-child checks.",
+    "Canonicalize the test repository's physical directory for exact-filename race interceptors; retain explicit real alias and link-refusal regressions."
+  ],
+  "local_parity_verification": {
+    "environment": "Real short-parent TMP/TEMP aliases, matching the hosted Windows spelling difference",
+    "tests_passed": 58,
+    "tests_failed": 0,
+    "tests_skipped": 0,
+    "includes": "Original failing hooks/uninstall, receipt races, lock-owner/reclaimer assertions and explicit alias/link controls"
+  },
+  "boundary": "This is repair evidence, not final-matrix release clearance. Earlier local passes and failed runs are retained. The successor commit still needs fresh CI, package verification, the full ritual and human ship approval."
+}
