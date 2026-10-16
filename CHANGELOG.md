@@ -47,6 +47,9 @@ lives in `docs/DOGFOOD-v*.md` and the cited commits.
 
 ### Fixed
 
+- Normalize Windows short-parent directory aliases before comparing repository
+  ownership and Git worktree paths; preserve hook/uninstall operation and
+  still-registered missing-worktree lanes on hosted Windows runners.
 - Owned state/lifecycle locks release on refusals, reclaim only proven-dead
   owners and protect checkpoint/state consistency. Memory mutations are
   serialized, journaled and recoverable; conflicting legacy truth is preserved.

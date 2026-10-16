@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "source_commit": "73870dbd395fcd580b95974c7f662cb636164c76",
+  "ci_run": 38880322989,
+  "status": "FAILED_NOT_RELEASED",
+  "jobs": {
+    "ubuntu_node20": "PASS",
+    "ubuntu_node22": "PASS",
+    "windows_node22": "FAIL: 286 passed, 6 failed out of 292"
+  },
+  "failure": "Windows 8.3 directory aliases in a parent path were preserved by process.cwd but expanded by Git. Lexical identity checks rejected valid hook paths and incorrectly treated still-registered missing worktrees as absent from the registry.",
+  "reproduction": "test/windows-path-identity.test.js uses real Windows short-parent directory names: 3 relevant regressions failed before repair, while the outside-owned hook sentinel still refused writes.",
+  "repair": "Normalize the discovered Windows repository root to its native physical spelling, rejecting a linked root before normalization. Keep all owned-path, external-hook and Git-registry checks intact.",
+  "verification_boundary": "The local 292-test pass, package check and Ubuntu CI remain historical observations for this source. They are not successful full-matrix verification. The successor source needs fresh full-matrix CI, artifact verification, release ritual and human G4 approval.",
+  "notes": "Node action-runtime deprecation warnings were not the cause of the six failing assertions. No tests, ownership checks or release gates were removed to repair this failure."
+}
