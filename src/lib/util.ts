@@ -14,7 +14,13 @@ export function die(code: number, msg: string): never {
 function findRepoRoot(start: string): string | null {
   let dir = path.resolve(start);
   for (;;) {
-    if (fs.existsSync(path.join(dir, '.git'))) return dir;
+    if (fs.existsSync(path.join(dir, '.git'))) {
+      if (fs.lstatSync(dir).isSymbolicLink()) die(4, 'linked repository root is not owned');
+      // Git expands Windows 8.3 aliases (e.g. RUNNER~1), while cwd preserves
+      // them. Anchor all derived paths to the physical spelling so ownership
+      // and worktree-registry comparisons refer to the same directory.
+      return process.platform === 'win32' ? fs.realpathSync.native(dir) : dir;
+    }
     const parent = path.dirname(dir);
     if (parent === dir) return null;
     dir = parent;
