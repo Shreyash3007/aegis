@@ -68,7 +68,7 @@ export function lockFile(resource: string): () => void {
   if (existing) {
     existing.count++;
   } else {
-    const deadline = performance.now() + 60_000;
+    const deadline = performance.now() + 10_000;
     const token = randomUUID();
     for (;;) {
       if (create(file, token)) { held.set(file, { token, count: 1 }); break; }
@@ -90,7 +90,7 @@ export function lockFile(resource: string): () => void {
         }
       }
       if (performance.now() >= deadline)
-        die(4, `resource locked by another aegis process: ${file} (waited 60s); inspect owner/reclaimer before manual recovery`);
+        die(4, `resource locked by another aegis process: ${file} (waited 10s); inspect owner/reclaimer before manual recovery`);
       sleep(25 + Math.floor(Math.random() * 25));
     }
   }
