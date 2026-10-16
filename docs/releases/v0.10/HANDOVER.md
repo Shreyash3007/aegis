@@ -5,12 +5,10 @@ Date: 2026-10-16. Authority: this file plus `docs/releases/v0.10/RELEASE-CONTRAC
 
 ## 1. Where we are
 
-- Main HEAD: `0cef1bc`, clean, pushed. No tag, no release, no G4 for v0.10.
-- Pipeline state: `05c` (bug hunting). Open slice: `v010-lock-deadline`
-  on branch `aegis/slice-v010-lock-deadline`, lane 1/2. Worktree:
-  `D:\Projects\aegis-worktrees\v010-lock-deadline`.
-- Main-tree locks/state are untouched by this slice; all edits live in the
-  worktree until merged through the oracle.
+- Main HEAD: `7c05edb`, clean, pushed. No tag, no release, no G4 for v0.10.
+- Pipeline state: `08a` (ship verdict). No open slices or lanes; the
+  `v010-lock-deadline` slice (`aegis/slice-v010-lock-deadline`) was merged
+  through the oracle (`--require-proof` PASS) and its worktree is closed.
 - Loop/cycle counters were reset by the owner after human review of the
   remaining Windows failures. That authorized another repair pass, not shipping.
 
@@ -35,7 +33,7 @@ Date: 2026-10-16. Authority: this file plus `docs/releases/v0.10/RELEASE-CONTRAC
 
 ## 3. Exact resume commands
 
-Run from `D:\Projects\aegis` unless noted (PowerShell):
+The slice is merged; resume from `D:\Projects\aegis` (PowerShell):
 
 ```powershell
 Set-Location D:\Projects\aegis
