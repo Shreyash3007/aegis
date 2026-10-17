@@ -1,0 +1,63 @@
+{
+  "criteria": [
+    {
+      "id": "AC1",
+      "statement": "Binding form and honest absence: the install form is exec form for a spawnable executable (posix, or win32 where the first PATH hit is a real .exe) and documented shell form for Windows shims, with an honest warning - not a silent bad binding - when aegis is absent from PATH; a manual-guidance declaration refuses install with an honest message and writes nothing.",
+      "command": ["node", "--test", "--test-name-pattern", "bindingFor:|missing-shell:", "test/adapters-claude-code.test.js"]
+    },
+    {
+      "id": "AC2",
+      "statement": "Managed-block safety (security audit S1): clean install writes only the managed block and preserves foreign settings byte-for-byte (model/provider/effort protected), the named backup is taken once before the first change, repeat install is a no-op with no byte churn, linked targets and ambiguous states refuse before any write, a foreign structure at the target path refuses honestly, denied permissions follow real platform write semantics, and uninstall removes only the block, restores foreign bytes, prunes emptied containers and keeps the backup.",
+      "command": ["node", "--test", "--test-name-pattern", "install:|refusals:|denied permissions:", "test/adapters-claude-code.test.js"]
+    },
+    {
+      "id": "AC3",
+      "statement": "Verification surface: host verify reports the binding honestly (present exit 0 printing the verdict; absent or unmeasurable exit 9; adapterless or unknown ids exit 2) without touching the file.",
+      "command": ["node", "--test", "--test-name-pattern", "verify:", "test/adapters-claude-code.test.js"]
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/hosts/declarations.ts", "test/host-capabilities.test.js"],
+      "summary": "Real versioned-host smoke (R3a): claude 2.1.269 + aegis 0.10.0 on Windows. Setup: scratch git project, `aegis init --yes`, worktree CLI `host install claude-code` (created .claude/settings.json with the shell-form binding `aegis status`). Runs: `claude -p <prompt> --output-format json --debug-file debug.log` twice (default gateway model; retry with --model sonnet). Debug log captured (verbatim, identical across runs): the watch line naming the scratch project's .claude/settings.json, 'Hook output does not start with {, treating as plain text', and 'Hook SessionStart:startup (SessionStart) success:' with captured stdout equal to the standalone `aegis status` output (state: 00a | lanes: 0/2 []; autonomy: L1 (phase default; not authorization to bypass gates); -> 00b legal). The model turn itself never completed (gateway returned 404 for the default model and 402 'Token Harbor balance is at $0' on retry; cost $0, zero tokens), so delivery of the injected context into a completed model turn is NOT claimed. The claude-code verified_with record in src/hosts/declarations.ts cites this finding; the evidence-honesty test pins the record shape."
+    },
+    {
+      "id": "F2",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/adapters/claude-code.ts", "test/adapters-claude-code.test.js"],
+      "summary": "Adapter safety design (S1): the managed block is structurally identified (a group whose only key is hooks with hooks deep-equal to the canonical entry, either form, order-insensitive) and never matched by substring; foreign content is preserved byte-for-byte with a protected /model|provider|effort/i scan; a named backup is written once before the first change and never overwritten; lstat link refusal covers .claude, settings.json and the backup; ambiguity (two generations, pre-existing backup without a block, stray canonical entry) refuses with die(4) before any write; a post-write tripwire re-reads the file (strip compare + protected scan), restores the pre-write bytes and exits 9 on mismatch; uninstall prunes emptied SessionStart/hooks containers, keeps the backup, and byte-restores foreign files. Fresh install and uninstall leave {} - the file is never deleted."
+    },
+    {
+      "id": "F3",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/adapters/claude-code.ts", "src/hosts/declarations.ts"],
+      "summary": "Install form (declaration limitation made real): exec form only when the first PATH hit is a spawnable executable (always on posix; on win32 when the first where.exe hit ends .exe); shell form otherwise, which is this machine's truth - the first hit is the extension-free shim (`aegis` script), with .cmd shims behind it. When aegis is absent from PATH the install still writes the documented binding but prints an explicit warning instead of pretending it will resolve; the declaration's Windows caveat and the bindingFor tests describe the same rule."
+    },
+    {
+      "id": "F4",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/commands/host.ts", "src/cli.ts", "test/adapters-claude-code.test.js"],
+      "summary": "Wiring and surface: host install|uninstall|verify route through the ADAPTERS registry (unknown id exits 2; a host with no adapter exits 2 with an honest message; no partial writes). The HELP block now lists the three ops, and `aegis help host` (generated from the block) shows them with the claim rule; the R2 list/inspect behavior is unchanged."
+    },
+    {
+      "id": "F5",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/hosts/declarations.ts", "test/host-capabilities.test.js"],
+      "summary": "Evidence honesty upgrade: claude-code moves to 'verified' with a smoke record (host_version 2.1.269, date 2026-10-18, event SessionStart, evidence citing F1); the declarationProblems fixtures now clone a normalized fixture-only base so the dishonest-claim cases stay dishonest no matter which host is upgraded, and the evidence-honesty test uses a per-host smoke expectation map (claude-code verified with well-formed records; opencode/cursor stay fixture-only with empty verified_with until their R3 smokes). declarationProblems still refuses verified-without-smoke biconditionally."
+    },
+    {
+      "id": "F6",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["scripts/check-claude-code-adapter.mjs", "test/adapters-claude-code.test.js"],
+      "summary": "Battery on this slice's sources at the implementation tip 5112eae: npm test 348/348 (299.0s - includes the 11-test adapter suite and the upgraded host-capabilities suite), audit 154 checks / 0 findings, pilot 44/44, dogfood 72 steps / 0 unexpected, self-cycle 61/61 PASSED. RED was recorded at 83fc3f1 (exit 1: the suite fails before the adapter exists) against the self-building runner because the merge oracle replays recorded proofs in a dist-less merged tree; runner and suite are pinned in the tdd receipt. The only commits after the battery are the help-text wording (eaad336) and this plan - text-only, no behavior change. Acceptance criteria are name-pattern slices of the suite, each far under the 60s per-command cap."
+    }
+  ]
+}
