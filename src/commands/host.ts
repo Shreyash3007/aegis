@@ -1,10 +1,24 @@
 import { die } from '../lib/util.js';
 import { HOST_DECLARATIONS, findDeclaration } from '../hosts/declarations.js';
+import { HostCapabilityDeclaration } from '../contracts/hosts.js';
+import { installAdapter as installClaudeCode, uninstallAdapter as uninstallClaudeCode, verifyAdapter as verifyClaudeCode } from '../adapters/claude-code.js';
 
-/** aegis host <list|inspect <id>> - the host adapter capability surface
- *  (v0.11 "Reach"). Reads the shipped declarations only; install/uninstall/
- *  verify arrive with the R3 adapter slices. An unknown id is a malformed
- *  call (exit 2) - never a partial install. */
+/** One line per adapter slice: R3a ships claude-code; R3b/R3c add their
+ *  entries (opencode, cursor) without touching the ops below. */
+const ADAPTERS: Record<string, {
+  install: (d: HostCapabilityDeclaration, dir: string) => void;
+  uninstall: (d: HostCapabilityDeclaration, dir: string) => void;
+  verify: (d: HostCapabilityDeclaration, dir: string) => void;
+}> = {
+  'claude-code': { install: installClaudeCode, uninstall: uninstallClaudeCode, verify: verifyClaudeCode },
+};
+
+/** aegis host <list|inspect <id>|install|uninstall|verify <id>> - the host
+ *  adapter capability surface (v0.11 "Reach"). list/inspect read the shipped
+ *  declarations; install/uninstall/verify are the thin adapters that write
+ *  only their managed blocks into the project config. An unknown id or a
+ *  host without an adapter in this build is a malformed call (exit 2) -
+ *  never a partial install. */
 export function host(args: string[]): void {
   const op = args[0];
   if (op === 'list') {
@@ -24,5 +38,15 @@ export function host(args: string[]): void {
     console.log(JSON.stringify(d, null, 2));
     return;
   }
-  die(2, 'usage: aegis host <list|inspect <id>>');
+  if (op === 'install' || op === 'uninstall' || op === 'verify') {
+    const id = args[1];
+    if (!id) die(2, `usage: aegis host ${op} <id>`);
+    const d = findDeclaration(id);
+    if (!d) die(2, `unknown host '${id}' (known: ${HOST_DECLARATIONS.map((x) => x.id).join(', ') || 'none'})`);
+    const adapter = ADAPTERS[id];
+    if (!adapter) die(2, `no adapter for '${id}' in this build - adapters ship with the R3 slices (see docs/releases/v0.11/PLAN.md)`);
+    adapter[op](d, process.cwd());
+    return;
+  }
+  die(2, 'usage: aegis host <list|inspect <id>|install|uninstall|verify <id>>');
 }
