@@ -201,3 +201,20 @@ Pending owner actions:
 4. Confirm the repaired-release form: the reading here is that the fixes
    fold into v0.11 and no `v0.10.1` tag is cut; say so if a patch release
    is preferred instead.
+
+## 9. Maintain-cycle verdict (08a, 2026-10-17)
+
+Decision: **the v0.10 line is closed green; no new tag on this line; the
+next deployment is v0.11 under its own contract, evidence and gates.**
+
+Basis (all cited above): repair slice merged `b3cce9a` with TDD RED→GREEN
+receipts and oracle PASS; post-merge battery fully green (section 4);
+quality receipts recaptured and VERIFIED at `70bcf5f`; monitor HEALTHY
+(07b); documentation and claims corrected and merged (07c).
+
+Explicitly NOT claimed by this verdict: any executor-effectiveness or cost
+result (v0.11 R5 is blocked on the owner's executor choice); any re-ship
+of v0.10 (a patch release would itself need fresh CI, the full ritual and
+a new human G4); any host-adapter or capability support (v0.11 R2/R3 are
+planned work until evidenced). The `v0.10.0` tag remains exactly as
+shipped; its known defects are recorded in section 2 and `AUDIT.json`.
