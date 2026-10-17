@@ -257,14 +257,17 @@ than rewriting them.
   cursor declarations - all `fixture-only` until real versioned-host smokes
   are recorded - plus the `declarationProblems` validator; acceptance/review
   evidence `docs/releases/v0.11/host-capabilities-quality.json`).
-- **W2 live**: slices `claude-code-adapter` (lane 1) and
-  `evidence-publisher` (lane 2). R3a anchors: managed block in
-  `.claude/settings.json` (exact-block identity with structural validation,
-  lstat link refusal, named backup before the first change, model/provider/
-  effort byte-identity, minimal-diff uninstall); install form on Windows is
-  shell form (`aegis status`) because the PATH `aegis` is a script shim
-  Claude Code cannot exec-spawn; smoke baselines recorded: claude 2.1.269,
-  aegis 0.10.0, opencode v2.0.29, cursor absent locally.
+- **W2 in flight**: R3a claude-code adapter merged at `bdcce95` (managed
+  block in `.claude/settings.json` - exact-block identity, lstat link
+  refusal, named backup before the first change, model/provider/effort
+  byte-identity, minimal-diff uninstall; `host install|uninstall|verify`
+  wiring; Windows install form is shell form (`aegis status`) because the
+  PATH `aegis` is a script shim Claude Code cannot exec-spawn). Real claude
+  2.1.269 SessionStart smoke recorded - claude-code is `verified` in
+  `src/hosts/declarations.ts`; acceptance/review + battery evidence
+  `docs/releases/v0.11/claude-code-adapter-quality.json`. R4
+  evidence-publisher (lane 2) is the remaining W2 slice. Smoke baselines:
+  claude 2.1.269, aegis 0.10.0, opencode v2.0.29, cursor absent locally.
 - v0.11 needs a fresh human G4 on the exact final source. Published tags
   never move; post-release repairs already fold into v0.11.
 <!-- AEGIS:END -->
