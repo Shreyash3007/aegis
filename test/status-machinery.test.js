@@ -11,6 +11,9 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 function seedMachinery(dir) {
+  // v0.11 R1: greenfield init defaults strict; this suite surfaces conflict
+  // classification machinery, so it opts into legacy.
+  assert.equal(aegis(dir, ['config', 'set', 'quality_profile', 'legacy']).status, 0);
   gitIn(dir, ['checkout', '-qb', 'feature']);
   fs.writeFileSync(path.join(dir, 'f.txt'), 'branch');
   gitIn(dir, ['add', 'f.txt']);

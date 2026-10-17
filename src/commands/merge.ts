@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execSync, spawnSync } from 'node:child_process';
 import { REPO, die, git, gitTry, gitRaw, ok } from '../lib/util.js';
-import { contractsPath, stateP, loadState } from '../lib/state.js';
+import { contractsPath, stateP, loadState, loadConfig } from '../lib/state.js';
 import { quarantineMatch } from './clean.js';
 import { detectStack, typecheckCommand } from '../lib/oracles.js';
 import { branchWorktree, localBranch, proofPath, proofProblem, readProof, TddProof } from '../lib/tdd-proof.js';
@@ -51,19 +51,35 @@ export function merge(args: string[]): void {
     process.exit(13);
   }
 
+  // v0.11 R1 quality profile: under `strict` a merge demands RED/GREEN proof
+  // plus acceptance/review receipts whether or not flags are passed; under
+  // `legacy` they stay opt-in. A config that is missing or unreadable degrades
+  // to legacy - the oracle must not change behavior on state it cannot read
+  // (same posture as quarantine above).
+  let qualityProfile: 'strict' | 'legacy' = 'legacy';
+  try { if (loadConfig().quality_profile === 'strict') qualityProfile = 'strict'; } catch { /* absence = legacy */ }
+
   let qualitySnapshot: QualitySnapshot;
   let proofSnapshot: TddProof | null;
   try {
     qualitySnapshot = { acceptance: readQuality(branch, 'acceptance'), review: readQuality(branch, 'review') };
     proofSnapshot = readProof(branch);
   } catch { die(9, 'QUALITY/TDD evidence unreadable or malformed - cannot verify merge'); }
-  const qualityIssue = qualityProblem(branch, branchSha, args.includes('--require-quality'), qualitySnapshot);
-  if (qualityIssue) die(9, qualityIssue);
+  const requireQuality = args.includes('--require-quality') || qualityProfile === 'strict';
+  const qualityIssue = qualityProblem(branch, branchSha, requireQuality, qualitySnapshot);
+  if (qualityIssue)
+    die(9, qualityProfile === 'strict' && !args.includes('--require-quality') ? `${qualityIssue} (quality_profile=strict)` : qualityIssue);
+  // Evidence accounting is always surfaced: the legacy exception prints a
+  // labelled UNMEASURED line, never a quality PASS (R1).
+  const qualMissing = (['acceptance', 'review'] as const).filter((k) => !qualitySnapshot[k]);
+  if (qualMissing.length)
+    console.log(`QUALITY UNMEASURED - no ${qualMissing.join('/')} receipt; quality_profile=strict or --require-quality makes evidence mandatory`);
+  else console.log('QUALITY VERIFIED (recorded acceptance + review)');
 
-  const proofRequired = args.includes('--require-proof') || fs.existsSync(proofPath(branch));
+  const proofRequired = args.includes('--require-proof') || qualityProfile === 'strict' || fs.existsSync(proofPath(branch));
   if (proofRequired) {
     const problem = proofProblem(branch, branchSha, proofSnapshot);
-    if (problem) die(9, problem);
+    if (problem) die(9, qualityProfile === 'strict' && !args.includes('--require-proof') ? `${problem} (quality_profile=strict)` : problem);
     console.log(`TDD RED -> GREEN verified at ${branchSha}`);
   } else console.log('TDD UNMEASURED - no receipt; --require-proof makes evidence mandatory');
 

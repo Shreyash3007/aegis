@@ -6,6 +6,9 @@ import { scratch, aegis, gitIn } from './helpers.js';
 
 function fixture(t) {
   const dir = scratch(t);
+  // v0.11 R1: greenfield init defaults strict; this suite targets the TDD
+  // receipt machinery itself, so it opts into legacy and passes the flags.
+  assert.equal(aegis(dir, ['config', 'set', 'quality_profile', 'legacy']).status, 0);
   fs.writeFileSync(path.join(dir, 'shared.cjs'), 'module.exports = 1;\n');
   gitIn(dir, ['add', '.gitignore', 'brain', 'shared.cjs']);
   gitIn(dir, ['commit', '-m', 'commit scaffold on base before branching']);

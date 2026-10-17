@@ -36,6 +36,7 @@ const SETTABLE: Record<string, (cfg: Cfg, v: string) => void> = {
   token_budget: (c, v) => { const n = parseInt(v, 10);
     if (!Number.isFinite(n) || n <= 0) die(2, 'token_budget: positive integer (advisory, not enforced)');
     c.token_budget = n; },
+  quality_profile: (c, v) => { if (!['strict', 'legacy'].includes(v)) die(2, 'quality_profile: strict|legacy'); c.quality_profile = v; },
   contracts_path: (c, v) => {
     if (!v || path.isAbsolute(v) || path.win32.isAbsolute(v) || v.includes('..')) die(2, 'contracts_path: repo-relative path, no .. (e.g. pw-ai/plan/contracts)');
     c.contracts_path = v.replace(/\/$/, '');
@@ -103,7 +104,7 @@ export function config(args: string[]): void {
       die(2, `unknown key '${key}' - valid keys: ${Object.keys(SETTABLE).join(', ')}, validate_suite.<name>`);
     // '-' removes optional scalar keys (storing the literal "-" would make
     // the config lie - BlindFolio trial). App state files are kept on disk.
-    if (value === '-' && ['contracts_path', 'token_budget', 'apps'].includes(key)) {
+    if (value === '-' && ['contracts_path', 'token_budget', 'apps', 'quality_profile'].includes(key)) {
       delete cfg[key];
       writeJ(configP, cfg);
       ok(`config: ${key} removed (back to default)`);

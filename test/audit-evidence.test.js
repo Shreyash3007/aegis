@@ -8,6 +8,9 @@ import { scratch, aegis, gitIn, CLI } from './helpers.js';
 
 function fixture(t, command = [process.execPath, '-e', 'process.exit(0)']) {
   const dir = scratch(t);
+  // v0.11 R1: greenfield init defaults strict; these fixtures target
+  // quarantine/pinning/receipt mechanics, so they opt into legacy.
+  assert.equal(aegis(dir, ['config', 'set', 'quality_profile', 'legacy']).status, 0);
   fs.writeFileSync(path.join(dir, 'value.cjs'), 'module.exports=1;\n');
   gitIn(dir, ['add', '.gitignore', 'brain', 'value.cjs']);
   gitIn(dir, ['commit', '-m', 'base snapshot']);
@@ -148,6 +151,8 @@ test('audit cycle 2: non-exact branch case cannot bypass a quarantine on case-in
 
 test('audit cycle 2: clean forwards a nested literal branch name unambiguously', (t) => {
   const dir = scratch(t);
+  assert.equal(aegis(dir, ['config', 'set', 'quality_profile', 'legacy']).status, 0,
+    'evidence-free oracle path: opt into legacy (v0.11 R1)');
   fs.mkdirSync(path.join(dir, 'src', 'contracts'), { recursive: true });
   fs.writeFileSync(path.join(dir, 'src', 'contracts', 'api.txt'), 'immutable contract\n');
   gitIn(dir, ['add', '.gitignore', 'brain', 'src/contracts/api.txt']);

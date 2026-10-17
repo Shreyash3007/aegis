@@ -54,6 +54,10 @@ git(dir, ['init', '-q', '-b', 'main']);
 git(dir, ['commit', '-q', '--allow-empty', '-m', 'init']);
 
 step('bootstrap', dir, ['init', '--yes'], 0);
+// v0.11 R1: greenfield init defaults strict; the pilot witnesses the state
+// walk, gates and lane machinery (self-cycle runs the full strict evidence
+// walk), so it opts into legacy explicitly.
+step('legacy quality profile (evidence walk belongs to self-cycle)', dir, ['config', 'set', 'quality_profile', 'legacy'], 0);
 // N1: the tiny feature's contract, committed to main
 write(dir, 'src/contracts/greet.ts', 'export function greet(name: string): string { return `hello ${name}`; }\n');
 git(dir, ['add', '.gitignore', 'brain', 'src/contracts/greet.ts']);

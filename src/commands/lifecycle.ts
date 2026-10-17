@@ -98,6 +98,11 @@ export async function init(args: string[]): Promise<void> {
   // runs validate tests), standard -> standard. minimal installs NO hooks at
   // all (handled below), so hooks_profile is left unset rather than lying.
   if (!minimal) config.hooks_profile = profile === 'full' ? 'strict' : 'standard';
+  // v0.11 R1: new (greenfield) projects start under the strict quality
+  // profile; brownfield keeps legacy until the owner opts in. An explicit
+  // owner setting (including opt-out) survives re-init through the
+  // preserved-keys merge below; this line only seeds the default.
+  if (config.project_type === 'greenfield' && preserved.quality_profile === undefined) config.quality_profile = 'strict';
   // Merge back preserved owner-declared keys the interview doesn't produce.
   const mutableConfig = config as unknown as Record<string, unknown>;
   for (const [k, v] of Object.entries(preserved)) {

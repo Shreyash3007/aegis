@@ -6,6 +6,9 @@ import { scratch, aegis, gitIn, readState, writeState } from './helpers.js';
 
 function setup(t) {
   const dir = scratch(t);
+  // v0.11 R1: greenfield init defaults strict; these fixtures drive the
+  // evidence pipeline through explicit flags, so they opt into legacy.
+  assert.equal(aegis(dir, ['config', 'set', 'quality_profile', 'legacy']).status, 0);
   gitIn(dir, ['add', '.gitignore', 'brain']);
   gitIn(dir, ['commit', '-m', 'scaffold']);
   gitIn(dir, ['switch', '-c', 'feature']);

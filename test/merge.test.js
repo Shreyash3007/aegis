@@ -17,6 +17,10 @@ const TYPESCRIPT = path.join(REPO_ROOT, 'node_modules', 'typescript');
 
 function setupTsProject(t) {
   const dir = scratch(t);
+  // v0.11 R1: greenfield init defaults to the strict quality profile; this
+  // suite exercises the oracle's git/typecheck machinery on evidence-free
+  // branches, so it opts into legacy explicitly.
+  assert.equal(aegis(dir, ['config', 'set', 'quality_profile', 'legacy']).status, 0);
   const nm = path.join(dir, 'node_modules');
   fs.mkdirSync(path.join(nm, '.bin'), { recursive: true });
   fs.symlinkSync(TYPESCRIPT, path.join(nm, 'typescript'), 'junction');

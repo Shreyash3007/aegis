@@ -15,6 +15,9 @@ function writeCommit(dir, file, content, msg) {
 /** main and feature both touch f.txt -> merge oracle TEXT-CONFLICT. */
 function conflictRepo(t) {
   const dir = scratch(t);
+  // v0.11 R1: greenfield init defaults strict; this suite exercises conflict
+  // classification and cycle accounting, so it opts into legacy.
+  assert.equal(aegis(dir, ['config', 'set', 'quality_profile', 'legacy']).status, 0);
   writeCommit(dir, 'f.txt', 'base', 'base');
   gitIn(dir, ['checkout', '-qb', 'feature']);
   writeCommit(dir, 'f.txt', 'branch', 'branch change');

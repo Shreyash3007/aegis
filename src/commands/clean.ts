@@ -79,7 +79,10 @@ function classify(code: number, out: string): string[] {
   if (out.includes('CONTRACT DRIFT')) c.push('CONTRACT-DRIFT');
   if (out.includes('QUARANTINED')) c.push('QUARANTINED');
   if (/TDD (?:proof|GREEN|RED|test|outcomes|output|integrated)/.test(out)) c.push('TDD-PROOF');
-  if (out.includes('QUALITY')) c.push('QUALITY');
+  // Precise QUALITY refusal classes (v0.11 R1): the oracle also prints
+  // QUALITY UNMEASURED/VERIFIED accounting lines on legacy or successful
+  // runs - those are not failure classes.
+  if (/QUALITY (?:acceptance|review|evidence)|QUALITY\/TDD evidence/.test(out)) c.push('QUALITY');
   if (/FAILED:/.test(out)) c.push('TYPECHECK');
   if (!c.length) c.push(code === 9 ? 'ORACLE-REFUSED' : `EXIT-${code}`);
   return c;

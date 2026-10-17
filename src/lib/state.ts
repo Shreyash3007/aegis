@@ -74,6 +74,7 @@ export interface Config {
   apps?: string[]; // v0.4 monorepo: per-app pipeline states under .aegis/apps/
   profile?: 'minimal' | 'standard' | 'full'; // install profile (minimal = standalone tools only, no hooks/brain)
   hooks_profile?: 'minimal' | 'standard' | 'strict'; // hook strictness (aegis hooks --profile; minimal = post-commit only, strict = +tests on push)
+  quality_profile?: 'strict' | 'legacy'; // v0.11 R1: strict = merges demand RED/GREEN + acceptance/review receipts even without flags; absent = legacy (brownfield default until opted in)
 }
 
 /** Where N1 contracts live (default src/contracts; BlindFolio trial: real

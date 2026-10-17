@@ -205,6 +205,10 @@ function scenarioB() {
   write(dir, 'src/contracts/types.ts', 'export interface T { a: string }\n');
   commitAll(dir, 'contracts v1');
   initAegis(dir, S);
+  // v0.11 R1: greenfield init defaults strict; this adversarial fixture
+  // carries no evidence on its slices by design (loop/quarantine machinery),
+  // so it opts into legacy explicitly.
+  aegis(dir, S, 'legacy quality profile (slices carry no evidence by design)', ['config', 'set', 'quality_profile', 'legacy'], 0);
   aegis(dir, S, 'contracts merged (base unchanged here)', ['contracts'], 0);
 
   // Poisoned slice: contract drift the oracle must refuse
