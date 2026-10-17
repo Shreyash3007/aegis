@@ -15,7 +15,11 @@ Key invariants:
   8 ast cycles | 9 merge/validate refusal | 10 monitor breach | 11 eval fail |
   12 schema mismatch | 13 nothing to merge. source: src/cli.ts
 - Every command's behavior is pinned by integration tests spawning dist/cli.js.
-  source: test/*.test.js (52 tests)
+  source: test/*.test.js (67 test files; 319 cases at the v0.11 start)
 - Custom validator contract: owner-declared command string, exit 0 = PASS,
   non-zero = FAIL, command recorded verbatim as citation.
   source: src/commands/validate.ts (runSuite)
+- v0.11 pins document schemas as contracts too: host capability declarations
+  (`src/contracts/hosts.ts`) and release evidence v2
+  (`src/contracts/evidence.ts`), alongside the `host` command surface.
+  source: src/contracts/

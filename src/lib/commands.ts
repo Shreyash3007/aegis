@@ -27,6 +27,7 @@ import { tdd } from '../commands/tdd.js';
 import { blade } from '../commands/blade.js';
 import { quality } from '../commands/quality.js';
 import { evidence } from '../commands/evidence.js';
+import { host } from '../commands/host.js';
 import { lockFile, lifecyclePath } from './lock.js';
 
 /** The dispatch table - single source of truth for the command set. COMMANDS
@@ -36,7 +37,7 @@ const DISPATCH: Record<string, (args: string[]) => void | Promise<void>> = {
   checkpoint, resume, ast, sync, gc, config, merge, slice, validate, monitor,
   eval: evalCmd, migrate, fix, chore, import: importCmd, update, exec, typecheck, hooks,
   wave, 'lint-skills': (args) => lintSkills(args, Object.keys(DISPATCH)),
-  clean, quarantine, memory, jev, demo, remove, tdd, blade, quality, evidence,
+  clean, quarantine, memory, jev, demo, remove, tdd, blade, quality, evidence, host,
 };
 
 export const COMMANDS: string[] = Object.keys(DISPATCH);
