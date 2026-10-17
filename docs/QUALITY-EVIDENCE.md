@@ -53,5 +53,13 @@ fields. `aegis evidence export --file <successor.json>` exports aggregate
 counts with provenance and null/UNMEASURED values, without prompts, commands,
 model names or findings. It refuses to overwrite an existing observation.
 
+With `--battery <observations.json> [--artifacts-dir <dir>]` the same exporter
+becomes the v2 release publisher: it binds the exact candidate sha (missing or
+stale bindings refuse), records the CI linkage and the battery observations,
+verifies every listed artifact sha256 against the actual bytes, and refuses
+raw prompt blobs, credentials, private paths and any attempt to republish
+caller-reported cost as billed. An existing observation is never replaced
+(successor names only).
+
 Study prose belongs on the site. Local machine receipts support that prose;
 private prompts, partner data and credentials must not be published.

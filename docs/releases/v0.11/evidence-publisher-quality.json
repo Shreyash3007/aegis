@@ -1,0 +1,56 @@
+{
+  "criteria": [
+    {
+      "id": "AC1",
+      "statement": "Publication and compatibility: a valid battery publishes the exact v2 document (the nine contract fields; source_sha equal to the candidate HEAD, ci linkage preserved, observations, verified artifacts, usage labelled executor-reported with REPORTED/UNMEASURED only, no model identifiers), while the bare aggregate export keeps its v1 shape byte-compatible for its pinned consumers.",
+      "command": ["node", "--test", "--test-name-pattern", "publish: v2|bare aggregate", "test/evidence-publish.test.js"]
+    },
+    {
+      "id": "AC2",
+      "statement": "Binding refusals and immutability: missing or malformed battery input, a missing or stale source binding, and stale/missing/linked artifacts each refuse with nothing written; an existing observation is never replaced (create-only atomic publication, successor names only).",
+      "command": ["node", "--test", "--test-name-pattern", "missing or stale|never replaced|stale, missing or linked", "test/evidence-publish.test.js"]
+    },
+    {
+      "id": "AC3",
+      "statement": "Privacy and honesty refusals: raw prompt blobs, oversize dumps, private paths, credential-looking values and artifact-name traversal refuse; unknown schema keys, duplicate battery steps and any attempt to smuggle caller-reported usage/cost into the document refuse as reported-never-billed.",
+      "command": ["node", "--test", "--test-name-pattern", "privacy tripwires|schema strictness", "test/evidence-publish.test.js"]
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/commands/evidence.ts", "src/cli.ts", "test/evidence-publish.test.js"],
+      "summary": "v2 release publisher as an extension of the existing exporter: `aegis evidence export --file <json> --battery <json> [--artifacts-dir <dir>]` emits the contract document (schema_version 2 and exactly the nine fields: artifacts, ci, judgments, limitations, observations, privacy, schema_version, source_sha, usage). The bare `--file` form keeps the v1 aggregate shape because three real consumers pin it (self-cycle script expects exit 0; the judgment-budget regression pins content; the audit concurrency lock pins schema_version 1) - none of those files needed edits. The help surface documents the new mode (`aegis help evidence` derives from the HELP block, updated in this slice)."
+    },
+    {
+      "id": "F2",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/commands/evidence.ts", "test/evidence-publish.test.js"],
+      "summary": "Complete S2 refusal set, all refused before any write: missing/malformed battery file; missing or non-40-hex source_sha (die 4, never guessed); stale source binding (battery sha not equal to HEAD - recapture message); missing/empty observations and duplicate battery step names; create-only publication reusing the v1 atomic hard-link mechanism (EEXIST -> die 4; the audit concurrency regression still covers the shared mechanism); artifact verification against actual bytes (existence, lstat link refusal for substitution risk, sha256 + size equality, basename-only names); privacy tripwires for private paths (drive roots with boundary guard, UNC, Users/home/AppData/.ssh/.aws/.claude segments), credential pairs, known token families (ghp_/gho_/ghs_/github_pat_/sk-/xox*), PEM headers and JWT-shaped blobs, single-line and length caps that refuse raw prompt blobs and oversize dumps; schema strictness (unknown keys at battery/ci/observation/artifact level, wrong schema marker); billing smuggling (usage/cost/billing keys refuse with the reported-never-billed message)."
+    },
+    {
+      "id": "F3",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/commands/evidence.ts", "test/evidence-publish.test.js"],
+      "summary": "Honesty limits of the tripwires are stated in code and pinned by the suite header: they are conservative refusals, not proof of absence, and no claim is made that arbitrary content is provably safe. Caller-reported usage stays labelled (provenance literal 'executor-reported (not independently verified)', cost_status only REPORTED or UNMEASURED) and the v2 positive test asserts model identifiers never appear in the published facts."
+    },
+    {
+      "id": "F4",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["test/audit-evidence.test.js", "test/judgment-budget.test.js", "test/evidence-publish.test.js"],
+      "summary": "Compatibility verified by the full battery, not by assumption: the audit concurrency regression (schema_version 1 pin) and the judgment-budget export regression pass unmodified in the 355-test run, and a dedicated coexistence test inside the new suite pins the v1 shape next to the v2 refusals (the validation path is opt-in via --battery)."
+    },
+    {
+      "id": "F5",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["scripts/check-evidence-publish.mjs", "test/evidence-publish.test.js"],
+      "summary": "RED -> GREEN mechanics on this slice's sources: RED recorded at 1207232 against the pre-implementation CLI (exit 1: the suite fails before the publisher exists; runner and suite hash-pinned in the receipt). Battery at the implementation tip a5cebe3: EVIDENCE PUBLISHER SUITE PASSED 7/7 in the runner, npm test 355/355 (304.8s), audit 154 checks / 0 findings, pilot 44/44, dogfood 72 steps / 0 unexpected, self-cycle 61/61 PASSED. The merge oracle replays the self-building runner (dist is untracked) before the criteria slices, each far under the 60s per-command cap. The only commits after the battery are text-only (this plan and the QUALITY-EVIDENCE.md paragraph)."
+    }
+  ]
+}
