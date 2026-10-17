@@ -1,0 +1,63 @@
+{
+  "criteria": [
+    {
+      "id": "AC1",
+      "statement": "Structure and validator: the shipped set is exactly claude-code / opencode / cursor with the contract fields, problem-free, and declarationProblems refuses verified-without-smoke, manual-guidance-with-events and shell interpolation in fixtures.",
+      "command": ["node", "--test", "--test-name-pattern", "declarations|declarationProblems", "test/host-capabilities.test.js"]
+    },
+    {
+      "id": "AC2",
+      "statement": "Claims: each supported event is one aegis argv naming an existing CLI command; expected-but-unsupported events are explicit and disjoint; citations are official https pages; nothing claims verified without a recorded smoke.",
+      "command": ["node", "--test", "--test-name-pattern", "bindings:|unsupported events:|docs citations:|evidence honesty:", "test/host-capabilities.test.js"]
+    },
+    {
+      "id": "AC3",
+      "statement": "CLI surface and install fixtures: host list|inspect read the shipped declarations, and the documented verification commands detect the aegis binding in clean/foreign/absent fixtures.",
+      "command": ["node", "--test", "--test-name-pattern", "host CLI:|install fixtures:", "test/host-capabilities.test.js"]
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/hosts/declarations.ts", "test/host-capabilities.test.js"],
+      "summary": "Bindings are deliberately read-only: every host runs `aegis status` once at session start via its documented mechanism - Claude Code SessionStart (plain-text stdout is added to context, documented), OpenCode `context` plugin hook in the dedicated auto-discovered .opencode/plugins/aegis.ts (plugin spawns the argv, no shell, first context build of a session), Cursor sessionStart (fire-and-forget). No binding gates tools, blocks actions, rewrites prompts, or writes pipeline state."
+    },
+    {
+      "id": "F2",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/hosts/declarations.ts", "src/contracts/hosts.ts"],
+      "summary": "Evidence honesty: nothing claims 'verified'; declarationProblems enforces verified-with-evidence biconditionally (fixtures prove both refusals), so a status cannot silently upgrade ahead of the R3a/R3b/R3c real versioned-host smokes."
+    },
+    {
+      "id": "F3",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/hosts/declarations.ts", "src/contracts/hosts.ts"],
+      "summary": "Missing-mechanism rule (security audit S1): a host without the needed mechanism selects manual guidance - never a new scheduler, daemon or fallback model. Encoded as the manual-guidance-must-not-claim-events and no-events-no-writes rules (fixture-tested) plus the OpenCode limitation (missing aegis CLI selects a logged hint). All three shipped hosts have documented mechanisms, so none is manual-guidance."
+    },
+    {
+      "id": "F4",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/hosts/declarations.ts"],
+      "summary": "Official-doc grounding read 2026-10-18: code.claude.com/docs/en/hooks (exec form command+args spawns with no shell; the Windows .cmd-shim caveat is recorded for the R3a install form), opencode.ai v2 build/plugins docs against the locally installed v2.0.29 (.opencode/plugins auto-discovery), cursor.com/docs/agent/hooks. Retrieval dates ship inside each declaration; R3 smoke baselines recorded: claude 2.1.269, opencode v2.0.29, cursor absent locally."
+    },
+    {
+      "id": "F5",
+      "severity": "minor",
+      "status": "resolved",
+      "evidence": ["src/hosts/declarations.ts", "test/host-capabilities.test.js"],
+      "summary": "Cursor context injection gap: sessionStart is fire-and-forget and injects conversation context only from valid JSON ({additional_context}); `aegis status` prints plain text, so on Cursor the run is visible in the Hooks output channel without altering the conversation. Recorded as an explicit declaration limitation; R3c's advertised-scope decision owns any upgrade path."
+    },
+    {
+      "id": "F6",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["scripts/check-host-capabilities.mjs", "test/host-capabilities.test.js"],
+      "summary": "Battery on this slice's sources at the implementation tip: npm test 337/337 (323.6s), audit 154 checks/0 findings, pilot 44/44, dogfood 72 steps/0 unexpected, self-cycle 61/61. RED was recorded against the self-building runner fbb9db6 because the merge oracle replays proofs in a dist-less merged tree; runner and suite are pinned in the tdd receipt. Acceptance criteria are name-pattern slices of the suite, each far under the 60s per-command cap."
+    }
+  ]
+}
