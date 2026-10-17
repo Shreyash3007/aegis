@@ -82,8 +82,12 @@ waves, which need a real multi-agent harness):
 Conclusions, binding until re-tested:
 
 1. **All aegis commands are now safe under concurrent use on a shared tree.**
-   State mutations take a lockfile around the read-modify-write; stale locks
-   (dead pid or >60s) are stolen, so a crash mid-mutation never wedges the
-   repo. Event ORDER under concurrency is timing-dependent but COMPLETE.
+   State mutations take a lockfile around the read-modify-write. v0.10
+   semantics: only locks of **proven-dead owners** are reclaimed, through a
+   serialized reclaimer; live or malformed locks are never stolen, malformed
+   locks fail closed, and acquisition is bounded (60s, then exit 4 with
+   recovery guidance). Event ORDER under concurrency is timing-dependent but
+   COMPLETE. (The pre-v0.10 ">60s stale locks are stolen" behavior was
+   removed by the v0.10 S04 repair.)
 2. Full fork-agent waves (real agents, disjoint file scopes, one tree)
    remain ⬜ UNTESTED - the substrate now says the pattern is viable.

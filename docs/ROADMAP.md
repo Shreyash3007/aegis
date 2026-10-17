@@ -7,7 +7,7 @@ no parallel skill, no fork; small/free models first; every item gated by
 suite + audit + lint before the next starts; full self-run (dogfood +
 self-walk + fix loop) before any release.
 
-## v0.10 "Grade" — highest-quality output, efficiently [ACTIVE]
+## v0.10 "Grade" — highest-quality output, efficiently [RELEASED 2026-10-16]
 
 Goal: a verified CLI quality floor, not a claim of superior product output.
 Deterministic checks enforce their declared predicates; craft quality,
@@ -62,14 +62,15 @@ customer validation and model effectiveness still need separate evidence.
 - Exit bar: suite green both platforms, audit extended (blade-collision
   section), dogfood with blades active, pilot re-run, ritual 7/7, tag.
 
-### Release acceptance — final audit in progress
+### Release acceptance — RELEASED
 
-Implementation checkboxes are not release acceptance or effectiveness
-evidence. `GATES.md` is the current acceptance checklist. The final release
-must pass fresh-source build, all tests, skill lint, dependency audit,
-adversarial audit, full self-cycle, exact-commit cross-platform CI and the
-full seven-check ritual. The actual bundled package must pass an isolated,
-script-free offline install; G4 must approve that source commit before tag.
+**v0.10.0 was released on 2026-10-16** from exact source `43ab0bd` (tag
+`v0.10.0`, immutable): all three CI jobs green (run 38935831039, 305 tests,
+0 failures locally), the full 7-check ritual `CLEARED to tag`, offline
+install of the built package verified, and fresh human G4 recorded for that
+commit. Evaluated results live in the release-evidence sidecar attached to
+the tag — not in this file. Implementation checkboxes below remain process
+records, not effectiveness evidence.
 
 - Local source snapshot `9f6231c`: tests 205/205, skill lint 71/71, audit
   153 checks/0 findings, scripted dogfood 71/71, self-cycle 61/61, native
@@ -83,8 +84,11 @@ script-free offline install; G4 must approve that source commit before tag.
   canonical acceptance checks as `quality acceptance`.
 - The repaired pilot is a 43-step deterministic smoke, not a small-model trial.
   Frozen calibration tasks are not an independent held-out study.
-- Final release ritual and a v0.10-specific human G4 approval remain open.
-  The stored v0.9 approval must not be represented as new release approval.
+- A post-release audit (2026-10-17) reproduced further defects in hook
+  identity, link traversal, slice-removal identity and lock/uninstall edges;
+  each carries a failing-first regression in `test/audit-postrelease.test.js`
+  and folds into the next release. The v0.9.0-era snapshot metrics above are
+  historical observations of their commits, not claims about later sources.
 - Successor candidates after those snapshots: `73870db` (Windows hook/slice
   path identity), `a9be808` (repository-root alias canonicalization),
   `aaa7d9c` (owned-component expansion without following links),
@@ -93,8 +97,8 @@ script-free offline install; G4 must approve that source commit before tag.
   current repair raises the lock acquisition bound to 60s for the audit's
   20-way contention check without weakening ownership. No snapshot above
   counts as release clearance on its own.
-- v0.11/v0.12 stay queued until v0.10 clears the release bar. Model routing
-  remains deferred. Do not silently relax these gaps to create a tag.
+- v0.11/v0.12 remain queued pending the owner's separate approval. Model
+  routing remains deferred. Do not silently relax acceptance bars.
 
 The owner's current scope is to audit/fix/release the implemented v0.10,
 then approve an updated v0.11. A genuine small-executor trial and independent
@@ -188,4 +192,7 @@ an explicit owner decision; never silently mark the planned slice complete.
 - O4: Jev confidence calibration on short finding texts (triage quality
   tracks finding richness; 06b demands file-level evidence).
 - O5: v0.9.0 tag sits on the ritual-cleared commit; one-line site fix rode
-  main after it (folds into next tag by policy).
+  main after it (folds into next tag by policy). Same pattern recurred for
+  v0.10.0: the tagged tree's `docs/index.html` predates the publication
+  follow-up (`16ea7f1`); the immutable tag keeps the stale page, the live
+  site serves from main. Fold the fix into the next tag by policy.

@@ -19,7 +19,7 @@ are explicit future work, never promises.
 | 7 | Confidence and Jev wiring | enforced | `jev` direct HTTPS, thresholds, degraded mode (suite + live) |
 | 8 | Memory records, decay, reconcile, lane sealing | enforced | `memory` store, committed truth, hashed (suite) |
 | 8 | Quarantined lanes | enforced | oracle refusal (suite) |
-| 9 | Margin Format + lint-skills + trigger eval | enforced | `lint-skills` 68/68, `eval trigger` live 43/43 |
+| 9 | Margin Format + lint-skills + trigger eval | enforced | `lint-skills` 68/68, `eval trigger` live 43/43 (v0.9-era observations; the v0.10 corpus is 71/71) |
 | 10 | Prototype track + demo gate | enforced | `demo record`, DEMO pin on all 04a entries (suite) |
 | 11 | Quality phase + simulations | advisory | 05d skill protocol; simulation tiers in CONSTRAINTS, no CLI harness |
 | 12 | Multi-agent protocol | advisory | blackboard = handoff.md + committed memory (named below); no mechanical hook |
@@ -28,7 +28,7 @@ are explicit future work, never promises.
 
 ## 1. Goal
 
-Evolve aegis (installed 0.5.2, `D:\Projects\aegis`) into the single hybrid
+Evolve aegis (installed 0.5.2 at drafting time; released line is now 0.10.0, `D:\Projects\aegis`) into the single hybrid
 autonomous framework: machine-enforced phases, autonomy-calibrated execution,
 parallel lanes, loop-until-clean review, typed record memory, cheap machine
 judges. Optimized for small/free models first; frontier models must add

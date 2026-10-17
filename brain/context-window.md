@@ -19,19 +19,15 @@ Never reuse v0.9 G4 as v0.10 approval. The human approves the exact final
 source commit; active lanes must close safely. Keep the original audit and
 failed-run observations; append successors rather than rewriting them.
 
-## Current handover (2026-10-16)
+## Current handover (2026-10-17)
 
-- Pipeline: `08a` (ship verdict). Code freeze `7c05edb` (lock-deadline
-  repair, merged and closed); docs follow-ups may advance HEAD. The release
-  candidate is the HEAD with green exact-commit CI, a passed full ritual,
-  and fresh human G4 — never an older SHA.
-- Completed repair: `src/lib/lock.ts` acquisition bound 10s to 60s for the
-  audit's 20-way contention check (`test/windows-lock-deadline.test.js`,
-  `scripts/check-lock-deadline.mjs`). Ownership, exclusive creation and
-  reclamation are unchanged. TDD RED/GREEN recorded; merge oracle passed.
-- Fresh CI for `7c05edb` is running; the full 7-check ritual and fresh human
-  G4 approval are still required before any tag. See `GATES.md` and
-  `docs/releases/v0.10/RELEASE-CONTRACT.md`.
+- **v0.10.0 is released** (2026-10-16): tag `v0.10.0` = source `43ab0bd`,
+  green exact-commit CI, full ritual `CLEARED`, offline install verified,
+  human G4 recorded. Assets + evidence sidecars on the GitHub release.
+- Pipeline: `07a` tech-debt cycle with open slice `postrelease-repairs`:
+  the 2026-10-17 post-release audit fixes (hook identity, link traversal,
+  slice identity, lock/uninstall edges) and claims/doc corrections. Fixes
+  fold into the next release; published tags never move.
+- v0.11 is queued in `docs/ROADMAP.md`, awaiting the owner's explicit go.
 - Full handover for any other agent/session:
-  `docs/releases/v0.10/HANDOVER.md`. Its section 2 describes the slice state
-  before merge; everything else remains current.
+  `docs/releases/v0.10/HANDOVER.md` (post-release edition).

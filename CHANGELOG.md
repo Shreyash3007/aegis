@@ -4,7 +4,7 @@ All notable changes to Aegis. Format follows [Keep a Changelog](https://keepacha
 versioning follows [SemVer](https://semver.org/). Evidence for every claim
 lives in `docs/DOGFOOD-v*.md` and the cited commits.
 
-## [0.10.0] — Grade
+## [0.10.0] - 2026-10-16 — Grade
 
 ### Compatibility
 
@@ -56,6 +56,21 @@ lives in `docs/DOGFOOD-v*.md` and the cited commits.
 - Raise the lock acquisition anti-wedge bound from 10s to 60s so the audit's
   own 20-way contention check passes on slow CI hardware. Exclusive creation,
   ownership tokens, dead-owner reclamation and fail-closed refusal are unchanged.
+- Post-release audit (2026-10-17) of the shipped v0.10.0: hook identity is now
+  anchored to the managed banner line (a foreign hook merely mentioning
+  `# AEGIS` was silently clobbered or deleted); re-init refuses rather than
+  clobber a second-generation foreign hook when a backup already exists;
+  hook install and uninstall never act through a symlinked hook file; a
+  linked `.git` entry is refused before any command runs; `slice remove`
+  keeps the lane while the slice's worktree is registered in Git at any path
+  and names the manual recovery step for orphaned worktree directories;
+  a failed owner-write no longer leaves a poisoned zero-byte lock; an
+  undeletable dead-owner lock and an unreadable lock fail closed with
+  distinct actionable guidance instead of a raw crash or a false
+  corruption verdict; uninstall removes the machine tree first so a pinned
+  `.aegis` cannot leave a half-uninstalled repo, completes with an external
+  `core.hooksPath`, and skips linked hook files with a note; alias spellings
+  of one lock are reentrant within a process.
 - Owned state/lifecycle locks release on refusals, reclaim only proven-dead
   owners and protect checkpoint/state consistency. Memory mutations are
   serialized, journaled and recoverable; conflicting legacy truth is preserved.

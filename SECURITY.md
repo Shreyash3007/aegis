@@ -48,13 +48,18 @@ round-trip prove what left the machine.
 
 ## Supply chain (`aegis update`)
 
-Updates install the latest GitHub tag tarball over TLS (`npm install -g
-https://github.com/Shreyash3007/aegis/archive/refs/tags/<tag>.tar.gz`).
-The installer prints the tarball URL; verify the tag out-of-band
-(`gh release view <tag>`) before running it on sensitive machines. GitHub
-archive tarballs are not byte-stable, so there is no checksum to pin —
-this is stated here instead of pretending otherwise. `npm ci` (lockfile)
-covers dependency installs; `ts-morph` is the only runtime dependency.
+Since v0.10.0, updates install the latest tag's **built release asset** with
+installation scripts disabled (`npm install -g --ignore-scripts
+https://github.com/Shreyash3007/aegis/releases/download/<tag>/aegis-<version>.tgz`).
+Each release publishes a SHA256 sidecar (`aegis-<version>.tgz.sha256`) and a
+release-evidence sidecar binding the artifact digest to the tested source
+commit; verify the digest against the sidecar before installing on
+sensitive machines. The updater itself selects the same built-asset URL and
+passes `--ignore-scripts`. The pre-v0.10 path — GitHub's generated
+`archive/refs/tags/<tag>.tar.gz` source archives — is deprecated: those
+tarballs are not byte-stable, carry no checksum, and historically ran
+install scripts. `npm ci` (shrinkwrap) covers dependency installs;
+`ts-morph` is the only runtime dependency, bundled into the release asset.
 
 ## Supported versions
 

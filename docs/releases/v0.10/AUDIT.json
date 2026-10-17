@@ -49,5 +49,25 @@
     "Legacy missing receipts still need explicit strict flags; strict-profile migration is planned v0.11 work.",
     "Structural doc-contract heuristics, dynamic/polyglot graphs, power-loss durability, arbitrary external writers and independent effectiveness/cost are not claimed as fully verified.",
     "A scripted smoke and development calibration bank do not constitute a genuine small-model delivery trial or held-out benchmark."
-  ]
+  ],
+  "postrelease_audit": {
+    "date": "2026-10-17",
+    "scope": "Shipped v0.10.0 (tag = 43ab0bd): lock/path/hook/slice trust edges plus documentation claims.",
+    "method": "Two fresh-context adversarial reviewers; every code finding reproduced against the shipped dist build in self-owned scratch repos; all 14 regressions failed against the released code before their fixes (aud-postrelease-red.log).",
+    "findings": [
+      { "id": "PR01", "severity": "P1", "defect": "Whole-body marker match clobbered foreign hooks mentioning '# AEGIS', deleted them on uninstall, restored stale backups, and silently overwrote second-generation foreign hooks.", "repair": "Banner-anchored identity (isManagedHookBody); ambiguous re-install refuses and names the backup.", "tests": ["test/audit-postrelease.test.js"], "status": "repair_implemented_folds_into_next_release" },
+      { "id": "PR02", "severity": "P1", "defect": "Hook install wrote through a symlinked hook file to outside the repo; uninstall died on the same link.", "repair": "Install refuses linked hook files; uninstall skips them with a note.", "tests": ["test/audit-postrelease.test.js"], "status": "repair_implemented_folds_into_next_release" },
+      { "id": "PR03", "severity": "P1", "defect": "A junctioned/symlinked .git installed hooks into a foreign repository.", "repair": "findRepoRoot link-checks the .git entry before any command runs.", "tests": ["test/audit-postrelease.test.js"], "status": "repair_implemented_folds_into_next_release" },
+      { "id": "PR04", "severity": "P1", "defect": "slice remove closed the lane while Git still knew a moved worktree; orphaned directories dead-ended without recovery guidance.", "repair": "Registry identity is the slice branch at any path; the orphan message names the manual recovery step.", "tests": ["test/audit-postrelease.test.js"], "status": "repair_implemented_folds_into_next_release" },
+      { "id": "PR05", "severity": "P2", "defect": "Lock edges: failed owner-write left a poisoned zero-byte lock; undeletable dead-owner lock raw-crashed; unreadable lock misdiagnosed as malformed; alias spellings self-contended.", "repair": "Best-effort cleanup on write failure; access-vs-corruption verdicts; guarded reclaim unlink; canonicalized held keys. All paths remain fail-closed.", "tests": ["test/audit-postrelease.test.js"], "status": "repair_implemented_folds_into_next_release" },
+      { "id": "PR06", "severity": "P2", "defect": "Uninstall could crash mid-way (pinned .aegis), was permanently blocked by an external core.hooksPath, and left half-uninstalled state.", "repair": "Machine tree removed first; external hooks dirs skipped with a note while the default dir is cleaned; linked hooks skipped with a note.", "tests": ["test/audit-postrelease.test.js"], "status": "repair_implemented_folds_into_next_release" },
+      { "id": "PR07", "severity": "P2", "defect": "Docs: stale pre-release state in HANDOVER/ROADMAP, pre-repair updater in SECURITY.md, removed lock semantics in PLATFORM-MATRIX, undated historical metrics, missing CHANGELOG date, no published-results pointer in GATES.md, tagged site page predates the publication follow-up.", "repair": "All corrected in the same slice; the tagged-tree site page is recorded as erratum (ROADMAP O5) — the immutable tag cannot be amended.", "review_artifacts": ["docs/releases/v0.10/HANDOVER.md", "docs/ROADMAP.md", "SECURITY.md", "docs/PLATFORM-MATRIX.md", "CHANGELOG.md", "README.md", "docs/index.html", "GATES.md"], "status": "repair_implemented_folds_into_next_release" }
+    ],
+    "unverified_suspicions": [
+      "Crash window between worktree creation and registration leaves an unregistered orphan worktree (inspection only).",
+      "The .gitignore rewrite in uninstall is non-atomic (inspection only).",
+      "lstat-then-act TOCTOU against a concurrent attacker with repo write access (not demonstrated).",
+      "Dirty-work predicate vs skip-worktree entries under sparse checkout (not verified)."
+    ]
+  }
 }

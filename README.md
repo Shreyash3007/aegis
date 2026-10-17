@@ -59,8 +59,9 @@ you / your agent  ──►  aegis CLI  ──►  .aegis/ (machine state, hash-
   pipelines, gates, and fast lanes under one shared brain and lane cap.
 - **Executor-wave recording** — `aegis exec -- <cmd>` wraps any command
   (opencode/GLM/fork-agent waves) so the run is recorded and checkpointed.
-  Concurrency-safe: a lockfile guards every state write (measured 10/10
-  events under 10 parallel writers).
+  Concurrency-safe: a lockfile guards every state write (historical
+  measurement: 10/10 events under 10 parallel writers, 2026-07-21 v0.4.1
+  battery — see docs/PLATFORM-MATRIX.md; v0.10 changed the lock semantics).
 - **Brownfield-native** — auto-detects established repos, preserves your
   existing git hooks (chained, never clobbered), preserves hand-written
   `AGENTS.md`/`CLAUDE.md` (marker-block sync), and the 00d skill imports your
@@ -90,7 +91,7 @@ aegis init --yes && aegis ast build   # one trial found 2 real circular deps thi
 
 Requires Node 20 or 22+ and git. GitHub-only distribution (never on npm registry).
 Choose a published asset from GitHub Releases. The command below targets
-v0.10.0 and becomes available when that release is published.
+v0.10.0, the current release.
 
 ```bash
 npm install -g --ignore-scripts https://github.com/Shreyash3007/aegis/releases/download/v0.10.0/aegis-0.10.0.tgz

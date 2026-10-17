@@ -8,6 +8,10 @@ These are source-versioned gate definitions. Final evaluated observations are
 published in the release evidence sidecar; a source commit cannot contain its
 own future CI/publication result. Pending boxes do not invent that result.
 
+v0.10.0 was published 2026-10-16 from `43ab0bd`; evaluated outcomes live in the
+release-evidence sidecar attached to that tag. The 2026-10-17 post-release
+audit repairs (test/audit-postrelease.test.js) fold into the next release.
+
 - [ ] G1: Regression checks cover repaired refusal, integrity, filesystem and verification defects.
   CHECK: node scripts/check-audit.mjs
   EXPECT: AUDIT REGRESSIONS PASSED
