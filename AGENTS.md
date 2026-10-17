@@ -257,17 +257,26 @@ than rewriting them.
   cursor declarations - all `fixture-only` until real versioned-host smokes
   are recorded - plus the `declarationProblems` validator; acceptance/review
   evidence `docs/releases/v0.11/host-capabilities-quality.json`).
-- **W2 in flight**: R3a claude-code adapter merged at `bdcce95` (managed
-  block in `.claude/settings.json` - exact-block identity, lstat link
-  refusal, named backup before the first change, model/provider/effort
-  byte-identity, minimal-diff uninstall; `host install|uninstall|verify`
-  wiring; Windows install form is shell form (`aegis status`) because the
-  PATH `aegis` is a script shim Claude Code cannot exec-spawn). Real claude
-  2.1.269 SessionStart smoke recorded - claude-code is `verified` in
-  `src/hosts/declarations.ts`; acceptance/review + battery evidence
-  `docs/releases/v0.11/claude-code-adapter-quality.json`. R4
-  evidence-publisher (lane 2) is the remaining W2 slice. Smoke baselines:
-  claude 2.1.269, aegis 0.10.0, opencode v2.0.29, cursor absent locally.
+- **W2 complete**: W2-A R3a claude-code adapter `bdcce95` (managed block
+  in `.claude/settings.json` - exact-block identity, lstat link refusal,
+  named backup before the first change, model/provider/effort byte-identity,
+  minimal-diff uninstall; `host install|uninstall|verify` wiring; Windows
+  install form is shell form (`aegis status`) because the PATH `aegis` is a
+  script shim Claude Code cannot exec-spawn; real claude 2.1.269 SessionStart
+  smoke recorded - claude-code is `verified` in `src/hosts/declarations.ts`;
+  evidence `docs/releases/v0.11/claude-code-adapter-quality.json`). W2-B R4
+  evidence-publisher `aa601fc` (`evidence export --file <json> --battery
+  <json>` publishes schema v2 release evidence: exact-sha binding, CI
+  linkage, observations, verified artifact bytes, limitations; create-only;
+  refusals for missing/stale bindings, private paths, credentials, raw
+  prompt blobs and reported-cost-as-billing; the bare v1 aggregate export is
+  kept for its pinned consumers; evidence
+  `docs/releases/v0.11/evidence-publisher-quality.json`).
+- **W3 live**: R3b opencode adapter (lane A) and R6 craft + adverse suite
+  (lane B). Open owner decisions at W4: R3c cursor advertised scope
+  (fixture-only vs tested elsewhere) and the R5 executor trial (choice +
+  spend). Smoke baselines: claude 2.1.269, aegis 0.10.0, opencode v2.0.29,
+  cursor absent locally.
 - v0.11 needs a fresh human G4 on the exact final source. Published tags
   never move; post-release repairs already fold into v0.11.
 <!-- AEGIS:END -->
