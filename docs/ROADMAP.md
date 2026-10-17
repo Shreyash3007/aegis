@@ -106,12 +106,15 @@ held-out effectiveness study are explicitly not reclassified as completed
 by the scripted pilot: they remain v0.11/v0.12 acceptance work below. This
 scope clarification must be visible in the final human release verdict.
 
-## v0.11 "Reach" — verified adapters and real executor evidence [QUEUED]
+## v0.11 "Reach" — verified adapters and real executor evidence [ACTIVE]
 
-No implementation starts before v0.10 is released and the owner accepts
-this revised plan. All commands/artifacts below are planned work, not
-existing capability claims. Each slice gets an Aegis contract and worktree;
-only its evidence-passing result can unblock dependent slices.
+v0.10 is released and the owner authorized this plan (“continue and
+implement the complete fix plan entirely and continue”, “then proceed with
+the releasing the v0.11”). Execution matrix and gates live in
+`docs/releases/v0.11/PLAN.md` and `docs/releases/v0.11/RELEASE-CONTRACT.md`.
+Everything below is planned work until its evidence lands — not existing
+capability claims. Each slice gets an Aegis contract and worktree; only its
+evidence-passing result can unblock dependent slices.
 
 1. **R1: opt-in strict-project quality profile and migration.** Define the
    new-project vs legacy policy before changing defaults. Fixture acceptance:
