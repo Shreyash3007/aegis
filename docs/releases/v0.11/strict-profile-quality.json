@@ -1,0 +1,61 @@
+{
+  "criteria": [
+    {
+      "id": "AC1",
+      "statement": "Strict walk: a strict project refuses merges without acceptance/review receipts (the flagless refusal cites quality_profile=strict) and passes with full evidence.",
+      "command": ["node", "--test", "--test-name-pattern", "full evidence passes|not enough", "test/strict-profile.test.js"]
+    },
+    {
+      "id": "AC2",
+      "statement": "Legacy exception stays honest: absent receipts print labelled UNMEASURED lines (never a quality PASS), and stale or corrupt receipts refuse under both profiles.",
+      "command": ["node", "--test", "--test-name-pattern", "UNMEASURED labels|stale and corrupt", "test/strict-profile.test.js"]
+    },
+    {
+      "id": "AC3",
+      "statement": "Profile lifecycle: greenfield defaults strict, brownfield stays legacy, and an explicit owner choice survives re-init.",
+      "command": ["node", "--test", "--test-name-pattern", "re-init preserves the choice", "test/strict-profile.test.js"]
+    },
+    {
+      "id": "AC4",
+      "statement": "Wiring present in the merged sources: strict refusal attribution in merge gating and precise QUALITY refusal classes in clean classification.",
+      "command": ["node", "-e", "const fs=require('fs');const m=fs.readFileSync('src/commands/merge.ts','utf8');const c=fs.readFileSync('src/commands/clean.ts','utf8');if(!m.includes('quality_profile=strict')||!c.includes('QUALITY (?:acceptance|review|evidence)')){console.error('R1 wiring missing');process.exit(1);}console.log('R1 wiring present');"]
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["test/strict-profile.test.js", "scripts/check-strict-profile.mjs"],
+      "summary": "Acceptance splits the five-test suite into three bounded node --test name-pattern criteria: the tool caps each criterion command at 60s and the run at 120s, so the full suite cannot run as one criterion; coverage still spans all five tests plus a wiring check."
+    },
+    {
+      "id": "F2",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/commands/clean.ts"],
+      "summary": "clean classification matches precise QUALITY refusal classes, so the new UNMEASURED/VERIFIED accounting lines cannot be misread as failures; the conflict and quarantine suites keep their historic labels."
+    },
+    {
+      "id": "F3",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/commands/merge.ts"],
+      "summary": "A missing or unreadable config degrades merge gating to legacy by design (same posture as the quarantine registry: the oracle must not change behavior on state it cannot read); the absence path is exercised by the legacy exception tests."
+    },
+    {
+      "id": "F4",
+      "severity": "minor",
+      "status": "resolved",
+      "evidence": ["test/merge.test.js", "test/tdd.test.js", "test/quality.test.js", "test/clean.test.js", "test/status-machinery.test.js", "test/audit-evidence.test.js", "scripts/pilot.mjs", "scripts/dogfood.mjs"],
+      "summary": "Machinery-focused suites and the pilot/dogfood fixtures opt into legacy explicitly (one commented line each, deliberate scope choice); the strict default is witnessed by the new suite and by self-cycle's full evidence walk. The test fallout is inherent to flipping an init default."
+    },
+    {
+      "id": "F5",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["scripts/check-strict-profile.mjs", "test/strict-profile.test.js"],
+      "summary": "Battery on this slice's sources: npm test 327/327 at the implementation tip; audit 154 checks / 0 findings; pilot 44/44; dogfood 72 steps / 0 unexpected; self-cycle 61/61 including the strict walk (the runner script added afterwards is exercised by GREEN and the acceptance criteria). RED was re-recorded against the self-building runner because the merge oracle replays proofs in a dist-less merged tree; both tdd-red events remain in state history."
+    }
+  ]
+}
