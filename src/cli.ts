@@ -21,8 +21,10 @@ Setup (once per repo):
                                reinstall git hooks at a strictness profile
                                (minimal = post-commit only; standard = the three
                                 hooks; strict = standard + validate tests on push)
-  host <list|inspect <id>>     host adapter capabilities: shipped declarations
-                               and evidence status (v0.11; R2 declares, R3
+  host <list|inspect|install|uninstall|verify <id>>
+                               host adapters: shipped declarations and
+                               evidence status; install/uninstall/verify write
+                               only the managed block (v0.11; R2 declares, R3
                                installs per host - a capability is claimed only
                                after a real versioned-host smoke)
   remove                       uninstall: drop .aegis/, restore foreign hooks,
