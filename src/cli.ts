@@ -63,7 +63,11 @@ Pipeline (the funnel into production lanes):
 
 Evidence (prove it, or label it UNMEASURED):
   checkpoint [--quiet]         snapshot state + hashes
-  evidence <usage|export --file <json>>  capture reported usage or export private-safe aggregate facts; absent metrics stay UNMEASURED
+  evidence <usage|export --file <json> [--battery <json>]>
+                               capture reported usage, or publish private-safe
+                               facts (--battery adds the v2 release publisher:
+                               stale/missing bindings, secrets and billing
+                               claims refuse); absent metrics stay UNMEASURED
   quality <acceptance|review|status> <branch> [--file <plan.json>]  execute criteria or record review findings; --require-quality enables strict merge checks
   tdd <red|green|status> <branch>  run and pin test evidence; red needs --test-file and --expect-exit, green reuses the runner
   resume                       verify integrity, print reconstruction pack
