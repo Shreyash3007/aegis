@@ -13,15 +13,27 @@ const sleep = (ms: number): void => { Atomics.wait(new Int32Array(new SharedArra
 function readOwner(file: string): Owner | null {
   // An exclusive creator may not have written its bytes yet. Never reclaim
   // unreadable/partial JSON, even after this bounded creation grace period.
+  // Access failures (sharing violations) are NOT corruption: a live holder's
+  // file can be temporarily unreadable by AV/backup interference, and calling
+  // that "malformed" sent the human to preserve a perfectly valid lock.
+  let accessFailure: string | null = null;
+  let parseFailure = false;
   for (let i = 0; i < 8; i++) {
     try {
       ownedPath(REPO, file);
       const value = JSON.parse(fs.readFileSync(file, 'utf8'));
       if (value && Number.isSafeInteger(value.pid) && value.pid > 0 && Number.isFinite(value.at)
         && (value.token === undefined || typeof value.token === 'string')) return value;
-    } catch (e: any) { if (e?.code === 'ENOENT') return null; }
+      parseFailure = true;
+    } catch (e: any) {
+      if (e?.code === 'ENOENT') return null;
+      if (['EPERM', 'EACCES', 'EBUSY'].includes(e?.code)) accessFailure = e.code;
+      else parseFailure = true;
+    }
     sleep(20);
   }
+  if (accessFailure && !parseFailure)
+    die(4, `lock exists but cannot be read (${accessFailure}): ${file} - a live holder or external interference may be present; inspect before manual recovery`);
   die(4, `malformed lock ${file} - preserve it and investigate; ownership is uncertain`);
 }
 
@@ -42,7 +54,16 @@ function create(file: string, token: string): boolean {
     throw e;
   }
   try { fs.writeFileSync(fd, JSON.stringify({ pid: process.pid, at: Date.now(), token })); }
-  finally { fs.closeSync(fd); }
+  catch (e: any) {
+    // The empty file is exclusively ours at this instant. If the owner-write
+    // fails (disk full, AV quarantine) and we leave it behind, every later
+    // contender misreads a 0-byte file as corruption and the repo wedges
+    // (reproduced post-release). Close first: Windows cannot unlink an open file.
+    try { fs.closeSync(fd); } catch { /* already closed */ }
+    try { fs.rmSync(file, { force: true }); } catch { /* best-effort: the malformed-lock verdict still fails closed */ }
+    throw e;
+  }
+  fs.closeSync(fd);
   return true;
 }
 
@@ -63,7 +84,10 @@ process.once('exit', () => {
 /** Lock a repo-owned resource using `<path>.lock`. Reentrant within this process.
  * A crashed reclaimer guard is deliberately fail-closed, not recursively stolen. */
 export function lockFile(resource: string): () => void {
-  const file = path.resolve(`${resource}.lock`);
+  // Canonicalize before use: the held-key and every helper below must agree
+  // on one spelling of the same physical file. Without expansion, two alias
+  // spellings in one process contend against themselves for the full bound.
+  const file = ownedPath(REPO, path.resolve(`${resource}.lock`));
   const existing = held.get(file);
   if (existing) {
     existing.count++;
@@ -82,7 +106,14 @@ export function lockFile(resource: string): () => void {
             // Re-read only AFTER excluding every other reclaimer. No stale
             // compare/unlink from a snapshot taken before guard acquisition.
             const current = readOwner(file);
-            if (current && dead(current.pid)) fs.rmSync(file);
+            if (current && dead(current.pid)) {
+              try { fs.rmSync(file); }
+              catch (e: any) {
+                if (['EPERM', 'EACCES', 'EBUSY'].includes(e?.code))
+                  die(4, `dead owner's lock cannot be removed (${e.code}): ${file} - external interference holds the file; inspect and remove it manually, then retry`);
+                throw e;
+              }
+            }
           } finally {
             releaseOwned(guard, guardToken); held.delete(guard);
           }

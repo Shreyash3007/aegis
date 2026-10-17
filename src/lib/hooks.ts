@@ -14,6 +14,17 @@ export const hooksDir = (): string => git(['rev-parse', '--path-format=absolute'
 // Aegis hooks as ours (overwrite) rather than foreign (move aside + chain).
 export const MARKER = '# AEGIS';
 
+/** Identity of an Aegis-managed hook: the first non-empty, non-shebang line
+ *  starts with `# AEGIS` followed by a non-word boundary (`# AEGIS:`, the
+ *  v0.2.0 `# AEGIS <name>:` banner). Our scripts emit the banner right after
+ *  the `#!/bin/sh` shebang. A whole-body substring match would claim any
+ *  foreign hook that merely *mentions* Aegis in a comment — reproduced as
+ *  silent clobbering during install and deletion during uninstall. */
+export const isManagedHookBody = (body: string): boolean => {
+  const first = (body.split(/\r?\n/).find((l) => l.trim() !== '' && !l.startsWith('#!')) ?? '');
+  return /^# AEGIS(?![-\w])/.test(first);
+};
+
 // Chain block: if a pre-existing hook was moved aside at init, run it first.
 // $0 is the hook path git invoked; the orig lives next to it. Blocking hooks
 // (pre-commit, pre-push) propagate the orig's failure; post-commit is
@@ -109,7 +120,7 @@ export function managedHookNames(): string[] {
   const out: string[] = [];
   for (const name of Object.keys(STD)) {
     const p = path.join(dir, name);
-    if (fs.existsSync(p) && fs.readFileSync(p, 'utf8').includes(MARKER)) out.push(name);
+    if (fs.existsSync(p) && isManagedHookBody(fs.readFileSync(p, 'utf8'))) out.push(name);
   }
   return out;
 }
@@ -137,12 +148,20 @@ export function installHooks(profile: HookProfile = 'standard'): string[] {
   const installed: string[] = [];
   for (const [name, script] of Object.entries(desired)) {
     const p = path.join(dir, name);
+    // Never act through a link: writing a symlinked hook would clobber
+    // whatever it points at, outside the owned root (reproduced post-release).
+    try { if (fs.lstatSync(p).isSymbolicLink()) die(4, `hook file ${name} is a link - Aegis never writes through links; replace or remove it and re-run`); }
+    catch (e: any) { if (e?.code !== 'ENOENT') throw e; }
     // Preserve a foreign pre-existing hook: move it aside exactly once and
-    // let the Aegis hook chain into it. Our own hooks (marker present) are
-    // simply overwritten - that is the re-init upgrade path.
-    if (fs.existsSync(p) && !fs.readFileSync(p, 'utf8').includes(MARKER)) {
+    // let the Aegis hook chain into it. Our own hooks (managed banner) are
+    // simply overwritten - that is the re-init upgrade path. A *second*
+    // foreign generation with a backup already present is ambiguous owner
+    // work: refuse and name the backup instead of silently destroying it.
+    if (fs.existsSync(p) && !isManagedHookBody(fs.readFileSync(p, 'utf8'))) {
       const orig = `${p}.aegis-orig`;
-      if (!fs.existsSync(orig)) fs.renameSync(p, orig);
+      if (fs.existsSync(orig))
+        die(4, `hook ${name} is foreign and a previous backup exists (${path.basename(orig)}) - resolve manually (move the backup aside), then re-run`);
+      fs.renameSync(p, orig);
     }
     fs.writeFileSync(p, script
       .replaceAll('__CLIPATH__', `'${cliPath.replaceAll("'", "'\\''")}'`)
@@ -156,7 +175,7 @@ export function installHooks(profile: HookProfile = 'standard'): string[] {
   for (const name of Object.keys(STD)) {
     if (desired[name]) continue;
     const p = path.join(dir, name);
-    if (fs.existsSync(p) && fs.readFileSync(p, 'utf8').includes(MARKER)) fs.rmSync(p);
+    if (fs.existsSync(p) && isManagedHookBody(fs.readFileSync(p, 'utf8'))) fs.rmSync(p);
   }
   return installed;
 }

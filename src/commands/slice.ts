@@ -30,14 +30,19 @@ function absent(dir: string): boolean {
   catch (e: any) { if (e?.code === 'ENOENT') return true; throw e; }
 }
 
-function verifiedAbsentWorktree(dir: string): boolean {
+function verifiedAbsentWorktree(dir: string, name: string): boolean {
   if (!absent(dir)) return false;
-  const paths = git(['worktree', 'list', '--porcelain', '-z']).split('\0')
-    .filter(field => field.startsWith('worktree ')).map(field => field.slice('worktree '.length));
+  const fields = git(['worktree', 'list', '--porcelain', '-z']).split('\0');
+  const paths = fields.filter(field => field.startsWith('worktree ')).map(field => field.slice('worktree '.length));
   if (!paths.length || paths.some(p => !path.isAbsolute(p)))
     die(4, 'cannot verify Git worktree registry - slice and lane retained');
   if (paths.some(p => path.relative(dir, path.resolve(p)) === ''))
     die(4, 'absent worktree is still registered in Git - slice and lane retained');
+  // Identity is the slice's BRANCH, not the registered path: `git worktree
+  // move` relocates the worktree, and matching only the old path let the lane
+  // close while Git still knew the moved worktree (reproduced post-release).
+  if (fields.includes(`branch refs/heads/aegis/slice-${name}`))
+    die(4, `worktree for slice ${name} is still registered in Git at another path - slice and lane retained`);
   if (!absent(dir)) die(4, 'worktree path reappeared during verification - slice and lane retained');
   return true;
 }
@@ -79,7 +84,11 @@ function operate(op: string, name: string): void {
     const s = acquireState(stateP) as any;
     s.slices = s.slices ?? {};
     try {
-      if (!verifiedAbsentWorktree(dir)) {
+      if (!verifiedAbsentWorktree(dir, name)) {
+        const known = git(['worktree', 'list', '--porcelain', '-z']).split('\0')
+          .some(field => field.startsWith('worktree ') && path.relative(dir, path.resolve(field.slice('worktree '.length))) === '');
+        if (!known)
+          die(4, `slice ${name}'s worktree directory exists but Git no longer registers it - delete the directory manually or re-register it with git worktree add, then run aegis slice remove ${name} again`);
         if (git(['symbolic-ref', '--short', 'HEAD'], dir) !== meta.branch)
           die(4, `slice ${name} is on a different branch - preserve its worktree`);
         if (git(['status', '--porcelain', '--untracked-files=all', '--ignored'], dir))

@@ -16,6 +16,11 @@ function findRepoRoot(start: string): string | null {
   for (;;) {
     if (fs.existsSync(path.join(dir, '.git'))) {
       if (fs.lstatSync(dir).isSymbolicLink()) die(4, 'linked repository root is not owned');
+      // A junctioned/symlinked `.git` makes git truth, hooks and the common
+      // dir resolve inside a *foreign* repository while REPO stays the victim
+      // directory (reproduced post-release). Refuse before any command runs.
+      if (fs.lstatSync(path.join(dir, '.git')).isSymbolicLink())
+        die(4, 'linked .git entry is not owned - point .git at a real gitdir (or a gitfile worktree) and re-run');
       // Git expands Windows 8.3 aliases (e.g. RUNNER~1), while cwd preserves
       // them. Anchor all derived paths to the physical spelling so ownership
       // and worktree-registry comparisons refer to the same directory.
