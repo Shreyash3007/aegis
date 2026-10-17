@@ -74,13 +74,14 @@ test('publish: missing or stale observation bindings refuse without writing', (t
   const malformed = path.join(dir, 'malformed.json');
   fs.writeFileSync(malformed, '{oops');
   const cases = [
-    [writeBattery(dir, { source_sha: undefined }), /missing|source/i],
-    [writeBattery(dir, { observations: [] }), /observation/i],
-    [writeBattery(dir, { source_sha: '0'.repeat(40) }), /stale/i],
-    [malformed, /malformed|battery|read/i],
-    [path.join(dir, 'absent.json'), /battery|missing|read/i],
+    [() => writeBattery(dir, { source_sha: undefined }), /missing|source/i],
+    [() => writeBattery(dir, { observations: [] }), /observation/i],
+    [() => writeBattery(dir, { source_sha: '0'.repeat(40) }), /stale/i],
+    [() => malformed, /malformed|battery|read/i],
+    [() => path.join(dir, 'absent.json'), /battery|missing|read/i],
   ];
-  for (const [battery, why] of cases) {
+  for (const [make, why] of cases) {
+    const battery = make();
     const r = publish(dir, out, battery);
     assert.equal(r.status, 4, `${battery}: ${r.stderr}`);
     assert.match(r.stderr, why, battery);
