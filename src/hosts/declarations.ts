@@ -4,8 +4,9 @@ import { HOST_SCHEMA_VERSION, HostCapabilityDeclaration } from '../contracts/hos
  *  built from that host's official documentation on the retrieval date it
  *  carries - no invented formats. Every shipped binding is deliberately
  *  read-only: `aegis status` runs once at session start where the host
- *  documents a context channel. Statuses stay 'fixture-only' until the R3
- *  slices record real versioned-host smokes; the contract's manual-guidance
+ *  documents a context channel. Statuses upgrade to 'verified' only with a
+ *  recorded real versioned-host smoke (R3a recorded claude-code's; the R3b/
+ *  R3c hosts stay 'fixture-only' until their smokes); the contract's manual-guidance
  *  rule (a host without the needed mechanism prints instructions - never a
  *  new scheduler, daemon or fallback model) is enforced by
  *  declarationProblems() for fixtures and installs alike. */
@@ -14,9 +15,16 @@ export const HOST_DECLARATIONS: HostCapabilityDeclaration[] = [
     schema_version: HOST_SCHEMA_VERSION,
     id: 'claude-code',
     display_name: 'Claude Code',
-    status: 'fixture-only',
+    status: 'verified',
     docs: [{ url: 'https://code.claude.com/docs/en/hooks', retrieved: '2026-10-18' }],
-    verified_with: [],
+    verified_with: [
+      {
+        host_version: '2.1.269',
+        date: '2026-10-18',
+        event: 'SessionStart',
+        evidence: 'real claude 2.1.269 smoke on 2026-10-18 (Windows): the SessionStart:startup hook ran aegis status (0.10.0) and claude captured its stdout as plain text (--debug-file log); the model turn was blocked by the account gateway balance ($0), so delivery into a completed turn is not claimed - see docs/releases/v0.11/claude-code-adapter-quality.json F1',
+      },
+    ],
     config_scope: 'project',
     config_files: ['.claude/settings.json'],
     events: {
@@ -32,7 +40,7 @@ export const HOST_DECLARATIONS: HostCapabilityDeclaration[] = [
       'Read-only: the binding runs `aegis status` and nothing else - Aegis never gates tool calls, blocks commands, or writes pipeline state from host hooks.',
       'SessionStart runs on every session start and its plain-text stdout is added to Claude context (documented), so the hook must stay fast; `aegis status` is.',
       'Install prefers the documented exec form (command+args, no shell) when `aegis` resolves to a real executable; a Windows .cmd shim cannot be exec-spawned and needs the documented shell form instead.',
-      'Fixture-only: no real versioned-host smoke is recorded yet - R3a records one or this status stays fixture-only.',
+      'Verified on claude 2.1.269 (Windows): SessionStart:startup ran the installed `aegis status` and Claude captured the stdout as plain text; the model turn itself was blocked by the account gateway balance, so delivery of the context into a completed model turn is not claimed.',
     ],
   },
   {

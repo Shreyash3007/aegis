@@ -44,8 +44,13 @@ test('declarations: every shipped declaration passes declarationProblems', () =>
 });
 
 test('declarationProblems: refuses dishonest claims (verified without smoke, manual-guidance with events, shell interpolation)', () => {
+  // The validator fixtures need a stable fixture-only base: shipped hosts may
+  // be upgraded to 'verified' by the R3 slices, and the dishonest-claim cases
+  // below must stay dishonest regardless of which host is the clone source.
   const check = (mutate) => {
     const d = JSON.parse(JSON.stringify(shipped()[0]));
+    d.status = 'fixture-only';
+    d.verified_with = [];
     mutate(d);
     return decl.declarationProblems(d);
   };
@@ -105,10 +110,21 @@ test('docs citations: official https pages with retrieval dates', () => {
   }
 });
 
-test('evidence honesty: fixture-only until a real versioned-host smoke is recorded', () => {
+test('evidence honesty: verified only with recorded real-host smoke evidence', () => {
+  const smokeRecorded = { 'claude-code': true }; // R3a recorded the claude 2.1.269 smoke; R3b/R3c upgrade their hosts or stay fixture-only
   for (const d of shipped()) {
-    assert.equal(d.status, 'fixture-only', `${d.id}: no real-host smoke yet - R3 upgrades with recorded evidence`);
-    assert.deepEqual(d.verified_with, [], `${d.id}: verified_with stays empty without a smoke`);
+    if (smokeRecorded[d.id]) {
+      assert.equal(d.status, 'verified', `${d.id}: the smoke is recorded - status verified`);
+      assert.ok(d.verified_with.length > 0, `${d.id}: verified_with records accompany the status`);
+      for (const r of d.verified_with) {
+        assert.ok(r.host_version && r.event && r.evidence, `${d.id}: each record names host_version, event and evidence`);
+        assert.match(r.date, /^\d{4}-\d{2}-\d{2}$/, `${d.id}: each record carries a real date`);
+        assert.match(r.evidence, /docs\/releases\/v0\.11\//, `${d.id}: the evidence points at a durable release artifact`);
+      }
+    } else {
+      assert.equal(d.status, 'fixture-only', `${d.id}: no real-host smoke yet - R3 upgrades with recorded evidence`);
+      assert.deepEqual(d.verified_with, [], `${d.id}: verified_with stays empty without a smoke`);
+    }
   }
 });
 
