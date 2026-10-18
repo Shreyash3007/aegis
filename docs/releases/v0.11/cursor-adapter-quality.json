@@ -1,0 +1,63 @@
+{
+  "criteria": [
+    {
+      "id": "AC1",
+      "statement": "Entry content and installation: the canonical managed entry is the documented Cursor hooks shape - exactly one `command` key holding the declaration's `aegis status` shell string (version 1, hooks.sessionStart entries are shell strings run from the project root; no exec form exists to choose) - and a fresh install writes exactly that entry (version 1 on fresh files only); a foreign file is preserved byte-for-byte with a named backup before the first change; a repeat install is a no-op with no byte churn, including CRLF and minified checkouts; a missing `aegis` on PATH is a warning, never a failure.",
+      "command": ["node", "--test", "--test-name-pattern", "entry content:|install:", "test/adapters-cursor.test.js"]
+    },
+    {
+      "id": "AC2",
+      "statement": "Refusals before mutation (lstat-first over the container, the target and the backup path): a stray or duplicated aegis entry refuses instead of duplicating (a canonical-shaped entry under a non-sessionStart event, or a sessionStart entry with extra knobs; two managed entries); malformed files refuse by shape (invalid JSON, non-object root, hooks not an object, an event list not an array); linked targets refuse (directory junction and file symlink); ambiguity refuses (a pre-existing backup with no managed entry, a file named .cursor, a directory named hooks.json).",
+      "command": ["node", "--test", "--test-name-pattern", "refusals:", "test/adapters-cursor.test.js"]
+    },
+    {
+      "id": "AC3",
+      "statement": "Removal, verification and scope honesty: uninstall removes exactly the managed entry, prunes only emptied containers, keeps foreign content and a same-directory backup, and reports nothing-to-remove idempotently; verify reports present (exit 0), absent (exit 9) and unknown ids (exit 2) honestly; a manual-guidance cursor declaration refuses install with nothing written; and the capability stays fixture-only - no smoke is recorded and nothing advertises beyond it.",
+      "command": ["node", "--test", "--test-name-pattern", "uninstall:|verify:|missing-events:|scope:", "test/adapters-cursor.test.js"]
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/adapters/cursor.ts", "src/commands/host.ts", "test/adapters-cursor.test.js"],
+      "summary": "Cursor adapter with structural identity and the single documented form. `host install cursor` writes exactly one managed entry - an object whose only key is `command`, holding the declaration's `aegis status` shell string - into .cursor/hooks.json, the documented Cursor hooks shape (version 1 on fresh files only; sessionStart entries are shell strings run from the project root; there is no exec form to choose, so the Windows-shim problem that forces claude-code's shell form never arises). Managed identity is exact structural equality with that canonical entry, never a substring search: a strictly shaped entry under another event, an entry with extra knobs, or a second managed entry refuses (exit 4) instead of being adopted or duplicated. Foreign bytes survive by format-preserving serialization (indent, trailing newline, CRLF; minified stays minified) and an unchanged-file re-install produces zero byte churn. A missing `aegis` on PATH prints the manual-guidance note and still exits 0 - no fallback daemon or model. host.ts wires install|uninstall|verify; with R3c every shipped host has an adapter (the adapterless branch stays defensive for future declarations)."
+    },
+    {
+      "id": "F2",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/adapters/cursor.ts", "test/adapters-cursor.test.js"],
+      "summary": "Refusal set, all before any mutation (lstat-first over the container, the target and the backup path): links refuse (directory junction and file symlink; symlink-creation degradation is diagnosed, not assumed); malformed hooks.json refuses by shape; ambiguity refuses - a pre-existing backup with no managed entry (\"Aegis never guesses\"), a file named .cursor, a directory named hooks.json; a problem-bearing declaration (manual guidance, missing sessionStart) refuses via declarationProblems with nothing written. Every write is re-read afterwards (the S1 tripwire) and rolled back if any model/provider/effort key changed or appeared, or anything outside the managed entry moved - failures restore the pre-write state instead of leaving a half-write."
+    },
+    {
+      "id": "F3",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["test/adapters-opencode.test.js", "test/adapters-claude-code.test.js", "src/commands/host.ts"],
+      "summary": "Cross-suite evolution keeps every suite honest at its tip (at commit 5b5948a): both older adapter suites still pinned `host install cursor` as the adapterless example (exit 2, /no adapter/); with R3c shipping the adapter no shipped host is adapterless, so those stale blocks were removed and the test names updated to drop 'adapterless', while the branch itself stays defensively in host.ts. The host-capabilities smoke-map comment ('R3c upgrades cursor or it stays fixture-only') resolved to the second branch and already reads true; it was left untouched."
+    },
+    {
+      "id": "F4",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/hosts/declarations.ts", "test/adapters-cursor.test.js"],
+      "summary": "Stale declaration text found by the pinned suite during GREEN (at commit 19842db): the cursor limitation began 'Fixture-only: ... R3c decides the advertised scope ...' and the scope test asserts the lowercase status token /fixture-only/. R3c has happened, so the limitation was rewritten to the post-R3c truth ('Scope: fixture-only - cursor is absent locally, so R3c shipped the adapter against fixtures; the status upgrades only with a real versioned-host smoke, and any wider or narrower advertised scope requires a recorded owner decision'), and the header note was corrected (R3a and R3b recorded claude-code and opencode; cursor stays fixture-only until its smoke). No test pins the exact sentence (limitations only need to be non-empty and consistent with the smoke map), and no historical evidence text was rewritten."
+    },
+    {
+      "id": "F5",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["scripts/check-cursor-adapter.mjs", "test/adapters-cursor.test.js"],
+      "summary": "RED -> GREEN mechanics on this slice's sources: RED recorded at 5b5948a against the pre-implementation CLI (exit 1: the suite cannot import the adapter module yet - the honest RED shape this adapter family records, identical to R3a/R3b; runner and all three touched suites hash-pinned in the receipt). GREEN 12/12 recorded at the plan tip via the self-building runner (tsc + node --test + 'CURSOR ADAPTER SUITE PASSED'). Battery at the implementation tip 19842db: npm test 391/391 (297.3s; 379 at the R6 tip plus these 12 tests), audit 154 checks / 0 findings, pilot 44/44, dogfood 72 steps / 0 unexpected, self-cycle 61/61 PASSED. The merge oracle replays the self-building runner (dist is untracked) before the criteria slices, each well under the per-command cap."
+    },
+    {
+      "id": "F6",
+      "severity": "note",
+      "status": "open",
+      "evidence": ["src/hosts/declarations.ts", "test/adapters-cursor.test.js"],
+      "summary": "Advertised scope (owner attention, not a defect): cursor ships fixture-only - it is absent locally, so no real versioned-host event smoke could be recorded, and the declaration (status fixture-only, verified_with []) plus the scope test keep the claim honest. The operative default records 'accept fixture-only'; the alternatives (test on a machine with Cursor installed / drop cursor from the advertised set) require an explicit, recorded owner decision - flagged in the v0.11 handover and the final G4 report, never silently applied."
+    }
+  ]
+}
