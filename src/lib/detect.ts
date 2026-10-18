@@ -61,9 +61,13 @@ export function doctor(): DoctorReport {
   const in_ci = !!(env.CI || env.GITHUB_ACTIONS);
   let worktrees_pruned = false;
   try { git(['worktree', 'prune']); worktrees_pruned = true; } catch { /* not fatal */ }
+  // The git probe degrades honestly: doctor must run (and be readable) on a
+  // machine without git instead of crashing with a raw stack (v0.11 R6).
+  let gitVersion = 'unavailable - git executable not found on PATH';
+  try { gitVersion = git(['--version']); } catch { /* honest label kept */ }
   return {
     node: process.version,
-    git: git(['--version']),
+    git: gitVersion,
     platform_hint,
     shell_access: true, // if this CLI is running, a shell exists
     ram_total_mb: Math.round(os.totalmem() / 1048576),

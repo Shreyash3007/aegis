@@ -31,6 +31,12 @@ export async function init(args: string[]): Promise<void> {
   if (!fs.existsSync(path.join(REPO, '.git'))) die(1, 'Not a git repo');
   if (fs.existsSync(AEGIS_DIR) && !args.includes('--overwrite'))
     die(2, '.aegis already exists - pass --overwrite to reinitialize');
+  // Environment preflight BEFORE anything destructive: init installs git
+  // hooks and registers slice worktrees, so a missing git binary refuses
+  // honestly instead of crashing mid-reinit with state already deleted
+  // (v0.11 R6).
+  if (!has('git'))
+    die(1, 'git executable not found on PATH - init installs git hooks and registers slice worktrees; install git and re-run (nothing was changed)');
 
   // Install profile: minimal = standalone tools only (no git hooks, no brain/),
   // standard = full pipeline (default, current behavior), full = reserved for a
@@ -81,10 +87,20 @@ export async function init(args: string[]): Promise<void> {
   if (Array.isArray(preserved.apps) && preserved.apps.some((n) => typeof n !== 'string' || !/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(n)))
     die(2, 'preserved app identifiers are malformed - repair config before reinitializing');
 
+  // Probes and owner-artifact capture run BEFORE the destructive step: a
+  // crashing probe must fail without deleting state, and owner-authored
+  // artifacts are input, not cache (v0.11 R6).
+  const doc = doctor();
+  const preservedArtifacts: Array<[string, string]> = [];
+  for (const name of ['perf-budgets.json', 'monitor-targets.json']) {
+    const p = path.join(AEGIS_DIR, name);
+    if (fs.existsSync(p)) preservedArtifacts.push([name, fs.readFileSync(p, 'utf8')]);
+  }
+
   fs.rmSync(AEGIS_DIR, { recursive: true, force: true });
 
-  const doc = doctor();
   for (const d of ['checkpoints', 'ast', 'gates']) fs.mkdirSync(path.join(AEGIS_DIR, d), { recursive: true });
+  for (const [name, content] of preservedArtifacts) fs.writeFileSync(path.join(AEGIS_DIR, name), content);
   if (!minimal) for (const d of BRAIN_DIRS) fs.mkdirSync(path.join(REPO, 'brain', d), { recursive: true });
 
   // .gitignore: machine state NEVER enters git history (A1.4)
@@ -171,7 +187,7 @@ export function doctorCmd(args: string[]): void {
     ok('config updated from doctor');
   }
   if (r.worktrees_pruned) ok('stale worktrees pruned (A1.6)');
-  if (!has('tsc') && !has('npx')) console.log('warn: no tsc/npx found - typecheck hooks will degrade');
+  if (!has('tsc') && !has('npx')) console.error('warn: no tsc/npx found - typecheck hooks will degrade');
   for (const d of drift()) console.log(`note: drift: ${d}`);
   for (const a of attention()) console.log(`note: attention: ${a}`);
 }

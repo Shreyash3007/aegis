@@ -52,8 +52,22 @@ function reconstruct(): void {
   const dir = cpDir();
   const cps = checkpointFiles();
   if (!cps.length) die(2, 'no checkpoints - restart from 00a (aegis init)');
-  const cp = readJ<Checkpoint>(ownedPath(REPO, path.join(dir, cps[cps.length - 1]), 6));
-  const now = brainHashes();
+  // Interrupted or corrupt recovery state refuses loudly with a repair path:
+  // an unguarded JSON.parse here used to crash with a raw stack (v0.11 R6).
+  const cpFile = cps[cps.length - 1];
+  let cp: Checkpoint;
+  try {
+    cp = readJ<Checkpoint>(ownedPath(REPO, path.join(dir, cpFile), 6));
+    if (!cp || typeof cp !== 'object' || !cp.hashes || typeof cp.hashes !== 'object')
+      throw new Error('not a checkpoint record');
+  } catch {
+    die(6, `corrupt checkpoint ${cpFile} - the file is unreadable or not a checkpoint record; inspect or remove it, then resume again\n  otherwise: HUMAN ESCALATION`);
+  }
+  let now: Record<string, string>;
+  try { now = brainHashes(); }
+  catch {
+    die(6, 'cannot verify integrity - an integrity input is unreadable - this usually means state.json/transitions.json/config.json is corrupt; restore it from a backup (or reinitialize after closing lanes), then resume again\n  otherwise: HUMAN ESCALATION');
+  }
   const drift: string[] = [];
   for (const [f, h] of Object.entries(cp.hashes)) {
     if (!now[f]) drift.push(`DELETED: ${f}`);

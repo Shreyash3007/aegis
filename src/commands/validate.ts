@@ -229,6 +229,10 @@ const suites: Record<string, (app?: string) => Result | Promise<Result>> = {
     // Run the script with the repo's actual package manager (npm/yarn/pnpm/bun)
     // so pnpm/yarn/bun repos aren't falsely UNMEASURED or mis-cited as npm.
     const pm = detectPackageManager();
+    // A missing runner is an environment fact, not a test failure (v0.11 R6).
+    if (!has(pm))
+      return { suite: 'tests', tool: pm, command: `${pm} test`, status: 'UNMEASURED',
+        summary: `${pm} not found on PATH - install it or run this suite where it is available` };
     const command = `${pm} test`;
     const r = runCmd(command);
     return { suite: 'tests', tool: pm, command,
@@ -240,6 +244,9 @@ const suites: Record<string, (app?: string) => Result | Promise<Result>> = {
     if (!['package-lock.json', 'npm-shrinkwrap.json'].some((f) => fs.existsSync(path.join(REPO, f))))
       return { suite: 'deps', tool: 'npm audit', command: 'npm audit --json', status: 'UNMEASURED',
         summary: 'no lockfile - run npm install first (npm audit requires package-lock.json)' };
+    if (!has('npm'))
+      return { suite: 'deps', tool: 'npm audit', command: 'npm audit --json', status: 'UNMEASURED',
+        summary: 'npm not found on PATH - npm audit cannot run here' };
     const r = runCmd('npm audit --json');
     try {
       const j = JSON.parse(r.out);
@@ -265,17 +272,19 @@ const suites: Record<string, (app?: string) => Result | Promise<Result>> = {
     for (const dir of ['dist', 'build', '.next/static']) {
       const p = path.join(REPO, dir);
       if (!fs.existsSync(p)) continue;
-      let js = 0;
+      let js = 0, found = false;
       const walk = (d: string): void => { for (const f of fs.readdirSync(d)) { const fp = path.join(d, f);
-        fs.statSync(fp).isDirectory() ? walk(fp) : (f.endsWith('.js') && (js += fs.statSync(fp).size)); } };
+        if (fs.statSync(fp).isDirectory()) { walk(fp); }
+        else if (f.endsWith('.js')) { found = true; js += fs.statSync(fp).size; } } };
       walk(p);
+      if (!found) continue; // an empty or asset-only output dir is not a measurement (v0.11 R6)
       const kb = Math.round(js / 1024);
       measured = true;
       if (kb > budgets.bundle_kb) failed = true;
       parts.push(`JS bundle ${kb}kb vs ${budgets.bundle_kb}kb budget (${dir}) -> ${kb <= budgets.bundle_kb ? 'PASS' : 'FAIL'}`);
       break;
     }
-    if (!measured) parts.push('bundle UNMEASURED - no dist/build/.next output (build first, or L0 static review only)');
+    if (!measured) parts.push('bundle UNMEASURED - no built JS found under dist/build/.next (build first, or L0 static review only)');
     let apiCmd = '';
     if (budgets.api_target_url) {
       apiCmd = `; fetch x20 ${budgets.api_target_url}`;
@@ -299,6 +308,9 @@ const suites: Record<string, (app?: string) => Result | Promise<Result>> = {
   e2e: () => {
     const hasPw = fs.existsSync(path.join(REPO, 'playwright.config.ts')) || fs.existsSync(path.join(REPO, 'playwright.config.js'));
     if (!hasPw) return { suite: 'e2e', tool: 'playwright', command: 'npx playwright test', status: 'UNMEASURED', summary: 'no playwright config' };
+    if (!has('npx'))
+      return { suite: 'e2e', tool: 'playwright', command: 'npx playwright test', status: 'UNMEASURED',
+        summary: 'npx not found on PATH - playwright cannot launch here' };
     const r = runCmd('npx --no-install playwright test --reporter=line');
     return { suite: 'e2e', tool: 'playwright', command: 'npx playwright test',
       status: r.code === 0 ? 'PASS' : 'FAIL',
