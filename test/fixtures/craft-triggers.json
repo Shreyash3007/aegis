@@ -1,0 +1,14 @@
+[
+  { "id": "craft-brainstorming-pos", "prompt": "Help me explore a rough product idea and shape what success means before committing to a plan.", "expect": "01a-prd" },
+  { "id": "craft-brainstorming-neg", "prompt": "Break the already-approved design into implementation waves.", "expect": "03a-execution-planning" },
+  { "id": "craft-test-driven-development-pos", "prompt": "Write the failing test first, watch it fail, then make it pass and refactor.", "expect": "04a-parallel-build" },
+  { "id": "craft-test-driven-development-neg", "prompt": "Write the release notes describing what changed for users.", "expect": "07c-documentation" },
+  { "id": "craft-systematic-debugging-pos", "prompt": "Something that worked yesterday throws today - trace the root cause before proposing any fix.", "expect": "05c-bug-hunting" },
+  { "id": "craft-systematic-debugging-neg", "prompt": "Design the tenant-isolation schema for the primary database.", "expect": "02b-database" },
+  { "id": "craft-requesting-code-review-pos", "prompt": "Get a fresh contract-bound review of this diff before it merges.", "expect": "06b-code-review" },
+  { "id": "craft-requesting-code-review-neg", "prompt": "Draft the PRD for the new onboarding flow.", "expect": "01a-prd" },
+  { "id": "craft-using-git-worktrees-pos", "prompt": "Set up an isolated workspace so this workstream never dirties the main tree.", "expect": "04a-parallel-build" },
+  { "id": "craft-using-git-worktrees-neg", "prompt": "Set the performance budget for the checkout page.", "expect": "06d-performance-budget" },
+  { "id": "craft-verification-before-completion-pos", "prompt": "Prove the feature works end to end with fresh evidence before calling it done.", "expect": "05d-e2e-performance" },
+  { "id": "craft-verification-before-completion-neg", "prompt": "Assemble the release verdict record for the ship gate.", "expect": "08a-verdict" }
+]
