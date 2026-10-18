@@ -7,9 +7,19 @@
    00d import bridge; `aegis import check` passes 4/4.
    cites: `aegis import check` (exit 0, 4/4 OK)
 3. Tests: 101/101 PASS. cites: `npm test` (node --test test/*.test.js)
+   Refreshed 2026-10-18 (v0.11 integration, tip `a6638d7`): 391/391 PASS.
+   cites: `aegis validate tests` (skipped 0, todo 0, duration_ms 266828.4)
 4. Dependencies: 0 vulnerabilities. cites: `aegis validate deps` (npm audit --json)
+   Refreshed 2026-10-18: Node-bundled `npm audit --audit-level=high` ->
+   found 0 vulnerabilities (the contract's prescribed method; v0.10 HANDOVER
+   §4). `aegis validate deps` itself honestly reports UNMEASURED in this
+   environment: the PATH npm 12.2.0 cannot audit `npm-shrinkwrap.json`
+   (ENOLOCK). Both records kept.
 5. Contracts suite: UNMEASURED by design (no contracts dir in this repo).
    cites: `aegis validate contracts`
+   STALE since the v0.11 N1 contracts PR (`src/contracts/` shipped):
+   refreshed 2026-10-18 -> PASS - typescript typecheck clean, contracts
+   present. cites: `aegis validate contracts` (exit 0)
 6. ~~Global-install sharp edge~~ MITIGATED in v0.5.1: hooks bake the CLI
    version and warn (never block) when the resolved aegis differs (ghost
    binary tripwire); repair via `aegis hooks` / `aegis update`.
