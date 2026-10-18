@@ -1,0 +1,82 @@
+{
+  "criteria": [
+    {
+      "id": "AC1",
+      "statement": "Hostile repository prose is embedded strictly as data inside the generated block (nothing executes, no gate is approved, no transition machine is rewritten), and stray or duplicated AEGIS markers - embedded in the brain source or left in a hand-written target file - refuse sync (exit 9) before any generated file is written.",
+      "command": ["node", "--test", "--test-name-pattern", "hostile instructions:", "test/adverse-scenarios.test.js"]
+    },
+    {
+      "id": "AC2",
+      "statement": "Degraded environments stay honest: doctor runs (and stays machine-parseable JSON) without git instead of crashing with a raw stack, init refuses before touching existing state when git is missing, validate tests/deps/e2e report UNMEASURED naming the missing runner instead of FAIL noise, and an empty build directory cannot satisfy a perf budget while real JS output still measures and passes.",
+      "command": ["node", "--test", "--test-name-pattern", "missing tools:", "test/adverse-scenarios.test.js"]
+    },
+    {
+      "id": "AC3",
+      "statement": "Concurrent and interrupted states keep truth: a mixed exec/chore/transition wave records every mutation and resumes VERIFIED, a corrupt checkpoint or unreadable integrity input refuses with exit 6 and a repair path (never a raw stack), and a drifted generated report is repairable by regenerating it.",
+      "command": ["node", "--test", "--test-name-pattern", "concurrent writers:|interrupted recovery:", "test/adverse-scenarios.test.js"]
+    },
+    {
+      "id": "AC4",
+      "statement": "Owner work survives maintenance: gc retains the newest 20 checkpoints, removes interrupted-write temp litter and never touches owner files; init --overwrite preserves owner-authored perf budgets and monitor targets byte-for-byte; and the committed craft trigger fixture covers every pin and is consumable through the eval harness (an unknown skill id would exit 2).",
+      "command": ["node", "--test", "--test-name-pattern", "owner work:|craft triggers:", "test/adverse-scenarios.test.js"]
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/commands/sync.ts", "test/adverse-scenarios.test.js"],
+      "summary": "Sync marker hygiene (the recon-reproduced corruption): the old merge took the FIRST BEGIN and the FIRST END, so a stray marker in brain/context-window.md poisoned the generated block and a duplicated/late marker in AGENTS.md could slice away owner content or leave a stale copy. Now assertMarkerHygiene requires exactly one canonical BEGIN..END pair (END after BEGIN) in the source and in each target - anything else refuses with exit 9 naming the file and writing nothing - and both targets are merged before either is written atomically (writeTextAtomic), so a refusal in the second file cannot leave a half-synced pair. Hostile prose without markers still embeds as quoted data inside the block (pinned by the first test)."
+    },
+    {
+      "id": "F2",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/commands/sync.ts", "test/adverse-scenarios.test.js"],
+      "summary": "gc litter: interrupted atomic writes leave cp-<ts>.json.tmp-<uuid> staging files that gc never collected (it filtered cp-\\d+.json only). gc now removes that litter alongside the 20/30-day retention, says so in its summary, and provably leaves non-checkpoint owner files (a stray note in the checkpoints dir, an unrelated report) untouched - the retention math itself was already correct and is now pinned."
+    },
+    {
+      "id": "F3",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/lib/detect.ts", "src/commands/lifecycle.ts", "test/adverse-scenarios.test.js"],
+      "summary": "Doctor without git: the git probe crashed with a raw ENOENT stack (every other probe was already guarded). doctor() now labels git 'unavailable - git executable not found on PATH' and completes; the no-tsc/npx warning moved to stderr so `aegis doctor` stdout is always machine-parseable JSON (the frozen adverse test parses stdout; drift/attention notes stay on stdout where existing doctor/afk/audit tests assert them, and no consumer depended on the warn line)."
+    },
+    {
+      "id": "F4",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/commands/lifecycle.ts", "test/adverse-scenarios.test.js"],
+      "summary": "Re-init safety: init --overwrite used to delete .aegis/ and only then run doctor() and install hooks - a missing git crashed after the state was already gone (reproduced). Now a git preflight refuses honestly before anything destructive ('nothing was changed', exit 1, existing state byte-identical), doctor() runs before the rmSync as defense in depth, and owner-authored artifacts (.aegis/perf-budgets.json, .aegis/monitor-targets.json) are captured before the wipe and restored byte-for-byte - they are owner input, not disposable cache, alongside the config the interview already preserved."
+    },
+    {
+      "id": "F5",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/commands/validate.ts", "test/adverse-scenarios.test.js"],
+      "summary": "Validate honesty on degraded environments: tests/deps/e2e now probe for their runner (has(pm)/has('npm')/has('npx')) and report UNMEASURED naming the missing tool instead of collapsing to FAIL/'unparseable' noise when the binary is absent; perf no longer counts an empty or asset-only dist/ as a measurement (the old code PASSed 'JS bundle 0kb vs 200kb budget'), skipping to the next candidate directory and reporting 'bundle UNMEASURED - no built JS found' when none has real output - a dist with actual JS still measures and passes, pinned by its own test."
+    },
+    {
+      "id": "F6",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/commands/persist.ts", "test/adverse-scenarios.test.js"],
+      "summary": "Resume guards: `aegis resume` parsed the newest checkpoint with an unguarded readJ and called brainHashes() unguarded - a corrupt checkpoint (unparseable, or parseable but shapeless) or an unreadable integrity input (e.g. corrupt state.json) crashed with a raw SyntaxError/TypeError stack and exit 1. Both paths now refuse with exit 6, name the damaged file or the candidate set (state.json/transitions.json/config.json), and print the repair path with HUMAN ESCALATION - never a stack. The drift/repair path itself (regenerate the drifted report, resume VERIFIED) is pinned end-to-end."
+    },
+    {
+      "id": "F7",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["scripts/check-adverse-scenarios.mjs", "test/adverse-scenarios.test.js", "test/fixtures/craft-triggers.json"],
+      "summary": "RED -> GREEN mechanics and battery on this slice's sources: RED recorded at 6ce2196 against the pre-fix CLI (exit 1: 9 of 14 tests fail - exactly the fix-drivers; the 5 behavioral pins, including the mixed-wave, repair-path and fixture-plumbing pins, passed pre-fix and did not need a fix). GREEN at the fix tip dc22637 replays the recorded runner (tsc build in place, then the suite) and is re-recorded after this plan commit. Battery at dc22637: npm test 379/379 (295.5s, includes this suite), audit 154 checks / 0 findings, pilot 44/44, dogfood 72 steps / 0 unexpected, self-cycle 61/61 PASSED. The merge oracle replays the self-building runner (dist is untracked) before the criteria slices; each criteria command runs a subset of the 14-test suite well under the 60s per-command cap."
+    },
+    {
+      "id": "F8",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["docs/releases/v0.11/craft-pin-review.md", "docs/SUPERPOWERS.md", "test/fixtures/craft-triggers.json", "test/adverse-scenarios.test.js"],
+      "summary": "Craft pin review (bump-or-keep) and trigger fixtures: v7.0.0 was fetched and reviewed at its immutable objects (commit bb92a777; MIT unchanged; six pinned paths still exist; three blob IDs moved - brainstorming rewritten, systematic-debugging and requesting-code-review small shell-quoting fixes). Decision: KEEP v6.4.2 - the v7 brainstorming rebuild adds builder-check subagent dispatch, a HARD-GATE with mandatory superpowers:writing-plans, spike exceptions and a visual-companion server, each needing new collision rules and real procedure exercises before adoption (SUPERPOWERS.md steps 1-4); skills/superpowers.lock.json is unchanged and all six pins re-verified today via aegis blade resolve. The committed 12-case fixture (6 positive to native fallbacks, 6 negative) is consumed by `aegis eval trigger --file ... --threshold 0` under the keyless mock backend in the suite; live precision is UNMEASURED here and remains an owner-run exercise with a real judgment backend."
+    }
+  ]
+}

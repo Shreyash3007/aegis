@@ -8,8 +8,13 @@ This is selective source routing, not a merged pipeline or a fork.
 
 Upstream: `obra/superpowers`, MIT. Integration baseline: `v6.4.2`, commit
 `8ca22dba9a94f28898bbce59f2537ff4d87c747d`. Six Git blob IDs are recorded in
-`skills/superpowers.lock.json`, fetched from the upstream Git tree. A newer
-upstream v7 tag exists; it is not silently substituted for this baseline.
+`skills/superpowers.lock.json`, fetched from the upstream Git tree. Upstream
+`v7.0.0` has been reviewed against this baseline (tag `7f043e5e`, commit
+`bb92a777`; record: `docs/releases/v0.11/craft-pin-review.md`). It is
+deliberately not substituted: the v7 brainstorming rebuild adds
+subagent-dispatch, mandatory-planning, spike and visual-companion surface that
+needs dedicated collision rules and real procedure exercises first
+("Intentional upgrades" steps 1-4 below).
 
 The six routes cover discovery, TDD, debugging, review, worktree hygiene,
 and completion verification. Each pin declares an Aegis-native fallback
