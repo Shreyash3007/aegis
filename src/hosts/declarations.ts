@@ -5,8 +5,8 @@ import { HOST_SCHEMA_VERSION, HostCapabilityDeclaration } from '../contracts/hos
  *  carries - no invented formats. Every shipped binding is deliberately
  *  read-only: `aegis status` runs once at session start where the host
  *  documents a context channel. Statuses upgrade to 'verified' only with a
- *  recorded real versioned-host smoke (R3a recorded claude-code's; the R3b/
- *  R3c hosts stay 'fixture-only' until their smokes); the contract's manual-guidance
+ *  recorded real versioned-host smoke (R3a and R3b recorded claude-code and
+ *  opencode; cursor stays 'fixture-only' until its smoke); the contract's manual-guidance
  *  rule (a host without the needed mechanism prints instructions - never a
  *  new scheduler, daemon or fallback model) is enforced by
  *  declarationProblems() for fixtures and installs alike. */
@@ -100,7 +100,7 @@ export const HOST_DECLARATIONS: HostCapabilityDeclaration[] = [
       'Read-only and fire-and-forget: sessionStart hooks never block the agent loop and the binding runs `aegis status` only.',
       'Cursor injects additional context only from valid JSON output; `aegis status` prints plain text, so the run shows in the Hooks output channel without altering the conversation.',
       'Cloud agents skip sessionStart in read-only early turns and do not load user-level hooks; the adapter installs project-level configuration only.',
-      'Fixture-only: cursor is absent locally - R3c decides the advertised scope and upgrades this status only with a real versioned-host smoke.',
+      'Scope: fixture-only - cursor is absent locally, so R3c shipped the adapter against fixtures; the status upgrades only with a real versioned-host smoke, and any wider or narrower advertised scope requires a recorded owner decision.',
     ],
   },
 ];

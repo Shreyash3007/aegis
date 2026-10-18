@@ -2,16 +2,18 @@ import { die } from '../lib/util.js';
 import { HOST_DECLARATIONS, findDeclaration } from '../hosts/declarations.js';
 import { HostCapabilityDeclaration } from '../contracts/hosts.js';
 import { installAdapter as installClaudeCode, uninstallAdapter as uninstallClaudeCode, verifyAdapter as verifyClaudeCode } from '../adapters/claude-code.js';
+import { installAdapter as installCursor, uninstallAdapter as uninstallCursor, verifyAdapter as verifyCursor } from '../adapters/cursor.js';
 import { installAdapter as installOpencode, uninstallAdapter as uninstallOpencode, verifyAdapter as verifyOpencode } from '../adapters/opencode.js';
 
-/** One line per adapter slice: R3a ships claude-code, R3b ships opencode;
- *  R3c adds cursor without touching the ops below. */
+/** One line per adapter slice: R3a ships claude-code, R3b ships opencode,
+ *  R3c ships cursor - the complete v0.11 adapter set. */
 const ADAPTERS: Record<string, {
   install: (d: HostCapabilityDeclaration, dir: string) => void;
   uninstall: (d: HostCapabilityDeclaration, dir: string) => void;
   verify: (d: HostCapabilityDeclaration, dir: string) => void;
 }> = {
   'claude-code': { install: installClaudeCode, uninstall: uninstallClaudeCode, verify: verifyClaudeCode },
+  'cursor': { install: installCursor, uninstall: uninstallCursor, verify: verifyCursor },
   'opencode': { install: installOpencode, uninstall: uninstallOpencode, verify: verifyOpencode },
 };
 
