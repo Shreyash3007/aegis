@@ -238,7 +238,7 @@ test('verify: reports the binding honestly (present exit 0, absent exit 9, adapt
   const present = aegis(dir, ['host', 'verify', 'claude-code']);
   assert.equal(present.status, 0, present.stderr);
   assert.match(present.stdout, /present/);
-  const adapterless = aegis(dir, ['host', 'install', 'opencode']);
+  const adapterless = aegis(dir, ['host', 'install', 'cursor']);
   assert.equal(adapterless.status, 2);
   assert.match(adapterless.stderr, /no adapter/);
   const unknown = aegis(dir, ['host', 'verify', 'not-a-host']);
