@@ -3,5 +3,5 @@
 
 - tool: npm audit
 - command: `npm audit --json`
-- status: **PASS**
-- summary: critical:0 high:0 moderate:0 low:0
+- status: **UNMEASURED**
+- summary: audit output unparseable (exit 1): { |   "error": { |     "code": "ENOLOCK",
