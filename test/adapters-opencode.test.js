@@ -218,7 +218,7 @@ test('uninstall: removes only the plugin file, prunes emptied containers, keeps 
   assert.ok(fs.existsSync(path.join(shared, '.opencode', 'plugins')), 'non-empty containers are kept');
 });
 
-test('verify: reports the binding honestly (present exit 0, absent exit 9, adapterless and unknown ids exit 2)', (t) => {
+test('verify: reports the binding honestly (present exit 0, absent exit 9, unknown ids exit 2)', (t) => {
   const dir = scratch(t);
   const absent = aegis(dir, ['host', 'verify', 'opencode']);
   assert.equal(absent.status, 9, `absent: ${absent.stdout}${absent.stderr}`);
@@ -226,10 +226,9 @@ test('verify: reports the binding honestly (present exit 0, absent exit 9, adapt
   assert.equal(aegis(dir, ['host', 'install', 'opencode']).status, 0);
   const present = aegis(dir, ['host', 'verify', 'opencode']);
   assert.equal(present.status, 0, present.stderr);
+  // R3c wires the cursor adapter, so no shipped host is adapterless anymore;
+  // the adapterless branch stays defensive for future declarations.
   assert.match(present.stdout, /present/);
-  const adapterless = aegis(dir, ['host', 'install', 'cursor']);
-  assert.equal(adapterless.status, 2);
-  assert.match(adapterless.stderr, /no adapter/);
   const unknown = aegis(dir, ['host', 'verify', 'not-a-host']);
   assert.equal(unknown.status, 2);
   assert.match(unknown.stderr, /unknown host/);
