@@ -1,0 +1,56 @@
+{
+  "criteria": [
+    {
+      "id": "AC1",
+      "statement": "Plugin content and installation: the canonical dedicated plugin file is a documented opencode v2 plugin (Plugin.define, session context hook, direct argv spawn of the declared command with no shell, bounded timeout, hidden window) and a fresh install writes exactly that file while preserving every foreign file byte-for-byte; a repeat install is a no-op with no byte churn, including a CRLF-normalized checkout.",
+      "command": ["node", "--test", "--test-name-pattern", "plugin content:|install:", "test/adapters-opencode.test.js"]
+    },
+    {
+      "id": "AC2",
+      "statement": "Refusals before mutation: a foreign aegis.ts refuses on install and on uninstall (never overwritten, never removed), linked targets (directory junction, file symlink) refuse before any write, and ambiguity (a backup with no plugin file, a file where a container must be, a directory where the plugin file must be) refuses instead of guessing.",
+      "command": ["node", "--test", "--test-name-pattern", "refusals:", "test/adapters-opencode.test.js"]
+    },
+    {
+      "id": "AC3",
+      "statement": "Removal and honesty: real OS permission semantics are pinned (read-only attributes do not block a writable-directory removal; an OS delete denial refuses with the file intact), uninstall removes only the plugin file, prunes only emptied containers and keeps a backup, verify reports presence, absence, adapterless and unknown ids honestly, and a problem-bearing declaration refuses install with nothing written.",
+      "command": ["node", "--test", "--test-name-pattern", "permissions:|uninstall:|verify:|missing-events:", "test/adapters-opencode.test.js"]
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/adapters/opencode.ts", "src/hosts/declarations.ts", "test/adapters-opencode.test.js"],
+      "summary": "Dedicated-file adapter with a recorded real-host smoke. It installs the single documented, auto-discovered .opencode/plugins/aegis.ts whose only job is the declaration's read-only context binding: on the first context build of a session the plugin spawns the declared argv directly (no shell), keeps a five-second bound, and pushes the captured stdout into the outgoing system instructions; a missing CLI logs the manual guidance - no fallback daemon, no prompt rewriting, no tool gating. Real smoke on opencode 2.0.29 (Windows): the host logged \"loading plugin\" for the installed file, the context hook ran aegis status (0.10.0) once, and with a discriminating prompt the model echoed the injected line \"state: 00a | lanes: 0/2 []\" verbatim in a completed turn (exit 0) - with no tool calls in the session and the line absent from every project file, so delivery into the model turn is proven, not inferred. The declaration is upgraded to verified with the record (host_version 2.0.29, event context); claude-code's recorded smoke remains the other verified host and cursor stays fixture-only pending R3c."
+    },
+    {
+      "id": "F2",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/adapters/opencode.ts", "test/adapters-opencode.test.js"],
+      "summary": "Refusal set, all before any mutation (an lstat-first guard over both containers, the target and the backup path): links refuse (directory-junction and file-symlink fixtures; symlink-creation degradation is diagnosed, not assumed); a foreign aegis.ts refuses on install and on uninstall, byte-compared before any write or removal; ambiguity refuses - a backup without a plugin file (\"Aegis never guesses\"), a file where a container must be, a directory where the plugin file must be; a problem-bearing declaration (manual guidance, missing events) refuses via declarationProblems with nothing written. Canonical identity is byte-exact modulo CRLF, so a Windows checkout is never churned."
+    },
+    {
+      "id": "F3",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["src/adapters/opencode.ts", "test/adapters-opencode.test.js"],
+      "summary": "Removal honesty pinned against real OS semantics (empirically calibrated on this machine, Node 24, before the expectations were written): read-only file attributes do not block unlink in a writable directory (both platforms); an explicit icacls delete-deny refuses at the read step (\"nothing was removed\") and a read-only directory refuses at unlink on POSIX (\"the file is unchanged\") - both honest refusals with the file intact, never a half-removal. Uninstall prunes only emptied containers (non-recursive rmdir), keeps a same-directory backup (containers holding it are kept), and reports \"nothing to remove\" idempotently."
+    },
+    {
+      "id": "F4",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["test/adapters-claude-code.test.js", "test/host-capabilities.test.js", "src/hosts/declarations.ts"],
+      "summary": "Cross-suite evolution keeps every suite honest at its tip: the R3a adapterless fixture now names cursor (opencode gained its adapter; cursor remains the unadapted example until R3c ships it and updates these fixtures in turn), and the host-capabilities smoke map flips opencode to true in the upgrade commit only, asserted alongside the presence and shape of the verified_with record (host_version, date, event, evidence pointing at this artifact). The upgrade commit re-ran tsc plus both affected suites: 20/20."
+    },
+    {
+      "id": "F5",
+      "severity": "note",
+      "status": "resolved",
+      "evidence": ["scripts/check-opencode-adapter.mjs", "test/adapters-opencode.test.js"],
+      "summary": "RED -> GREEN mechanics on this slice's sources: RED recorded at a512070 against the pre-implementation CLI (exit 1: the suite cannot import the adapter module; runner and suite are hash-pinned in the receipt). Battery at the implementation tip 7d6541e: OPENCODE ADAPTER SUITE PASSED 10/10 in the runner, npm test 365/365 (357.3s), audit 154 checks / 0 findings, pilot 44/44, dogfood 72 steps / 0 unexpected, self-cycle 61/61 PASSED. The merge oracle replays the self-building runner (dist is untracked) before the criteria slices, each far under the 60s per-command cap. Commits after the battery: the declaration upgrade plus smoke-map flip (behavioral; re-verified there with tsc and 20/20) and this plan."
+    }
+  ]
+}
