@@ -55,11 +55,33 @@ than rewriting them.
   prompt blobs and reported-cost-as-billing; the bare v1 aggregate export is
   kept for its pinned consumers; evidence
   `docs/releases/v0.11/evidence-publisher-quality.json`).
-- **W3 live**: R3b opencode adapter (lane A) and R6 craft + adverse suite
-  (lane B). Open owner decisions at W4: R3c cursor advertised scope
-  (fixture-only vs tested elsewhere) and the R5 executor trial (choice +
-  spend). Smoke baselines: claude 2.1.269, aegis 0.10.0, opencode v2.0.29,
-  cursor absent locally.
+- **W3 complete**: W3-A R3b opencode adapter merged at `c510582` (evidence
+  `docs/releases/v0.11/opencode-adapter-quality.json`; lane closed, tree
+  clean). W3-B R6 craft pin review + adverse-scenario suite merged at
+  `4500e28` (main = origin/main): stray or duplicated AEGIS markers now
+  refuse sync (exit 9) before anything is written, with both generated
+  targets merged first and written atomically; gc clears interrupted-write
+  temp litter; doctor labels missing git and stays machine-parseable JSON;
+  init refuses without git before touching state, probes before the wipe
+  and preserves owner perf/monitor artifacts; validate reports UNMEASURED
+  naming a missing runner, and an empty dist no longer satisfies perf
+  budgets; resume refuses exit 6 on corrupt checkpoints or integrity
+  inputs. Craft decision: KEEP the v6.4.2 pin - upstream v7.0.0 reviewed
+  (three of six blob IDs move) and recorded in
+  `docs/releases/v0.11/craft-pin-review.md`; the v7 brainstorming rebuild
+  adds subagent-dispatch/mandatory-plan/spike/visual-companion surface that
+  needs new collision rules and exercises before any bump; the lock is
+  unchanged. 12-case trigger fixture `test/fixtures/craft-triggers.json`
+  (6 positive to native fallbacks, 6 negative) is consumed by the suite;
+  live trigger precision is UNMEASURED (owner-run, needs a real judgment
+  backend). Evidence `docs/releases/v0.11/adverse-scenarios-quality.json`;
+  battery at tip 379/379 tests, audit 154/0, pilot 44/44, dogfood 72/0,
+  self-cycle 61/61; tdd RED `6ce2196` -> GREEN `4500e28`; merge oracle
+  PASSED (base `c510582`).
+- **W4 open decisions**: R3c cursor advertised scope (fixture-only vs
+  tested elsewhere) and the R5 executor trial (choice + spend). Smoke
+  baselines: claude 2.1.269, aegis 0.10.0, opencode v2.0.29, cursor
+  absent locally.
 - v0.11 needs a fresh human G4 on the exact final source. Published tags
   never move; post-release repairs already fold into v0.11.
 <!-- AEGIS:END -->
