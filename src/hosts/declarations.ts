@@ -47,12 +47,19 @@ export const HOST_DECLARATIONS: HostCapabilityDeclaration[] = [
     schema_version: HOST_SCHEMA_VERSION,
     id: 'opencode',
     display_name: 'OpenCode',
-    status: 'fixture-only',
+    status: 'verified',
     docs: [
       { url: 'https://opencode.ai/v2/docs/build/plugins/', retrieved: '2026-10-18' },
       { url: 'https://opencode.ai/v2/docs/plugins/', retrieved: '2026-10-18' },
     ],
-    verified_with: [],
+    verified_with: [
+      {
+        host_version: '2.0.29',
+        date: '2026-10-18',
+        event: 'context',
+        evidence: 'real opencode 2.0.29 smoke on 2026-10-18 (Windows): the host logged "loading plugin" for the installed .opencode/plugins/aegis.ts, the context hook ran aegis status (0.10.0) once, and with a discriminating prompt the model echoed the injected line "state: 00a | lanes: 0/2 []" verbatim in a completed turn (exit 0) with no tool calls and the line absent from every project file - delivery into a completed model turn is claimed on this version; see docs/releases/v0.11/opencode-adapter-quality.json F1',
+      },
+    ],
     config_scope: 'project',
     config_files: ['.opencode/plugins/aegis.ts'],
     events: {
@@ -68,7 +75,7 @@ export const HOST_DECLARATIONS: HostCapabilityDeclaration[] = [
       'Plugin-mediated: the host loads the dedicated TypeScript plugin and the plugin spawns the aegis CLI directly (no shell) on the first context build of a session.',
       'Read-only: the plugin pushes the `aegis status` text into the outgoing context only - Aegis never rewrites prompts, intercepts tools, or influences permissions.',
       'Requires `aegis` on PATH in the host runtime environment; a missing CLI selects manual guidance (a logged hint), never a fallback daemon or model.',
-      'Fixture-only: no real versioned-host smoke is recorded yet - R3b records one or this status stays fixture-only.',
+      'Verified on opencode 2.0.29 (Windows): the plugin loaded and delivered the aegis status line into a completed model turn; the model echoed it verbatim with no tool calls in the session, and the line exists nowhere in the project files.',
     ],
   },
   {

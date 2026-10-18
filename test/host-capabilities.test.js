@@ -111,7 +111,7 @@ test('docs citations: official https pages with retrieval dates', () => {
 });
 
 test('evidence honesty: verified only with recorded real-host smoke evidence', () => {
-  const smokeRecorded = { 'claude-code': true }; // R3a recorded the claude 2.1.269 smoke; R3b/R3c upgrade their hosts or stay fixture-only
+  const smokeRecorded = { 'claude-code': true, opencode: true }; // R3a recorded claude 2.1.269, R3b recorded opencode 2.0.29; R3c upgrades cursor or it stays fixture-only
   for (const d of shipped()) {
     if (smokeRecorded[d.id]) {
       assert.equal(d.status, 'verified', `${d.id}: the smoke is recorded - status verified`);
