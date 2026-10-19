@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { die, ok, writeTextAtomic } from '../lib/util.js';
+import { pathHits } from '../lib/host-primitives.js';
 import { HostCapabilityDeclaration } from '../contracts/hosts.js';
 import { declarationProblems } from '../hosts/declarations.js';
 
@@ -34,13 +35,10 @@ export interface BindingChoice {
 const BACKUP_SUFFIX = '.aegis-backup';
 const PROTECTED = /model|provider|effort/i;
 
-/** How `aegis` resolves on PATH right now (argv scan, no shell on Windows). */
-export function pathHits(): string[] {
-  const r = process.platform === 'win32'
-    ? spawnSync('where.exe', ['aegis'], { encoding: 'utf8', timeout: 5000 })
-    : spawnSync('sh', ['-c', 'command -v aegis'], { encoding: 'utf8', timeout: 5000 });
-  return (r.stdout ?? '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-}
+/** Re-exported for callers that imported it from this adapter before the
+ *  v0.11 06b review moved it to `src/lib/host-primitives.ts` (tests and the
+ *  cursor adapter now use the neutral module). */
+export { pathHits } from '../lib/host-primitives.js';
 
 /** The two documented install forms. Exec form (command+args, no shell) is
  *  preferred when the first PATH hit is something the host can spawn

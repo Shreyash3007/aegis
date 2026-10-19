@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "release": "v0.11",
+  "reviewer": "aegis self-review (executor = reviewing agent; independent review remains UNMEASURED)",
+  "scope": "the v0.11 surface: 25 changed/added src files (1526 insertions) against brain/architecture/standards.md, the module graph, and the contract",
+  "findings": [
+    {
+      "id": "CR-1",
+      "summary": "cursor.ts imported pathHits from claude-code.ts - the only cross-adapter dependency in the tree. A sibling adapter reaching into another adapter's internals couples R3a to R3c: changing one host's helper silently alters another host's behavior, and it contradicts the repo's own rule that feature code lands per-host (standards.md: 'New feature code lands by feature (src/adapters/<host>.ts), not by layer').",
+      "severity": "major",
+      "status": "resolved",
+      "evidence": [
+        "src/lib/host-primitives.ts",
+        "test/adapter-independence.test.js",
+        "brain/quality/code-review-report.md"
+      ]
+    },
+    {
+      "id": "CR-2",
+      "summary": "The three adapters duplicate ~150 lines of near-identical helpers (isPlain, sameJson, clone, protectedPaths, detectIndent, serialize, guardTargets, readSettings, restore, verifyWrite). Each adapter is individually correct and pinned by its own suite, so this is not a behavior defect; it is a maintenance hazard where a fix applied to one adapter's copy may be missed in the others.",
+      "severity": "minor",
+      "status": "open",
+      "evidence": [
+        "brain/quality/code-review-report.md",
+        "src/adapters/claude-code.ts",
+        "src/adapters/cursor.ts"
+      ]
+    },
+    {
+      "id": "CR-3",
+      "summary": "A cursor adapter edge: a sessionStart entry that is a plain string (rather than an object with `command`) is not scanned as aegis-shaped, so a hand-written string entry would be preserved as foreign content instead of refusing. The documented Cursor schema uses objects with `command`, and the adapter never touches foreign content, so the risk is a lingering stale hook rather than corruption.",
+      "severity": "note",
+      "status": "open",
+      "evidence": [
+        "brain/quality/code-review-report.md",
+        "src/adapters/cursor.ts"
+      ]
+    },
+    {
+      "id": "CR-4",
+      "summary": "R5 has no implementation to review: the executor trial is owner-blocked, so the delivery path (executor diff, RED/GREEN, acceptance, review, merge, recovery) is unexercised by a real external executor. This is a contract must-pass item, not a code defect.",
+      "severity": "major",
+      "status": "open",
+      "evidence": [
+        "docs/releases/v0.11/RELEASE-CONTRACT.md",
+        "docs/releases/v0.11/r5-executor-trial.md"
+      ]
+    }
+  ]
+}

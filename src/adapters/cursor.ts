@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { die, ok, writeTextAtomic } from '../lib/util.js';
 import { HostCapabilityDeclaration } from '../contracts/hosts.js';
 import { declarationProblems } from '../hosts/declarations.js';
-import { pathHits } from './claude-code.js';
+import { pathHits } from '../lib/host-primitives.js';
 
 /** Cursor host adapter (v0.11 R3c). Installs exactly one managed entry in
  *  the project's .cursor/hooks.json: a sessionStart entry whose only member
