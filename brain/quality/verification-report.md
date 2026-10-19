@@ -15,7 +15,7 @@ Command: `aegis quality acceptance main --file docs/releases/v0.11/acceptance.js
 | AC1-host-surface | R2 | `host list` exit 0 — declarations reachable through the CLI |
 | AC2-skill-lint | M1 | `eval --all` 71/71, judge SKIPPED (honest) |
 | AC3-contracts | M2/04c | `validate contracts` PASS — tsc clean, contracts present |
-| AC4-perf-budget | M1 | `validate perf` PASS — 389kb vs 450kb budget |
+| AC4-typecheck | M2/04c | `typecheck` PASS — read-only observer (see note below) |
 | AC5-host-declarations | R2 | declarations/bindings/refusal validators green |
 | AC6-cursor-adapter | R3c | install/refusals/uninstall green (canonical entry, foreign preserved, links refused) |
 | AC7-evidence-refusals | R4 | all negative publication fixtures refuse |
@@ -24,6 +24,15 @@ Command: `aegis quality acceptance main --file docs/releases/v0.11/acceptance.js
 CLI note kept verbatim: *"criterion adequacy remains a review responsibility"* —
 the runner proves the commands pass, not that the criteria are well chosen.
 That judgment is recorded in §5 and in the 06b review.
+
+**Acceptance-plan correction (recorded, not hidden):** the first committed plan
+used `aegis validate perf` as AC4. That criterion **writes a tracked generated
+view** (`brain/quality/validation-perf.md`), so the capture failed with
+`FAIL quality snapshot changed during capture` (exit 9) — the gate requires
+criteria to be pure observers. AC4 was replaced with the read-only
+`aegis typecheck`, and the perf budget is measured and recorded here instead
+(§3). This is a plan defect the gate caught; it is fixed rather than worked
+around, and the failing attempt is preserved in this record.
 
 ## 2. Build and typecheck gate (before slower suites)
 
@@ -38,14 +47,14 @@ Budgets source: `.aegis/perf-budgets.json` (`bundle_kb: 450`).
 
 | Metric | Measured | Budget | Result |
 |---|---|---|---|
-| JS bundle (dist, 59 files) | **389 kb** (398,253 bytes) | 450 kb | **PASS** (86.5% of budget) |
+| JS bundle (dist, 59 files) | **390 kb** | 450 kb | **PASS** (86.7% of budget) |
 | CLI startup latency (`aegis status`, 5 runs) | **376 ms median** (366–380 ms) | no recorded budget | Reported, no threshold to compare |
 | DB query p95 | — | 50 ms | **UNMEASURED** — no app DB harness in this repo |
 | TTI | — | 3000 ms | **UNMEASURED** — no browser harness for the CLI package |
 
-Drift note: the bundle moved 388 kb → 389 kb between the audit tip and this
-tip (+1 kb, the config message fix). Prior run is kept as the baseline so
-future drift is visible.
+Drift note: the bundle moved 388 kb → 389 kb (the config message fix) →
+390 kb (the `host-primitives` extraction). Each step is a real change, and the
+prior figures are kept so drift stays visible.
 
 ## 4. E2E harness status
 

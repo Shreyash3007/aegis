@@ -4,4 +4,4 @@
 - tool: fs-measure
 - command: `sum(js bytes in dist|build|.next)`
 - status: **PASS**
-- summary: JS bundle 389kb vs 450kb budget (dist) -> PASS; db query 50ms budget UNMEASURED - needs an app DB harness; TTI 3000ms budget UNMEASURED - needs a browser harness [budgets from .aegis/perf-budgets.json]
+- summary: JS bundle 390kb vs 450kb budget (dist) -> PASS; db query 50ms budget UNMEASURED - needs an app DB harness; TTI 3000ms budget UNMEASURED - needs a browser harness [budgets from .aegis/perf-budgets.json]

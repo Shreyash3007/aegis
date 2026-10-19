@@ -19,9 +19,9 @@
       "command": ["node", "dist/cli.js", "validate", "contracts"]
     },
     {
-      "id": "AC4-perf-budget",
-      "statement": "M1: the JS bundle stays inside the recorded perf budget (measured, not asserted).",
-      "command": ["node", "dist/cli.js", "validate", "perf"]
+      "id": "AC4-typecheck",
+      "statement": "M2/04c: the shipped source typechecks clean with no emit (read-only observer; the perf budget is measured separately because `validate perf` rewrites a tracked generated view and would mutate the snapshot mid-capture).",
+      "command": ["node", "dist/cli.js", "typecheck"]
     },
     {
       "id": "AC5-host-declarations",
