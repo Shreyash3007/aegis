@@ -20,7 +20,11 @@ test('validate tests: pnpm-lock.yaml -> command "pnpm test"', (t) => {
   assert.equal(r.suite, 'tests');
   assert.equal(r.tool, 'pnpm');
   assert.equal(r.command, 'pnpm test');
-  assert.notEqual(r.status, 'UNMEASURED');
+  // A missing runner is an environment fact, not a misdetection: UNMEASURED is
+  // the honest outcome there (v0.11 R6). CI runners do not ship pnpm, so
+  // asserting PASS-or-FAIL here made the suite depend on the machine.
+  assert.ok(['PASS', 'FAIL', 'UNMEASURED'].includes(r.status), `unexpected status ${r.status}`);
+  if (r.status === 'UNMEASURED') assert.match(r.summary, /not found on PATH/);
 });
 
 test('validate tests: packageManager "yarn@4.0.0" (no lockfile) -> command "yarn test"', (t) => {
@@ -32,5 +36,8 @@ test('validate tests: packageManager "yarn@4.0.0" (no lockfile) -> command "yarn
   assert.equal(r.suite, 'tests');
   assert.equal(r.tool, 'yarn');
   assert.equal(r.command, 'yarn test');
-  assert.notEqual(r.status, 'UNMEASURED');
+  // Same environment fact as the pnpm case: an absent runner is UNMEASURED,
+  // never a misdetection, so the assertion must not require a local install.
+  assert.ok(['PASS', 'FAIL', 'UNMEASURED'].includes(r.status), `unexpected status ${r.status}`);
+  if (r.status === 'UNMEASURED') assert.match(r.summary, /not found on PATH/);
 });

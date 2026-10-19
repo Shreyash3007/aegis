@@ -13,8 +13,11 @@ test('doctor: clean install reports no machine-state drift', (t) => {
   const dir = scratch(t);
   const r = aegis(dir, ['doctor']);
   assert.equal(r.status, 0, r.stderr);
-  assert.doesNotMatch(r.stdout, /machine-state/);
-  assert.doesNotMatch(r.stdout, /no \.gitignore/);
+  // stdout is the JSON report and nothing else: advisory notes go to stderr so
+  // machine consumers can always parse the document.
+  JSON.parse(r.stdout);
+  assert.doesNotMatch(r.stderr, /machine-state/);
+  assert.doesNotMatch(r.stderr, /no \.gitignore/);
 });
 
 test('doctor: tracked .aegis files are reported as drift', (t) => {
@@ -22,8 +25,8 @@ test('doctor: tracked .aegis files are reported as drift', (t) => {
   gitIn(dir, ['add', '-f', '.aegis/state.json']);
   const r = aegis(dir, ['doctor']);
   assert.equal(r.status, 0, r.stderr);
-  assert.match(r.stdout, /machine-state file\(s\) tracked by git/);
-  assert.match(r.stdout, /git rm -r --cached \.aegis/);
+  assert.match(r.stderr, /machine-state file\(s\) tracked by git/);
+  assert.match(r.stderr, /git rm -r --cached \.aegis/);
 });
 
 test('doctor: .gitignore without .aegis/ is reported as drift', (t) => {
@@ -31,7 +34,7 @@ test('doctor: .gitignore without .aegis/ is reported as drift', (t) => {
   fs.writeFileSync(path.join(dir, '.gitignore'), 'node_modules/\n');
   const r = aegis(dir, ['doctor']);
   assert.equal(r.status, 0, r.stderr);
-  assert.match(r.stdout, /\.gitignore does not cover \.aegis\//);
+  assert.match(r.stderr, /\.gitignore does not cover \.aegis\//);
 });
 
 test('doctor: routed blades missing from the store are drift', (t) => {
@@ -41,8 +44,8 @@ test('doctor: routed blades missing from the store are drift', (t) => {
   t.after(() => fs.rmSync(empty, { recursive: true, force: true }));
   const r = aegis(dir, ['doctor'], { env: { AEGIS_SKILL_STORES: empty } });
   assert.equal(r.status, 0, r.stderr);
-  assert.match(r.stdout, /routed blade\(s\) missing from the skill store/);
-  assert.match(r.stdout, /jev-use/); // a known blade is named
+  assert.match(r.stderr, /routed blade\(s\) missing from the skill store/);
+  assert.match(r.stderr, /jev-use/); // a known blade is named
 });
 
 test('doctor: cycle guard approaching is attention (reset at cycle start)', (t) => {
@@ -52,18 +55,18 @@ test('doctor: cycle guard approaching is attention (reset at cycle start)', (t) 
   writeState(dir, s);
   const r = aegis(dir, ['doctor']);
   assert.equal(r.status, 0, r.stderr);
-  assert.match(r.stdout, /state 07a visited 2\/3/);
-  assert.match(r.stdout, /aegis loops reset --reason/);
+  assert.match(r.stderr, /state 07a visited 2\/3/);
+  assert.match(r.stderr, /aegis loops reset --reason/);
 });
 
 test('doctor: stale hook bake is drift; fresh bake is silent', (t) => {
   const dir = scratch(t);
   const clean = aegis(dir, ['doctor']);
-  assert.doesNotMatch(clean.stdout, /hooks were baked for/);
+  assert.doesNotMatch(clean.stderr, /hooks were baked for/);
   const hookP = path.join(dir, '.git', 'hooks', 'pre-commit');
   fs.writeFileSync(hookP, fs.readFileSync(hookP, 'utf8').replace(/!= "v?[\d.]+"/, '!= "0.0.1"'));
   const stale = aegis(dir, ['doctor']);
   assert.equal(stale.status, 0, stale.stderr);
-  assert.match(stale.stdout, /hooks were baked for v0\.0\.1/);
-  assert.match(stale.stdout, /re-run: aegis hooks/);
+  assert.match(stale.stderr, /hooks were baked for v0\.0\.1/);
+  assert.match(stale.stderr, /re-run: aegis hooks/);
 });

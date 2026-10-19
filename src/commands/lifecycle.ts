@@ -178,18 +178,23 @@ export async function init(args: string[]): Promise<void> {
 
 export function doctorCmd(args: string[]): void {
   const r = doctor();
+  // stdout carries ONLY the JSON report: doctor is machine-parseable by
+  // contract (agents and CI parse it). Advisory lines - save confirmation,
+  // prune note, drift/attention - go to stderr so they can never corrupt the
+  // document. Regression: a 19-blade drift note used to land on stdout and
+  // broke JSON.parse on every CI runner (no skill stores installed there).
   console.log(JSON.stringify(r, null, 2));
   if (args.includes('--save') && fs.existsSync(configP)) {
     const cfg = JSON.parse(fs.readFileSync(configP, 'utf8'));
     cfg.environment_level = r.environment_level;
     cfg.ram_mb = r.ram_total_mb;
     fs.writeFileSync(configP, JSON.stringify(cfg, null, 2) + '\n');
-    ok('config updated from doctor');
+    console.error('OK config updated from doctor');
   }
-  if (r.worktrees_pruned) ok('stale worktrees pruned (A1.6)');
+  if (r.worktrees_pruned) console.error('OK stale worktrees pruned (A1.6)');
   if (!has('tsc') && !has('npx')) console.error('warn: no tsc/npx found - typecheck hooks will degrade');
-  for (const d of drift()) console.log(`note: drift: ${d}`);
-  for (const a of attention()) console.log(`note: attention: ${a}`);
+  for (const d of drift()) console.error(`note: drift: ${d}`);
+  for (const a of attention()) console.error(`note: attention: ${a}`);
 }
 
 /** The AFK morning-coffee report (v0.5.1): what will PARK an unattended run.

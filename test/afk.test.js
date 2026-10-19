@@ -77,7 +77,7 @@ test('doctor attention: open fix, loop counters, OPEN gates are surfaced', (t) =
   writeState(dir, s);
   const d = aegis(dir, ['doctor']);
   assert.equal(d.status, 0, d.stderr);
-  assert.match(d.stdout, /attention: fix OPEN: "half-done patch"/);
-  assert.match(d.stdout, /attention: loop counter 01b->01a at 2\/3/);
-  assert.match(d.stdout, /attention: gate PRD OPEN blocks 01a->01b/);
+  assert.match(d.stderr, /attention: fix OPEN: "half-done patch"/);
+  assert.match(d.stderr, /attention: loop counter 01b->01a at 2\/3/);
+  assert.match(d.stderr, /attention: gate PRD OPEN blocks 01a->01b/);
 });

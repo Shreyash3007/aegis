@@ -136,7 +136,7 @@ test('doctor reports a recorded lane with no matching worktree', (t) => {
   writeState(dir, s);
   const d = aegis(dir, ['doctor']);
   assert.equal(d.status, 0, d.stderr); // advisory, never blocking
-  assert.match(d.stdout, /drift: lane 'ghost-slice' recorded active but no worktree matches/);
+  assert.match(d.stderr, /drift: lane 'ghost-slice' recorded active but no worktree matches/);
 });
 
 test('doctor reports commits whose post-commit checkpoint never fired', (t) => {
@@ -148,7 +148,7 @@ test('doctor reports commits whose post-commit checkpoint never fired', (t) => {
   gitIn(dir, ['add', '-A']);
   gitIn(dir, ['commit', '-q', '--no-verify', '-m', 'unrecorded work']);
   const d = aegis(dir, ['doctor']);
-  assert.match(d.stdout, /drift: 1 commit\(s\) since last checkpoint/);
+  assert.match(d.stderr, /drift: 1 commit\(s\) since last checkpoint/);
 });
 
 // ---------- self-update tag parsing (pure) ----------

@@ -42,7 +42,7 @@ test('audit: declaring a tool dependency does not invent an available executable
   const report = () => {
     const r = aegis(dir, ['doctor']);
     assert.equal(r.status, 0, r.stderr);
-    return JSON.parse(r.stdout.slice(0, r.stdout.indexOf('\n}') + 2));
+    return JSON.parse(r.stdout); // stdout is the report and only the report
   };
   const before = report().tools;
   fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ devDependencies: { playwright: 'nonexistent-fixture-version', eslint: 'nonexistent-fixture-version' } }));
@@ -62,7 +62,7 @@ test('audit: hook install and drift checks use the effective repo-local Git hook
   assert.equal(fs.readFileSync(`${file}.aegis-orig`, 'utf8'), original);
   const body = fs.readFileSync(file, 'utf8').replace(/!= "v?[\d.]+"/, '!= "0.0.0"');
   fs.writeFileSync(file, body);
-  assert.match(aegis(dir, ['doctor']).stdout, /hooks were baked for v0\.0\.0/);
+  assert.match(aegis(dir, ['doctor']).stderr, /hooks were baked for v0\.0\.0/);
 });
 
 test('audit: TypeScript re-exports and mixed import/export cycles fire the DAG gate', (t) => {

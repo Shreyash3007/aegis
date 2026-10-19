@@ -91,6 +91,24 @@ test('missing tools: doctor degrades honestly without git (no raw stack)', (t) =
   assert.ok(doc.node && doc.ram_total_mb > 0, 'the rest of the report still measures');
 });
 
+test('missing tools: doctor stdout stays machine-parseable JSON when drift notes exist', (t) => {
+  const dir = scratch(t);
+  // Force drift deterministically: point the skill stores at directories that
+  // cannot exist, so the routed-blade check must report. On a developer machine
+  // the stores are present and the note never fires - that is exactly how the
+  // CI-red case stayed invisible locally, so it is pinned here.
+  const env = {
+    PATH: '',
+    AEGIS_SKILL_STORES: [path.join(dir, 'no-store-a'), path.join(dir, 'no-store-b')].join(path.delimiter),
+  };
+  const r = aegis(dir, ['doctor'], { env });
+  assert.equal(r.status, 0, `doctor must not crash: ${r.stderr}`);
+  const doc = JSON.parse(r.stdout); // advisory notes belong on stderr, never after the JSON
+  assert.equal(typeof doc.git, 'string');
+  assert.equal(typeof doc.environment_level, 'string');
+  assert.match(r.stderr, /note: drift:/, 'the drift note is still reported - on stderr');
+});
+
 test('missing tools: init without git refuses before touching existing state', (t) => {
   const dir = scratch(t);
   const statePath = path.join(dir, '.aegis', 'state.json');
