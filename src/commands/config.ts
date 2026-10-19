@@ -69,8 +69,15 @@ export function config(args: string[]): void {
   if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg)) die(2, 'config must be an object');
   if (args[0] === 'set') {
     const [key, value] = [args[1], args[2]];
-    if (!key || value === undefined)
+    // Name the real problem: a missing key is a usage error, and a known key
+    // with no value is a missing value - never "unknown key" (05b finding: the
+    // old message called a valid key unknown and then listed it as valid).
+    if (!key) die(2, 'usage: aegis config set <key> <value>   (aegis config prints the current values)');
+    if (value === undefined) {
+      if (key.startsWith('validate_suite.') || key.startsWith('contracts_path.') || SETTABLE[key])
+        die(2, `config set: ${key} needs a value   (aegis config set ${key} <value>; '-' removes an optional key)`);
       die(2, `unknown key '${key}' - valid keys: ${Object.keys(SETTABLE).join(', ')}, validate_suite.<name>`);
+    }
     if (key.startsWith('contracts_path.')) {
       const app = key.slice('contracts_path.'.length);
       const apps = (cfg.apps ?? []) as string[];
