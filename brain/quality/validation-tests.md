@@ -4,4 +4,4 @@
 - tool: npm
 - command: `npm test`
 - status: **PASS**
-- summary: ℹ skipped 0 | ℹ todo 0 | ℹ duration_ms 287086.239
+- summary: ℹ skipped 0 | ℹ todo 0 | ℹ duration_ms 314440.5819
