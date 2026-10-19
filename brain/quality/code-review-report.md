@@ -29,12 +29,15 @@ No dimension scores 1–2. No score is presented without file-level evidence.
 | CR-1 | **Major** | `src/adapters/cursor.ts` imported `pathHits` from `src/adapters/claude-code.ts` — the only cross-adapter dependency, violating the standards' per-host rule and coupling R3a to R3c. | **RESOLVED** — helper moved to `src/lib/host-primitives.ts`; `test/adapter-independence.test.js` pins the rule (RED: `cursor.ts -> claude-code.ts`; GREEN after the move). All 33 adapter tests pass. |
 | CR-2 | Minor | ~150 lines of duplicated helpers across the three adapters (`isPlain`, `sameJson`, `clone`, `protectedPaths`, `detectIndent`, `serialize`, `guardTargets`, `readSettings`, `restore`, `verifyWrite`). | **Open → 07a backlog** (one refactor type per cycle; not a behavior defect) |
 | CR-3 | Note | A cursor `sessionStart` entry written as a plain string (not the documented `{command}` object) is not scanned as aegis-shaped, so it would be preserved rather than refused. Documented schema uses objects; foreign content is never touched, so this is a stale-hook risk, not corruption. | Open (recorded) |
-| CR-4 | Major | R5 has no implementation to review — the executor trial is owner-blocked. | **Open, owner** (contract must-pass M4) |
 
 Routing per 06b: CR-1 Major → fixed before 08a (done). CR-2 Minor → 07a.
-CR-3 Note → trend record. CR-4 Major → cannot be fixed by code; it is the
-owner's R5 decision and is carried into the 08a verdict as a No-Go condition
-unless waived.
+CR-3 Note → trend record.
+
+**Out of review scope, carried to the 08a verdict:** R5 (the executor
+delivery trial, contract must-pass M4) has no implementation in this repo to
+review. It is a release-gate condition owned by the human, not a code
+finding, so it is not recorded as a review blocker — and the 08a verdict
+treats it as a No-Go condition unless the owner explicitly waives it.
 
 ## 3. Structural checks
 
@@ -60,6 +63,6 @@ unless waived.
 ## 5. Verdict
 
 **Proceed.** One Major finding was raised and resolved with a pinning test;
-the remaining Major (CR-4, R5) is an owner decision, not a code defect. Minor
-and note findings are carried to 07a and the trend record — none are dropped
-silently.
+Minor and note findings are carried to 07a and the trend record — none are
+dropped silently. The release-level R5 condition is not a code finding; it is
+carried into the 08a verdict as an owner decision.

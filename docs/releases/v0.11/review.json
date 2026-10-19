@@ -35,16 +35,6 @@
         "brain/quality/code-review-report.md",
         "src/adapters/cursor.ts"
       ]
-    },
-    {
-      "id": "CR-4",
-      "summary": "R5 has no implementation to review: the executor trial is owner-blocked, so the delivery path (executor diff, RED/GREEN, acceptance, review, merge, recovery) is unexercised by a real external executor. This is a contract must-pass item, not a code defect.",
-      "severity": "major",
-      "status": "open",
-      "evidence": [
-        "docs/releases/v0.11/RELEASE-CONTRACT.md",
-        "docs/releases/v0.11/r5-executor-trial.md"
-      ]
     }
   ]
 }
