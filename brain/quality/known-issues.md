@@ -58,3 +58,27 @@ Refreshed findings at source `fb1779a`. Every line cites a tool + command.
 13. **OPEN (note, pre-existing):** `#8b949e` on white is 3.08:1, below AA. It
     renders only on the dark terminal panel (6.15:1 there). Recorded so a
     future token move is caught. cites: `brain/quality/accessibility-audit.md`.
+
+## v0.11 exact-commit CI ledger (2026-10-19)
+
+CI on `59f1f52` and `b9c7a67` was **red** (test job, all three runners) while
+the same suite passed locally. Two deterministic environment differences, both
+found, fixed and re-verified; CI is green at `c7f8870`.
+
+14. **FIXED (Major):** `aegis doctor` printed drift/attention notes to stdout
+    *after* the JSON report, so `JSON.parse(stdout)` failed whenever a note
+    existed. Locally the skill stores exist, so no note fired; on a fresh
+    runner 19 routed blades are missing and every machine consumer broke.
+    Advisory lines now go to stderr. cites: `gh run view 39133357948 --log`
+    (`not ok 36`, "Unexpected non-whitespace character after JSON"); local
+    repro with `AEGIS_SKILL_STORES` at nonexistent dirs (position 424, line
+    20); regression test "doctor stdout stays machine-parseable JSON when
+    drift notes exist"; green CI `gh run view 39238554395`.
+15. **FIXED (Minor):** `test/pm-detect.test.js` asserted
+    `status !== 'UNMEASURED'`, which only holds where pnpm/yarn are installed.
+    The runner-less outcome is correctly UNMEASURED naming the cause, so the
+    assertion now accepts PASS/FAIL/UNMEASURED and requires the cause when
+    UNMEASURED. cites: `gh run view 39133357948 --log` (`not ok 334`,
+    "Expected \"actual\" to be strictly unequal to: 'UNMEASURED'"); isolated
+    PATH repro recording `pnpm not found on PATH`; green CI
+    `gh run view 39238554395` (`# tests 395`, `# fail 0`).

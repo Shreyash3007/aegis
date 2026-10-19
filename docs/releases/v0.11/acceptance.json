@@ -1,7 +1,7 @@
 {
   "version": 1,
   "release": "v0.11",
-  "note": "Observable-outcome acceptance for the v0.11 surface (05d). Each criterion runs a real command and passes only on exit 0. Budget discipline: quality evidence allows 60s per criterion and 120s total, so the criteria are the narrowest suites that still observe each contract item end-to-end. The exhaustive runs (full suite 391/391, audit 154/0, strict-profile/adverse/evidence/lock/state-fs runners, self-cycle, pilot, dogfood, package-check) are cited in brain/quality/bug-hunting-report.md and the release battery; they are not duplicated here because they exceed the per-check budget.",
+  "note": "Observable-outcome acceptance for the v0.11 surface (05d). Each criterion runs a real command and passes only on exit 0. Budget discipline: quality evidence allows 60s per criterion and 120s total, so the criteria are the narrowest suites that still observe each contract item end-to-end. The exhaustive runs (full suite 395/395, audit 154/0, strict-profile/adverse/evidence/lock/state-fs runners, self-cycle, pilot, dogfood, package-check) are cited in brain/quality/bug-hunting-report.md and the release battery; they are not duplicated here because they exceed the per-check budget. AC9 was added after exact-commit CI exposed B-4 (doctor notes on stdout); it pins the contract that CI caught.",
   "criteria": [
     {
       "id": "AC1-host-surface",
@@ -42,6 +42,11 @@
       "id": "AC8-adverse-recovery",
       "statement": "R6: interrupted recovery and concurrent writers are handled honestly, and owner work is preserved rather than deleted.",
       "command": ["node", "--test", "--test-name-pattern", "interrupted|concurrent|owner work|preserv", "test/adverse-scenarios.test.js"]
+    },
+    {
+      "id": "AC9-doctor-json",
+      "statement": "R6/B-4: doctor's stdout stays machine-parseable JSON even when drift or attention notes exist; advisory lines are reported on stderr. CI caught the original contamination on a runner without skill stores.",
+      "command": ["node", "--test", "--test-name-pattern", "machine-parseable", "test/adverse-scenarios.test.js"]
     }
   ]
 }

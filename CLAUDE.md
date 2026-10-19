@@ -150,7 +150,9 @@ than rewriting them.
 The full validation phase (05a-05e), review (06b) and maintain phase
 (07a-07c) ran to completion at `1a42a73`, and the ship verdict is recorded.
 **State: 08a. Verdict: NO-GO pending two owner decisions.** Nothing further
-can be advanced by code work.
+can be advanced by code work. *(Amended 2026-10-19: exact-commit CI then
+exposed two environment-dependent defects — see the CI section below. Both are
+fixed and CI is green; the verdict and the two owner decisions are unchanged.)*
 
 Artifacts written this phase (all tracked, all evidence-cited):
 `brain/quality/traceability-matrix.md` (13 criteria: 12 mapped = 92.3%, gap =
@@ -214,4 +216,41 @@ with that in mind.
 G3 provenance note is now closed by use: the validation phase ran on the
 cycle-wide G3 record (2026-10-13, by human-token). If the owner prefers a
 fresh G3 on the integrated evidence, say so before the release ritual.
+
+## Exact-commit CI was red; two defects fixed (2026-10-19)
+
+The first exact-commit CI runs in this cycle failed the `test` job on all
+three runners at `59f1f52` and `b9c7a67`, while the same suite passed locally.
+Both causes were deterministic environment differences, not flakes:
+
+- **B-4 (Major, FIXED at `c7f8870`)**: `aegis doctor` appended drift/attention
+  notes (and the `--save`/prune confirmations) to stdout after the JSON
+  report, so `JSON.parse(stdout)` failed whenever a note existed. A developer
+  machine has the skill stores and no note fires; a fresh runner is missing 19
+  routed blades. Advisory lines now go to stderr; the slice-at-`\n}`
+  workaround in `test/audit-packaging.test.js` was removed. This restores
+  v0.11 R6's own "doctor stays machine-parseable JSON" claim.
+- **B-5 (Minor, FIXED at `c7f8870`)**: `test/pm-detect.test.js` asserted
+  `status !== 'UNMEASURED'`, which encodes "pnpm/yarn are installed"; the
+  runner-less `UNMEASURED` with the cause named is the documented honest
+  outcome. The assertion now accepts PASS/FAIL/UNMEASURED and requires the
+  cause when UNMEASURED.
+
+Verification: `gh run view 39238554395` at `c7f8870` -> windows-latest
+`# tests 395, # pass 395, # fail 0, # skipped 0`; ubuntu-latest `# tests 395,
+# pass 393, # fail 0, # skipped 2` (the two OS symlink-privilege guards).
+Local `aegis validate tests` PASS (skipped 0, todo 0). A new acceptance
+observer AC9 pins the doctor stdout contract; the acceptance plan now cites
+395 tests.
+
+**Lesson 3 recorded:** a locally green suite is not evidence about CI. A test
+that depends on an installed tool, a home-directory skill store, or a package
+manager must either force the condition it claims to test (the new doctor
+regression points `AEGIS_SKILL_STORES` at impossible paths) or accept the
+honest degraded outcome (package-manager detection). Both CI failures were
+invisible to 391 local passes.
+
+State is unchanged: 08a, verdict NO-GO, the same two owner decisions (R5,
+G4). Quality receipts must be recaptured at the final tip after this docs
+commit - any commit stales them.
 <!-- AEGIS:END -->
