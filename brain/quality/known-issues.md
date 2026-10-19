@@ -32,3 +32,29 @@
    around read-modify-write; stale locks stolen). Measured after fix: 6/6
    events x5 trials, 10/10 concurrent exec.
    cites: docs/PLATFORM-MATRIX.md "shared-tree concurrency (re-run v0.4.1)"
+
+## v0.11 bug-hunt ledger (05c, 2026-10-18)
+
+Refreshed findings at source `fb1779a`. Every line cites a tool + command.
+
+9. **FIXED (minor, UX):** `aegis config set <valid-key>` without a value
+   reported `unknown key '<key>'` while listing that key as valid; a bare
+   `config set` printed `unknown key 'undefined'`. Both now name the real
+   problem. cites: `test/config.test.js` "config set: missing value and
+   missing key are named honestly" (RED -> GREEN); full suite 391/391.
+10. **NO DEFECT — skip audit:** the suite's three `.skip(` sites are
+    environment guards, not hidden skips: two skip only when the OS refuses
+    symlink creation (`EPERM`/`EACCES`), one when the no-share file pin cannot
+    be established. On this host all three executed (suite reported
+    `skipped 0`). cites: `aegis validate tests` (skipped 0, todo 0).
+11. **NO DEFECT — flake audit:** zero quarantined lanes; no silent retries in
+    the suite. cites: `aegis quarantine list` -> "no quarantined lanes".
+12. **OPEN (note, environmental):** `aegis validate deps` reports UNMEASURED
+    here because PATH npm 12.2.0 cannot read `npm-shrinkwrap.json` (ENOLOCK).
+    The contract's Node-bundled npm reports 0 vulnerabilities. Not a code
+    defect; kept visible so a future release does not read the UNMEASURED line
+    as a regression. cites: v0.10 HANDOVER §4; Node-bundled
+    `npm audit --audit-level=high`.
+13. **OPEN (note, pre-existing):** `#8b949e` on white is 3.08:1, below AA. It
+    renders only on the dark terminal panel (6.15:1 there). Recorded so a
+    future token move is caught. cites: `brain/quality/accessibility-audit.md`.

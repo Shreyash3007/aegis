@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "release": "v0.11",
+  "note": "Observable-outcome acceptance for the v0.11 surface (05d). Each criterion runs a real command and passes only on exit 0. Budget discipline: quality evidence allows 60s per criterion and 120s total, so the criteria are the narrowest suites that still observe each contract item end-to-end. The exhaustive runs (full suite 391/391, audit 154/0, strict-profile/adverse/evidence/lock/state-fs runners, self-cycle, pilot, dogfood, package-check) are cited in brain/quality/bug-hunting-report.md and the release battery; they are not duplicated here because they exceed the per-check budget.",
+  "criteria": [
+    {
+      "id": "AC1-host-surface",
+      "statement": "R2: the shipped declarations are reachable through the real CLI (host list) and the cursor declaration is inspectable with its advertised status.",
+      "command": ["node", "dist/cli.js", "host", "list"]
+    },
+    {
+      "id": "AC2-skill-lint",
+      "statement": "M1: the deterministic skill lint passes on every shipped skill file (71/71) with no model judge required.",
+      "command": ["node", "dist/cli.js", "eval", "--all"]
+    },
+    {
+      "id": "AC3-contracts",
+      "statement": "M2/04c: the contract surface typechecks clean and the contracts directory is present and valid.",
+      "command": ["node", "dist/cli.js", "validate", "contracts"]
+    },
+    {
+      "id": "AC4-perf-budget",
+      "statement": "M1: the JS bundle stays inside the recorded perf budget (measured, not asserted).",
+      "command": ["node", "dist/cli.js", "validate", "perf"]
+    },
+    {
+      "id": "AC5-host-declarations",
+      "statement": "R2: declarations carry the contract fields, bindings name real CLI argv, unsupported events are explicit and disjoint, and declarationProblems refuses verified-without-smoke / manual-guidance-with-events / shell interpolation.",
+      "command": ["node", "--test", "test/host-capabilities.test.js"]
+    },
+    {
+      "id": "AC6-cursor-adapter",
+      "statement": "R3c: the cursor adapter writes exactly one canonical managed entry, preserves foreign content, and refuses stray/duplicated/linked/ambiguous targets before writing.",
+      "command": ["node", "--test", "--test-name-pattern", "install:|refusals:|uninstall:", "test/adapters-cursor.test.js"]
+    },
+    {
+      "id": "AC7-evidence-refusals",
+      "statement": "R4: the evidence publisher refuses missing/stale bindings, overwrites, credentials, private paths, raw prompt blobs and reported-cost-as-billing.",
+      "command": ["node", "--test", "test/evidence-publish.test.js"]
+    },
+    {
+      "id": "AC8-adverse-recovery",
+      "statement": "R6: interrupted recovery and concurrent writers are handled honestly, and owner work is preserved rather than deleted.",
+      "command": ["node", "--test", "--test-name-pattern", "interrupted|concurrent|owner work|preserv", "test/adverse-scenarios.test.js"]
+    }
+  ]
+}
