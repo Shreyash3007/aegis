@@ -63,12 +63,14 @@ design (owner input), not by a code gap.
 
 ## 4. Criterion → code (gap check)
 
-13 of 14 deliverable criteria have implementation evidence (table §1).
-**Gaps: 1 / 14 = 7.1%** — R5 only, and it is an owner-input gap (executor
-selection), not an implementation omission.
+The deliverable table above holds **13 criteria rows** (R1 ×3, R2 ×2, R3a/b/c
+×3, R4 ×2, R6 ×2, R5 ×1). **12 of 13 have implementation evidence = 92.3%.**
+
+**Gaps: 1 / 13 = 7.7%** — R5 only, and it is an owner-input gap (executor
+selection + spend cap), not an implementation omission.
 
 Per 05a's red flag (creep > 5% **or** gaps > 5% → human review with the
-matrix): creep is 0%; gaps are 7.1% but entirely attributable to the
+matrix): creep is 0%; gaps are 7.7% but entirely attributable to the
 contract's own BLOCKED-by-design item. This matrix is therefore presented to
 the owner as the review artifact — the gap is the R5 decision already listed
 as open, not a newly discovered defect. Recorded honestly rather than
