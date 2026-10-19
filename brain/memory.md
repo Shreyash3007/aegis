@@ -2,7 +2,7 @@
 
 # Memory (record store)
 
-- total: 5 | stale (re-verify): 0 | open reconciles: 0
+- total: 6 | stale (re-verify): 0 | open reconciles: 0
 
 ## Active
 
@@ -11,6 +11,7 @@
 - `mem-0003` [finding/0.5] live page reported stale, repo was current (cites:1)
 - `mem-0004` [finding/0.5] stale-page report resolved to edge cache (cites:1)
 - `mem-0005` [decision/0.5] exit-code discipline: malformed 2, refused 4 (cites:1)
+- `mem-0006` [decision/0.5] carry adapter-plumbing duplication to next cycle (07a) (cites:2)
 
 ## Pending
 

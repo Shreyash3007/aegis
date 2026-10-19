@@ -4,4 +4,4 @@
 - status: **HEALTHY**
 - checks: 1 | breaches: 0
 
-- https://shreyash3007.github.io/aegis/: 200 in 1050ms ok
+- https://shreyash3007.github.io/aegis/: 200 in 610ms ok

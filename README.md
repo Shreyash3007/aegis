@@ -190,7 +190,7 @@ process outcomes, not test adequacy; semantic review remains required.
 | `aegis eval <file\|--all>` | Skill-file eval harness; opt-in model judge | 0 / 2 / 11 |
 | `aegis update [--check]` / `--version` | Self-update from latest tag / print version | 0 / 2 |
 | `aegis hooks [--profile min\|std\|strict]` | Hook strictness: minimal (record-only) / standard / strict (+ tests on pre-push) | 0 / 2 / 4 |
-| `aegis host <list\|inspect <id>>` | Host adapter capability declarations + evidence status (v0.11: claude-code / opencode / cursor; installs unlock per host slice) | 0 / 2 |
+| `aegis host <list\|inspect\|install\|uninstall\|verify <id>>` | Host capability declarations + adapters (v0.11: claude-code / opencode / cursor shipped; install/uninstall/verify write only the managed block) | 0 / 2 / 4 / 9 |
 | `aegis migrate` | Schema migration across CLI versions | 0 / 2 / 12 |
 
 Exit codes: `0 ok · 1 not a git repo · 2 malformed call or missing state ·
