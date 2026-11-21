@@ -472,3 +472,10 @@ State is unchanged: 08a, verdict NO-GO, the same two owner decisions (R5,
 G4). Quality receipts must be recaptured at the final tip after this docs
 commit - any commit stales them.
 <!-- AEGIS:END -->
+
+---
+
+## Workspace map
+
+The workspace-wide project map is maintained at **D:\\Projects\\PROJECTS-MAP.md** (Strata\strata history entry D:\Projects\Strata\strata). It is the complete, categorized list of every project, research and archive node under D:\Projects. Read it before starting work here.
+
